@@ -2,13 +2,19 @@
 
 LockKnife is a command-line tool written in Bash that helps you recover Android lock screen passwords of an Android device.
 
+## Whats New ( v1.2.0 )
+
+- Added multiple password recovery
+- Wifi password recovery
+- Gesture password recovery
+
 ## Features
 
-- Convenient terminal-based tool to recover Android lock screen passwords.
+- Convenient terminal-based tool to recover i.Android lock screen passwords, ii.WiFi passwords.
 - Easy-to-use with interactive prompts.
 - Supports Android devices with USB debugging enabled.
 - Automatically connects to the device using ADB.
-- Auto Decrypts the password file (assuming default encryption) and displays the recovered password.
+- Auto Decrypts the password file (assuming default encryption) and displays the recovered passwords.
 
 ## Requirements
 
