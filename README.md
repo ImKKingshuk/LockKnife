@@ -4,7 +4,7 @@ LockKnife is a command-line tool written in Bash that helps you recover Android 
 
 ## Whats New ( v1.2.0 )
 
-- Added multiple password recovery
+- Added multiple types of password recovery
 - Wifi password recovery
 - Gesture password recovery
 
