@@ -4,6 +4,7 @@ function print_banner() {
     echo "******************************************"
     echo "*                LockKnife               *"
     echo "*         Android Password Tool          *"
+    echo "*                  v1.3.1                *"
     echo "*      ----------------------------      *"
     echo "*                        by @ImKKingshuk *"
     echo "* Github- https://github.com/ImKKingshuk *"
