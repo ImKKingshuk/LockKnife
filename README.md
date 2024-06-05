@@ -29,9 +29,8 @@ LockKnife is a command-line tool written in Bash that helps you recover Android 
 
 - macOS, Linux, Windows
 - Bash-compatible environment
-- Rooted Android device
 - [ADB (Android Debug Bridge)](https://developer.android.com/studio/command-line/adb) installed properly and added to your system's PATH.
-- [sqlite3](https://www.sqlite.org/download.html) for analyzing locksettings.db (required for Android 10+ support)
+- [sqlite3](https://www.sqlite.org/download.html) required for Android 10+ support
 
 ## How to Use
 
