@@ -34,7 +34,7 @@ function connect_device() {
         exit 1
     fi
 
-    # Check if device is rooted
+  
     root_check=$(adb -s "$device_serial" shell 'su -c "id -u" 2>/dev/null')
     if [[ "$root_check" -ne 0 ]]; then
         echo "Error: Device is not rooted. Root access is required to access the password files."
