@@ -81,7 +81,7 @@ function recover_locksettings_db() {
         exit 1
     fi
 
-    # Extracting possible PINs, passwords, and patterns
+   
     sqlite3 "$db_file" "SELECT name, value FROM locksettings WHERE name LIKE 'lockscreen%' OR name LIKE 'pattern%' OR name LIKE 'password%';" | while read -r row; do
         echo "Recovered setting: $row"
     done
