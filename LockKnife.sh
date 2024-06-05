@@ -3,7 +3,7 @@
 function print_banner() {
     echo "******************************************"
     echo "*                LockKnife               *"
-    echo "*         Android Password Tool          *"
+    echo "*   The Ultimate Android Password Tool   *"
     echo "*                  v1.5.0                *"
     echo "*      ----------------------------      *"
     echo "*                        by @ImKKingshuk *"
