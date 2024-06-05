@@ -45,7 +45,7 @@ To use LockKnife, follow these steps:
 
 ## Disclaimer
 
-🌟🌟🌟 "The developer of LockKnife is not responsible for any misuse or illegal activities conducted with this tool. Use at your own risk." 🌟🌟🌟
+🌟🌟🌟 "The developer of `LockKnife : The Ultimate Android Password Tool` is not responsible for any misuse or illegal activities conducted with this tool. Use at your own risk." 🌟🌟🌟
 
 ### Note
 
