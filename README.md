@@ -54,7 +54,7 @@ Ensure proper authorization before using LockKnife for password recovery or data
 
 ## Acknowledgments
 
-`LockKnife : The Ultimate Android Password Tool` is developed for research and educational purposes. It should be used responsibly and in compliance with all applicable laws and regulations. The developer acknowledges and appreciates the effort that went into creating this powerful and versatile Android password recovery tool.
+`LockKnife : The Ultimate Android Password Tool` is developed for research and educational purposes. It should be used responsibly and in compliance with all applicable laws and regulations. The developer of this tool is not responsible for any misuse of this tool.
 
 Feel free to contribute to the project by reporting issues or submitting pull requests!
 
