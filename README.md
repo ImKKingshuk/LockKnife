@@ -1,29 +1,37 @@
-# LockKnife
+<h1 align="center">LockKnife</h1> 
+<h3 align="center">v1.5.0</h3>
 
 LockKnife is a command-line tool written in Bash that helps you recover Android lock screen passwords of an Android device.
 
-## Whats New ( v1.3.1 )
+## What's New (v1.5.0)
 
-- Added Android 14 Support
-- Added multiple types of Password Recovery
-- Wifi Password Recovery
-- Gesture Password Recovery
-- Pin Recovery
-- Password Recovery
-- Privacy Protection Password Recovery
+- Enhanced User Interface with Main Menu and Submenus
+- Added Support for Android 10 and Newer Versions (Android 14)
+- Improved Wi-Fi Password Recovery
+- Integrated Locksettings Analysis for Android 10+
+- Support for Multiple Android Versions:
+  - Android 5 and Older
+  - Android 6 to 9
+  - Android 10 and Newer
 
 ## Features
 
-- Convenient terminal-based tool to recover i.Android lock screen passwords, ii.WiFi passwords.
+- Convenient terminal-based tool to recover:
+  - Android lock screen passwords (PIN, pattern, password)
+  - WiFi passwords
 - Easy-to-use with interactive prompts.
 - Supports Android devices with USB debugging enabled.
 - Automatically connects to the device using ADB.
-- Auto Decrypts the password file (assuming default encryption) and displays the recovered passwords.
+- Decrypts password files and displays recovered passwords.
+- Analyzes locksettings for lock screen credentials on newer Android versions.
 
 ## Requirements
 
-- macOS or Linux operating system (Windows support is possible but not included in this version, Windows support coming soon).
+- macOS, Linux, Windows
+- Bash-compatible environment
+- Rooted Android device
 - [ADB (Android Debug Bridge)](https://developer.android.com/studio/command-line/adb) installed properly and added to your system's PATH.
+- [sqlite3](https://www.sqlite.org/download.html) for analyzing locksettings.db (required for Android 10+ support)
 
 ## How to Use
 
@@ -38,17 +46,16 @@ To use LockKnife, follow these steps:
 
 ## Disclaimer
 
-🌟🌟🌟"The Developer of this tool is not responsible for any type of activity done by you using this tool, Use at your own risk"🌟🌟🌟
+🌟🌟🌟 "The developer of LockKnife is not responsible for any misuse or illegal activities conducted with this tool. Use at your own risk." 🌟🌟🌟
 
 ### Note
 
 Password recovery tools should only be used for legitimate purposes and with proper authorization. Using such tools without proper authorization is illegal and a violation of privacy.
-
-Please note that this example assumes that you have the necessary permissions and access to the Android device for which you want to recover the password. Additionally, this tool may not work on all Android devices or all Android versions or for all password types.
+Ensure proper authorization before using LockKnife for password recovery or data extraction. Always adhere to ethical hacking practices and comply with all applicable laws and regulations.
 
 ## Acknowledgments
 
-LockKnife tool was created for research and educational purposes. It should be used responsibly and in compliance with all applicable laws and regulations. The developer of this tool is not responsible for any misuse of this tool.
+`LockKnife : The Ultimate Android Password Tool` is developed for research and educational purposes. It should be used responsibly and in compliance with all applicable laws and regulations. The developer acknowledges and appreciates the effort that went into creating this powerful and versatile Android password recovery tool.
 
 Feel free to contribute to the project by reporting issues or submitting pull requests!
 
