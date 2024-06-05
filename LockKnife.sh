@@ -75,7 +75,7 @@ function recover_locksettings_db() {
 
     echo "Locksettings database file pulled successfully. Analyzing..."
 
-    # Requires sqlite3 to read the database
+   
     if ! command -v sqlite3 &>/dev/null; then
         echo "Error: sqlite3 not found. Please install sqlite3."
         exit 1
