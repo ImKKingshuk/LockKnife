@@ -12,7 +12,7 @@
 - Support for Multiple Android Versions:
   - Android 5 and Older
   - Android 6 to 9
-  - Android 10 and Newer
+  - Android 10+ and Newer
 
 ## Features
 
