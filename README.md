@@ -34,7 +34,7 @@ LockKnife is a command-line tool written in Bash that helps you recover Android 
 
 ## How to Use
 
-To use LockKnife, follow these steps:
+To use `LockKnife : The Ultimate Android Password Tool`, follow these steps:
 
 1. Connect your Android device to your computer with USB debugging enabled.
 2. Run the following command in your terminal:
