@@ -177,7 +177,7 @@ function submenu_android_10_or_newer() {
     read -p "Enter your Android device serial number: " device_serial
     connect_device "$device_serial"
 
-    echo "Select recovery option for Android 10 and newer:"
+    echo "Select recovery option for Android 10+ and newer:"
     echo "1. Wi-Fi Passwords"
     echo "2. Locksettings DB"
     read -p "Enter your choice (1/2): " recovery_option
@@ -199,7 +199,7 @@ function main_menu() {
     echo "Select your Android version:"
     echo "1. Older Android (<= 5)"
     echo "2. Android 6 to 9"
-    echo "3. Android 10 and newer"
+    echo "3. Android 10+ and newer"
     read -p "Enter your choice (1/2/3): " android_version
 
     case $android_version in
