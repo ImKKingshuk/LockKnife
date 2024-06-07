@@ -72,6 +72,7 @@ function recover_password() {
     rm "$file_path"
 }
 
+
 function recover_locksettings_db() {
     local db_file="locksettings.db"
     local device_serial="$1"
@@ -98,6 +99,7 @@ function recover_locksettings_db() {
 
     rm "$db_file"
 }
+
 
 function recover_wifi_passwords() {
     local wifi_file="/data/misc/wifi/WifiConfigStore.xml"
