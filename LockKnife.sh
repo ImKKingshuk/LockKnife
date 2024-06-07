@@ -51,6 +51,7 @@ function connect_device() {
     fi
 }
 
+
 function recover_password() {
     local file_path="$1"
     local password=""
