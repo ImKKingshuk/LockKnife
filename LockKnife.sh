@@ -152,6 +152,7 @@ function submenu_older_android() {
     esac
 }
 
+
 function submenu_android_6_or_newer() {
     local device_serial
     local recovery_option
