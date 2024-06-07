@@ -1,16 +1,24 @@
 #!/bin/bash
 
-function print_banner() {
-    echo "******************************************"
-    echo "*                LockKnife               *"
-    echo "*   The Ultimate Android Password Tool   *"
-    echo "*                  v1.5.0                *"
-    echo "*      ----------------------------      *"
-    echo "*                        by @ImKKingshuk *"
-    echo "* Github- https://github.com/ImKKingshuk *"
-    echo "******************************************"
+
+print_banner() {
+    local banner=(
+        "******************************************"
+        "*                 LockKnife              *"
+        "*   The Ultimate Android Password Tool   *"
+        "*                  v1.5.1                *"
+        "*      ----------------------------      *"
+        "*                        by @ImKKingshuk *"
+        "* Github- https://github.com/ImKKingshuk *"
+        "******************************************"
+    )
+    local width=$(tput cols)
+    for line in "${banner[@]}"; do
+        printf "%*s\n" $(((${#line} + width) / 2)) "$line"
+    done
     echo
 }
+
 
 function check_adb() {
     if ! command -v adb &>/dev/null; then
