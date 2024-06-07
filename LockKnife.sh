@@ -184,6 +184,7 @@ function submenu_android_6_or_newer() {
     esac
 }
 
+
 function submenu_android_10_or_newer() {
     local device_serial
     local recovery_option
@@ -207,6 +208,7 @@ function submenu_android_10_or_newer() {
     esac
 }
 
+
 function main_menu() {
     local android_version
 
@@ -228,6 +230,7 @@ function main_menu() {
             ;;
     esac
 }
+
 
 function execute_lockknife() {
     print_banner
