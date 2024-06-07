@@ -31,6 +31,7 @@ function check_adb() {
     fi
 }
 
+
 function connect_device() {
     local device_serial="$1"
     
