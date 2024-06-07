@@ -123,6 +123,7 @@ function recover_wifi_passwords() {
     rm "$wifi_file"
 }
 
+
 function submenu_older_android() {
     local device_serial
     local recovery_option
