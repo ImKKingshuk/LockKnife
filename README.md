@@ -29,7 +29,8 @@
 
 - macOS, Linux, Windows
 - Bash-compatible environment
-- [ADB (Android Debug Bridge)](https://developer.android.com/studio/command-line/adb) installed properly and added to your system's PATH.
+- Android Device with [ADB (Android Debug Bridge)](https://developer.android.com/tools/adb) Enabled
+- [Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) installed properly and added to your system's PATH.
 - [sqlite3](https://www.sqlite.org/download.html) required for Android 10+ support
 
 ## How to Use
