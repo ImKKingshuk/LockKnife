@@ -1,18 +1,12 @@
 <h1 align="center">LockKnife</h1>
-<h3 align="center">v1.5.1</h3>
+<h3 align="center">v1.6.1</h3>
 
 **LockKnife: The Ultimate Android Password Tool** - Your Key to Android Password Recovery! 🗝️ Unlock forgotten Android lock screen passwords with ease using this powerful command-line tool. Simply connect your device, and let LockKnife do the magic! 🔒💫
 
-## What's New (v1.5.1)
+## What's New (v1.6.1)
 
-- **Enhanced User Interface**: Improved main menu and submenus for a smoother user experience.
-- **Support for Android 10+**: Added compatibility with the latest Android versions, including Android 14.
-- **Improved Wi-Fi Password Recovery**: More reliable and efficient extraction of Wi-Fi passwords.
-- **Locksettings Analysis**: New feature to analyze locksettings database for Android 10+.
-- **Comprehensive Version Support**:
-  - Android 5 and Older
-  - Android 6 to 9
-  - Android 10+ and Newer Versions (Android 14)
+- **Added Updater**: Automatically checks for the latest version of LockKnife and updates itself.
+- **Minor Optimizations**: General improvements and Optimizations.
 
 ## Features
 
@@ -26,6 +20,7 @@
 - 🔄 **Automatic Device Connection**: Uses ADB to automatically connect to your device.
 - 🗝️ **Decryption**: Decrypts password files and displays recovered passwords.
 - 📄 **Locksettings Analysis**: Analyzes locksettings for lock screen credentials on newer Android versions.
+- 🔄 **Auto Updates**: Automatically checks for updates and updates itself to ensure you have the latest version of LockKnife.
 
 ## Requirements
 
