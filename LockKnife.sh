@@ -1,12 +1,11 @@
 #!/bin/bash
 
-
 print_banner() {
     local banner=(
         "******************************************"
         "*                 LockKnife              *"
         "*   The Ultimate Android Password Tool   *"
-        "*                  v1.5.1                *"
+        "*                  v1.6.1                *"
         "*      ----------------------------      *"
         "*                        by @ImKKingshuk *"
         "* Github- https://github.com/ImKKingshuk *"
@@ -19,19 +18,38 @@ print_banner() {
     echo
 }
 
-
-function check_adb() {
+check_adb() {
     if ! command -v adb &>/dev/null; then
         echo "Error: ADB (Android Debug Bridge) not found. Please install ADB and make sure it's in your PATH."
         echo "You can download ADB from the Android SDK platform-tools. Follow the instructions for your OS:"
         echo "macOS / Linux / Windows: https://developer.android.com/tools/releases/platform-tools"
-
         exit 1
     fi
 }
 
 
-function connect_device() {
+check_for_updates() {
+    local current_version=$(cat version.txt)
+    local latest_version=$(curl -sSL "https://raw.githubusercontent.com/ImKKingshuk/LockKnife/main/version.txt")
+
+    if [ "$latest_version" != "$current_version" ]; then
+        echo "A new version ($latest_version) is available. Updating Tool... Please Wait..."
+        update_tool
+    else
+        echo "You are using the latest version ($current_version)."
+    fi
+}
+
+update_tool() {
+    local repo_url="https://raw.githubusercontent.com/ImKKingshuk/LockKnife/main"
+    curl -sSL "$repo_url/LockKnife.sh" -o LockKnife.sh
+    curl -sSL "$repo_url/version.txt" -o version.txt
+
+    echo "Tool has been updated to the latest version."
+    exec bash LockKnife.sh
+}
+
+connect_device() {
     local device_serial="$1"
     
     adb connect "$device_serial" &>/dev/null
@@ -42,7 +60,6 @@ function connect_device() {
         exit 1
     fi
 
-  
     root_check=$(adb -s "$device_serial" shell 'su -c "id -u" 2>/dev/null')
     if [[ "$root_check" -ne 0 ]]; then
         echo "Error: Device is not rooted. Root access is required to access the password files."
@@ -50,8 +67,7 @@ function connect_device() {
     fi
 }
 
-
-function recover_password() {
+recover_password() {
     local file_path="$1"
     local password=""
     
@@ -71,8 +87,7 @@ function recover_password() {
     rm "$file_path"
 }
 
-
-function recover_locksettings_db() {
+recover_locksettings_db() {
     local db_file="locksettings.db"
     local device_serial="$1"
 
@@ -85,13 +100,11 @@ function recover_locksettings_db() {
 
     echo "Locksettings database file pulled successfully. Analyzing..."
 
-   
     if ! command -v sqlite3 &>/dev/null; then
         echo "Error: sqlite3 not found. Please install sqlite3."
         exit 1
     fi
 
-   
     sqlite3 "$db_file" "SELECT name, value FROM locksettings WHERE name LIKE 'lockscreen%' OR name LIKE 'pattern%' OR name LIKE 'password%';" | while read -r row; do
         echo "Recovered setting: $row"
     done
@@ -99,8 +112,7 @@ function recover_locksettings_db() {
     rm "$db_file"
 }
 
-
-function recover_wifi_passwords() {
+recover_wifi_passwords() {
     local wifi_file="/data/misc/wifi/WifiConfigStore.xml"
     local device_serial="$1"
     local password=""
@@ -114,7 +126,6 @@ function recover_wifi_passwords() {
 
     echo "Wi-Fi configuration file pulled successfully. Analyzing..."
 
-  
     grep -oP '(?<=<string name="PreSharedKey">).+?(?=</string>)' "$wifi_file" | while read -r line; do
         echo "Recovered Wi-Fi password: $line"
     done
@@ -122,8 +133,7 @@ function recover_wifi_passwords() {
     rm "$wifi_file"
 }
 
-
-function submenu_older_android() {
+submenu_older_android() {
     local device_serial
     local recovery_option
 
@@ -151,8 +161,7 @@ function submenu_older_android() {
     esac
 }
 
-
-function submenu_android_6_or_newer() {
+submenu_android_6_or_newer() {
     local device_serial
     local recovery_option
 
@@ -183,8 +192,7 @@ function submenu_android_6_or_newer() {
     esac
 }
 
-
-function submenu_android_10_or_newer() {
+submenu_android_10_or_newer() {
     local device_serial
     local recovery_option
 
@@ -207,8 +215,7 @@ function submenu_android_10_or_newer() {
     esac
 }
 
-
-function main_menu() {
+main_menu() {
     local android_version
 
     echo "Select your Android version:"
@@ -231,8 +238,10 @@ function main_menu() {
 }
 
 
-function execute_lockknife() {
+
+execute_lockknife() {
     print_banner
+    check_for_updates
     check_adb
     main_menu
 }
