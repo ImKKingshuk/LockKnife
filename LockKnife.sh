@@ -24,9 +24,8 @@ function check_adb() {
     if ! command -v adb &>/dev/null; then
         echo "Error: ADB (Android Debug Bridge) not found. Please install ADB and make sure it's in your PATH."
         echo "You can download ADB from the Android SDK platform-tools. Follow the instructions for your OS:"
-        echo "Windows: https://developer.android.com/studio/#command-tools"
-        echo "MacOS: https://developer.android.com/studio/#downloads"
-        echo "Linux: https://developer.android.com/studio/#downloads"
+        echo "macOS / Linux / Windows: https://developer.android.com/tools/releases/platform-tools"
+
         exit 1
     fi
 }
