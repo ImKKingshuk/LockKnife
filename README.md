@@ -5,8 +5,8 @@
 
 ## What's New (v1.6.1)
 
-- **Added Updater**: Automatically checks for the latest version of LockKnife and updates itself.
-- **Minor Optimizations**: General improvements and Optimizations.
+- **Added Updater**: Automatically checks for the latest version of LockKnife and updates itself
+- **Minor Optimizations**: General improvements and Optimizations
 
 ## Features
 
