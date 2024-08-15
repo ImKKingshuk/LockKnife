@@ -5,7 +5,7 @@ print_banner() {
         "******************************************"
         "*                 LockKnife              *"
         "*   The Ultimate Android Password Tool   *"
-        "*                  v1.6.1                *"
+        "*                  v1.6.2                *"
         "*      ----------------------------      *"
         "*                        by @ImKKingshuk *"
         "* Github- https://github.com/ImKKingshuk *"
