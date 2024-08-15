@@ -3,9 +3,8 @@
 
 **LockKnife: The Ultimate Android Password Tool** - Your Key to Android Password Recovery! 🗝️ Unlock forgotten Android lock screen passwords with ease using this powerful command-line tool. Simply connect your device, and let LockKnife do the magic! 🔒💫
 
-## What's New (v1.6.1)
+## What's New (v1.6.2)
 
-- **Added Updater**: Automatically checks for the latest version of LockKnife and updates itself
 - **Minor Optimizations**: General improvements and Optimizations
 
 ## Features
