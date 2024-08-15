@@ -1,5 +1,5 @@
 <h1 align="center">LockKnife</h1>
-<h3 align="center">v1.6.1</h3>
+<h3 align="center">v1.6.2</h3>
 
 **LockKnife: The Ultimate Android Password Tool** - Your Key to Android Password Recovery! 🗝️ Unlock forgotten Android lock screen passwords with ease using this powerful command-line tool. Simply connect your device, and let LockKnife do the magic! 🔒💫
 
