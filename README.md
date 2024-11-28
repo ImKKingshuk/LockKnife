@@ -1,10 +1,13 @@
 <h1 align="center">LockKnife</h1>
-<h3 align="center">v1.6.2</h3>
+<h3 align="center">v1.7.5</h3>
 
-**LockKnife: The Ultimate Android Password Tool** - Your Key to Android Password Recovery! 🗝️ Unlock forgotten Android lock screen passwords with ease using this powerful command-line tool. Simply connect your device, and let LockKnife do the magic! 🔒💫
+<p align="center">LockKnife: The Ultimate Android Password Tool - Your Key to Android Password Recovery! 🗝️ Unlock forgotten Android lock screen passwords with ease using this powerful command-line tool. Simply connect your device, and let LockKnife do the magic! 🔒💫</p>
 
-## What's New (v1.6.2)
+## What's New (v1.7.5)
 
+- **Dictionary Attack**: Added the ability to recover screen lock passwords using a wordlist-based dictionary attack.
+- **Brute Force Attack**: Implemented a brute force method to try all possible 4-digit PIN combinations for screen lock recovery.
+- **Improved Dependency Management**: Checks for missing dependencies and assists in installing them via common package managers like apt, brew, or dnf.
 - **Minor Optimizations**: General improvements and Optimizations
 
 ## Features
@@ -15,6 +18,9 @@
   - Android 5 and Older
   - Android 6 to 9
   - Android 10+ and Newer Versions (Android 14)
+- ⚙️ **Attack Methods**:
+  - Dictionary Attack: Use custom wordlists to recover passwords.
+  - Brute Force: Try all possible 4-digit PIN combinations for fast and efficient recovery.
 - ⚙️ **Interactive Prompts**: User-friendly interface with interactive prompts for seamless recovery.
 - 🔄 **Automatic Device Connection**: Uses ADB to automatically connect to your device.
 - 🗝️ **Decryption**: Decrypts password files and displays recovered passwords.
@@ -42,16 +48,12 @@ To use **LockKnife: The Ultimate Android Password Tool**, follow these steps:
 
 ## Disclaimer
 
-🌟🌟🌟 "The developer of **LockKnife: The Ultimate Android Password Tool** is not responsible for any misuse or illegal activities conducted with this tool. Use at your own risk." 🌟🌟🌟
-
-### Note
+**LockKnife: The Ultimate Android Password Tool** is developed for research and educational purposes. It should be used responsibly and in compliance with all applicable laws and regulations. The developer of this tool is not responsible for any misuse or illegal activities conducted with this tool.
 
 Password recovery tools should only be used for legitimate purposes and with proper authorization. Using such tools without proper authorization is illegal and a violation of privacy. Ensure proper authorization before using LockKnife for password recovery or data extraction. Always adhere to ethical hacking practices and comply with all applicable laws and regulations.
 
-## Acknowledgments
+## License
 
-**LockKnife: The Ultimate Android Password Tool** is developed for research and educational purposes. It should be used responsibly and in compliance with all applicable laws and regulations. The developer of this tool is not responsible for any misuse of this tool.
+This project is licensed under the GPL-3.0-or-later License.
 
-Feel free to contribute to the project by reporting issues or submitting pull requests!
-
-### 😊 Happy Android Password Recovery with LockKnife! 😊
+<h3 align="center">Happy Android Password Recovery with LockKnife! 🔒💫</h3>
