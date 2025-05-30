@@ -2,6 +2,47 @@
 
 All notable changes to `LockKnife : The Ultimate Android Security Research Tool` will be documented in this file.
 
+## [v2.0.0] - 2025-05-30
+
+### Added
+
+- **Configuration System**: Added support for customizable settings via config files in multiple locations.
+- **App-Specific Extraction**: Added specialized extraction for WhatsApp, Telegram, Signal, and browsers.
+- **Bluetooth Pairing Keys**: Added extraction and analysis of Bluetooth pairing keys.
+- **Keystore Access Monitoring**: Added monitoring of keystore access attempts.
+- **Gatekeeper HAL Analysis**: Added advanced credential recovery via Gatekeeper HAL analysis.
+- **Gesture Pattern Recognition**: Implemented precomputed gesture pattern hash mapping with visual representation.
+- **File System Snapshot**: Added comprehensive device snapshot functionality for forensic analysis.
+- **Network Traffic Analysis**: New capability to capture and analyze network traffic with tcpdump and tshark.
+- **Forensic Analysis Tools**: Added tools for analyzing app data, searching snapshots, and extracting sensitive information.
+- **Output Directory**: All outputs are now organized in a dedicated directory with timestamps.
+- **Modern Credential Recovery**: Support for extracting and analyzing modern Android credential storage.
+
+### Changed
+
+- **Improved User Interface**: Enhanced menu system with more options and better organization.
+- **Enhanced Security**: All sensitive files are now stored with proper permissions and securely deleted.
+- **Better File Handling**: Improved file transfer and management between device and host.
+
+## [v1.9.0] - 2025-04-15
+
+### Added
+
+- **Parallel Processing**: Optimized brute-force and dictionary attacks with multi-core support using GNU Parallel.
+- **Secure File Handling**: Implemented secure file operations with shred for data security.
+- **Enhanced Error Handling**: Added retry logic for more reliable device operations.
+- **Improved Device Selection**: Added IP-based device connection and better device information.
+- **Debug Mode**: Added `--debug` flag for detailed logging of operations.
+- **Temporary Directory**: Created a secure temporary directory for all sensitive file operations.
+- **Extensive Logging**: Added comprehensive logging with timestamps for better tracking.
+
+### Changed
+
+- **Security Improvements**: Now using secure deletion for all sensitive files.
+- **Code Structure**: Reorganized code for better maintainability.
+- **User Interface**: Enhanced progress tracking for long-running operations.
+- **File Permissions**: Setting secure permissions (chmod 600) on all extracted files.
+
 ## [v1.8.5] - 2025-02-26
 
 ### Added
