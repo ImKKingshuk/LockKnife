@@ -1,5 +1,5 @@
 <h1 align="center">LockKnife</h1>
-<h3 align="center">v2.0.0</h3>
+<h3 align="center">v2.0.1</h3>
 
 <p align="center">LockKnife : The Ultimate Android Security Research Tool - Your Gateway to Android Security Research! 🗝️ Dive deep into Android security with this powerful command-line tool designed for researchers. Recover lock screen passwords, Crack lock screen Passwords / Pins / Patterns, extract sensitive data like SMS, Call Logs and Wi-Fi credentials, assess device security, perform network traffic analysis, create file system snapshots for forensic analysis, and more. Connect your device and let LockKnife unlock a world of possibilities! 🔒💫</p>
 

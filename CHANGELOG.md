@@ -2,6 +2,12 @@
 
 All notable changes to `LockKnife : The Ultimate Android Security Research Tool` will be documented in this file.
 
+## [v2.0.1] - 2025-07-23
+
+### Changed
+
+- Minor Optimizations: General improvements and optimizations.
+
 ## [v2.0.0] - 2025-05-30
 
 ### Added
