@@ -64,7 +64,8 @@ chmod 700 "$TEMP_DIR"
 log() {
     local level="$1"
     local message="$2"
-    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date "+%Y-%m-%d %H:%M:%S")
     local log_message="[$timestamp] [$level] $message"
     
   
@@ -101,7 +102,7 @@ create_default_config() {
     
     if [ -f "$config_path" ]; then
         log "WARNING" "Configuration file already exists at $config_path"
-        read -p "Overwrite existing config? (y/n): " overwrite
+        read -r -p "Overwrite existing config? (y/n): " overwrite
         if [ "$overwrite" != "y" ]; then
             log "INFO" "Keeping existing configuration file"
             return 0
@@ -111,7 +112,8 @@ create_default_config() {
     log "INFO" "Creating default configuration file at $config_path"
     
 
-    local config_dir=$(dirname "$config_path")
+    local config_dir
+    config_dir=$(dirname "$config_path")
     if [ ! -d "$config_dir" ]; then
         mkdir -p "$config_dir"
     fi
@@ -148,7 +150,7 @@ execute_with_retry() {
     local max_retries=${3:-$MAX_RETRIES}
     local result=0
     
-    while [ $retry_count -lt $max_retries ]; do
+    while [ $retry_count -lt "$max_retries" ]; do
         log "DEBUG" "Executing: $cmd"
         if [ "$DEBUG_MODE" = true ]; then
             eval "$cmd"
@@ -242,7 +244,8 @@ print_banner() {
         "*      Github - https://github.com/ImKKingshuk     *"
         "****************************************************"
     )
-    local width=$(tput cols)
+    local width
+    width=$(tput cols)
     for line in "${banner[@]}"; do
         printf "%*s\n" $(((${#line} + width) / 2)) "$line"
     done
@@ -291,8 +294,10 @@ check_dependencies() {
 
 
 check_for_updates() {
-    local current_version=$(cat version.txt 2>/dev/null || echo "unknown")
-    local latest_version=$(curl -sSL "https://raw.githubusercontent.com/ImKKingshuk/LockKnife/main/version.txt" 2>/dev/null || echo "$current_version")
+    local current_version
+    current_version=$(cat version.txt 2>/dev/null || echo "unknown")
+    local latest_version
+    latest_version=$(curl -sSL "https://raw.githubusercontent.com/ImKKingshuk/LockKnife/main/version.txt" 2>/dev/null || echo "$current_version")
 
     if [ "$latest_version" != "$current_version" ]; then
         echo "A new version ($latest_version) is available. Updating Tool... Please Wait..."
@@ -388,13 +393,14 @@ EOF
         for node in "${NODES[@]}"; do
             if [ -n "$prev_node" ]; then
              
-                binary+=$(printf "\\$(printf '%03o' $((prev_node * 16 + node)))")
+                binary+=$(printf '\%03o' $((prev_node * 16 + node)))
             fi
             prev_node=$node
         done
         
       
-        local hash=$(echo -n "$binary" | sha1sum | awk '{print $1}')
+        local hash
+        hash=$(echo -n "$binary" | sha1sum | awk '{print $1}')
         echo "$hash:$pattern:$description" >> "$output_file"
     done < "$temp_file"
     
@@ -413,15 +419,19 @@ map_gesture_hash() {
     fi
     
  
-    local file_hash=$(sha1sum "$hash_file" | awk '{print $1}')
+    local file_hash
+    file_hash=$(sha1sum "$hash_file" | awk '{print $1}')
     log "DEBUG" "Gesture file hash: $file_hash"
     
 
-    local match=$(grep "^$file_hash:" "$patterns_file" 2>/dev/null)
+    local match
+    match=$(grep "^$file_hash:" "$patterns_file" 2>/dev/null)
     
     if [ -n "$match" ]; then
-        local pattern=$(echo "$match" | cut -d: -f2)
-        local description=$(echo "$match" | cut -d: -f3)
+        local pattern
+        pattern=$(echo "$match" | cut -d: -f2)
+        local description
+        description=$(echo "$match" | cut -d: -f3)
         
         log "SUCCESS" "Gesture pattern found: $description (nodes: $pattern)"
         
@@ -461,7 +471,8 @@ EOF
     
     for node in "${nodes[@]}"; do
       
-        local visual_node=$((node + 1))
+        local visual_node
+        visual_node=$((node + 1))
         
        
         case $node in
@@ -506,7 +517,7 @@ recover_password() {
         fi
         byte_value=$(printf "%d" "'$byte")
         decrypted_byte=$((byte_value ^ 0x6A))
-        password+=$(printf "\\$(printf '%03o' "$decrypted_byte")")
+        password+=$(printf '\%03o' "$decrypted_byte")
     done < "$file_path"
 
     log "INFO" "Recovered password: $password"
@@ -558,24 +569,26 @@ recover_wifi_passwords() {
     log "INFO" "Checking for Wi-Fi configuration file on device..."
     
    
-    if ! execute_with_retry "adb -s $device_serial shell 'test -f $wifi_file && echo exists'" "WiFi config check" | grep -q "exists"; then
+    local check_output
+    check_output=$(execute_with_retry "adb -s $device_serial shell 'test -f $wifi_file && echo exists'" "WiFi config check")
+    if ! echo "$check_output" | grep -q "exists"; then
         log "ERROR" "Wi-Fi configuration file not found on device. Exiting."
         return 1
-    }
+    fi
 
   
     execute_with_retry "adb -s $device_serial shell 'su -c \"chmod 644 $wifi_file\"'" "Setting permissions" || true
     
  
     if ! execute_with_retry "adb -s $device_serial pull $wifi_file $local_wifi_file" "WiFi config transfer"; then
-        log "ERROR" "Failed to pull Wi-Fi configuration file. Check device permissions."
+        log "ERROR" "Failed to pull Wi-Fi configuration file. Check device permissions and root access."
         return 1
-    }
+    fi
 
     if [[ ! -f "$local_wifi_file" ]]; then
-        log "ERROR" "Failed to pull Wi-Fi configuration file. Check device permissions."
+        log "ERROR" "Pulled file not found locally. Transfer may have failed silently."
         return 1
-    }
+    fi
 
     log "INFO" "Wi-Fi configuration file pulled successfully. Analyzing..."
     grep -oP '(?<=<string name="PreSharedKey">).+?(?=</string>)' "$local_wifi_file" | while read -r line; do
@@ -593,7 +606,7 @@ dictionary_attack() {
     local lock_file="$1"
     local wordlist
 
-    read -p "Enter the full path to your wordlist file: " wordlist
+    read -r -p "Enter the full path to your wordlist file: " wordlist
 
     if [[ ! -f "$wordlist" ]]; then
         log "ERROR" "The file '$wordlist' does not exist. Please provide a valid wordlist file."
@@ -606,7 +619,8 @@ dictionary_attack() {
     fi
 
   
-    local total_words=$(wc -l < "$wordlist")
+    local total_words
+    total_words=$(wc -l < "$wordlist")
     log "INFO" "Starting dictionary attack using '$wordlist' with $total_words words..."
     
  
@@ -620,7 +634,8 @@ dictionary_attack() {
 
         parallel_dict_attack() {
             local word="$1"
-            local hash=$(echo -n "$word" | sha1sum | awk '{print $1}')
+            local hash
+            hash=$(echo -n "$word" | sha1sum | awk '{print $1}')
             if grep -q "$hash" "$lock_file"; then
                 echo "$word" > "$success_file"
                 return 0
@@ -634,11 +649,12 @@ dictionary_attack() {
         export success_file
         
 
-        cat "$wordlist" | parallel --progress --eta --jobs 50% "parallel_dict_attack {}"
+        parallel --progress --eta --jobs 50% "parallel_dict_attack {}" < "$wordlist"
         
 
         if [[ -f "$success_file" ]]; then
-            local found_password=$(cat "$success_file")
+            local found_password
+            found_password=$(cat "$success_file")
             log "SUCCESS" "Password found: $found_password"
             return 0
         else
@@ -655,11 +671,13 @@ dictionary_attack() {
             
 
             if [ $((count % 100)) -eq 0 ]; then
-                local percentage=$((count * 100 / total_words))
+                local percentage
+                percentage=$((count * 100 / total_words))
                 printf "\rProgress: %d/%d (%d%%)" "$count" "$total_words" "$percentage"
             fi
             
-            local hash=$(echo -n "$word" | sha1sum | awk '{print $1}')
+            local hash
+            hash=$(echo -n "$word" | sha1sum | awk '{print $1}')
             if grep -q "$hash" "$lock_file"; then
                 printf "\n"
                 log "SUCCESS" "Password found: $word"
@@ -687,7 +705,7 @@ brute_force_attack() {
 
     if [ "$pin_length" -gt 6 ]; then
         log "WARNING" "Brute-forcing PINs longer than 6 digits may take significant time."
-        read -p "Continue? (y/n): " choice
+        read -r -p "Continue? (y/n): " choice
         [ "$choice" != "y" ] && return 1
     fi
 
@@ -697,9 +715,11 @@ brute_force_attack() {
         log "INFO" "Searching for matches in precomputed hash table..."
         
 
-        local target_hash=$(cat "$lock_file")
+        local target_hash
+        target_hash=$(cat "$lock_file")
         grep -q "$target_hash" "pin_hashes.txt" && {
-            local found_pin=$(grep "$target_hash" "pin_hashes.txt" | cut -d: -f1)
+            local found_pin
+            found_pin=$(grep "$target_hash" "pin_hashes.txt" | cut -d: -f1)
             log "SUCCESS" "PIN found: $found_pin"
             return 0
         }
@@ -712,7 +732,8 @@ brute_force_attack() {
         log "INFO" "Using parallel processing for brute force attack"
         
 
-        local cores=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+        local cores
+        cores=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
         local chunk_size=$((total / cores))
         [ $chunk_size -lt 1000 ] && chunk_size=1000
         
@@ -727,8 +748,10 @@ brute_force_attack() {
             local file="$4"
             
             for i in $(seq "$start" "$end"); do
-                local pin=$(printf "%0${length}d" "$i")
-                local hash=$(echo -n "$pin" | sha1sum | awk '{print $1}')
+                local pin
+                pin=$(printf "%0${length}d" "$i")
+                local hash
+                hash=$(echo -n "$pin" | sha1sum | awk '{print $1}')
                 if grep -q "$hash" "$file"; then
                     echo "$pin" > "$success_file"
                     return 0
@@ -753,11 +776,12 @@ brute_force_attack() {
         
 
         log "INFO" "Starting parallel brute-force attack for $pin_length-digit PINs using $cores cores..."
-        cat "$job_list" | parallel --progress --eta "parallel_pin_attack {1} {2} {3} {4}"
+        parallel --progress --eta "parallel_pin_attack {1} {2} {3} {4}" < "$job_list"
         
 
         if [[ -f "$success_file" ]]; then
-            local found_pin=$(cat "$success_file")
+            local found_pin
+            found_pin=$(cat "$success_file")
             log "SUCCESS" "PIN found: $found_pin"
             return 0
         else
@@ -770,16 +794,19 @@ brute_force_attack() {
         local count=0
         
         for i in $(seq 0 $((total - 1))); do
-            local pin=$(printf "%0${pin_length}d" "$i")
+            local pin
+            pin=$(printf "%0${pin_length}d" "$i")
             ((count++))
             
 
             if [ $((count % 1000)) -eq 0 ]; then
-                local percentage=$(echo "scale=1; $count*100/$total" | bc)
+                local percentage
+                percentage=$(echo "scale=1; $count*100/$total" | bc)
                 printf "\rProgress: %d/%d (%.1f%%)" "$count" "$total" "$percentage"
             fi
             
-            local hash=$(echo -n "$pin" | sha1sum | awk '{print $1}')
+            local hash
+            hash=$(echo -n "$pin" | sha1sum | awk '{print $1}')
             if grep -q "$hash" "$lock_file"; then
                 printf "\n"
                 log "SUCCESS" "PIN found: $pin"
@@ -796,9 +823,12 @@ brute_force_attack() {
 
 check_security() {
     local device_serial="$1"
-    local version=$(adb -s "$device_serial" shell getprop ro.build.version.release)
-    local patch=$(adb -s "$device_serial" shell getprop ro.build.version.security_patch)
-    local rooted=$(adb -s "$device_serial" shell "su -c 'id'" | grep -q "uid=0" && echo "Yes" || echo "No")
+    local version
+    version=$(adb -s "$device_serial" shell getprop ro.build.version.release)
+    local patch
+    patch=$(adb -s "$device_serial" shell getprop ro.build.version.security_patch)
+    local rooted
+    rooted=$(adb -s "$device_serial" shell "su -c 'id'" | grep -q "uid=0" && echo "Yes" || echo "No")
     echo "[INFO] Android Version: $version"
     echo "[INFO] Security Patch: $patch"
     echo "[INFO] Rooted: $rooted"
@@ -813,8 +843,10 @@ frp_bypass() {
 
 select_device() {
     local devices=()
-    local usb_devices=($(adb devices | grep -w device | awk '{print $1}'))
-    local tcp_devices=($(adb devices | grep -w "device.*:5555" | awk '{print $1}'))
+    local usb_devices
+    mapfile -t usb_devices < <(adb devices | grep -w device | awk '{print $1}')
+    local tcp_devices
+    mapfile -t tcp_devices < <(adb devices | grep -w "device.*:5555" | awk '{print $1}')
     
 
     devices=("${usb_devices[@]}" "${tcp_devices[@]}")
@@ -822,10 +854,10 @@ select_device() {
 
     if [ ${#devices[@]} -eq 0 ]; then
         log "WARNING" "No devices found connected via USB."
-        read -p "Would you like to connect to a device via IP? (y/n): " connect_choice
+        read -r -p "Would you like to connect to a device via IP? (y/n): " connect_choice
         
         if [ "$connect_choice" = "y" ]; then
-            read -p "Enter the IP address of the device: " device_ip
+            read -r -p "Enter the IP address of the device: " device_ip
 
             if [[ ! "$device_ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
                 log "ERROR" "Invalid IP address format. Please enter a valid IP address."
@@ -835,7 +867,8 @@ select_device() {
             log "INFO" "Attempting to connect to device at $device_ip:5555..."
             if execute_with_retry "adb connect $device_ip:5555" "Device connection"; then
 
-                tcp_devices=($(adb devices | grep -w connected | awk '{print $1}'))
+                local tcp_devices
+                mapfile -t tcp_devices < <(adb devices | grep -w connected | awk '{print $1}')
                 devices=("${usb_devices[@]}" "${tcp_devices[@]}")
             else
                 log "ERROR" "Failed to connect to device at $device_ip:5555. Please check the IP and make sure ADB debugging is enabled."
@@ -863,7 +896,8 @@ select_device() {
 
     log "INFO" "Multiple devices found. Please select one:"
     for i in "${!devices[@]}"; do
-        local device_info=$(adb -s "${devices[$i]}" shell getprop ro.product.model 2>/dev/null || echo "Unknown")
+        local device_info
+        device_info=$(adb -s "${devices[$i]}" shell getprop ro.product.model 2>/dev/null || echo "Unknown")
         echo "$((i+1)). ${devices[$i]} ($device_info)"
     done
     
@@ -871,7 +905,7 @@ select_device() {
     local valid_selection=false
     local num
     while [ "$valid_selection" = false ]; do
-        read -p "Device number (1-${#devices[@]}): " num
+        read -r -p "Device number (1-${#devices[@]}): " num
         if [[ "$num" =~ ^[0-9]+$ && "$num" -ge 1 && "$num" -le ${#devices[@]} ]]; then
             valid_selection=true
         else
@@ -888,7 +922,8 @@ select_device() {
 secure_pull_file() {
     local device_serial="$1"
     local remote_path="$2"
-    local local_path="$TEMP_DIR/$(basename "$remote_path")"
+    local local_path
+    local_path="$TEMP_DIR/$(basename "$remote_path")"
     
     log "DEBUG" "Attempting to pull $remote_path to $local_path"
     
@@ -949,7 +984,7 @@ main_menu() {
     echo "5. Custom Data Extraction"
     echo "6. Forensic Analysis"
     echo "7. Network Traffic Analysis"
-    read -p "Choice: " choice
+    read -r -p "Choice: " choice
     case $choice in
         1) submenu_password_recovery "$device_serial" ;;
         2) submenu_data_extraction "$device_serial" ;;
@@ -974,7 +1009,7 @@ submenu_password_recovery() {
     echo "6. Alphanumeric Password Cracking"
     echo "7. Gatekeeper HAL Analysis"
     echo "8. Monitor Gatekeeper Responses"
-    read -p "Choice: " choice
+    read -r -p "Choice: " choice
     case $choice in
         1) 
            local gesture_file="$TEMP_DIR/gesture.key"
@@ -990,13 +1025,13 @@ submenu_password_recovery() {
            ;;
         3) recover_wifi_passwords "$device_serial" ;;
         4) recover_locksettings_db "$device_serial" ;;
-        5) read -p "Enter PIN length (e.g., 4, 6, 8): " pin_length
-           read -p "Enter the path to the lock file: " lock_file
+        5) read -r -p "Enter PIN length (e.g., 4, 6, 8): " pin_length
+            read -r -p "Enter the path to the lock file: " lock_file
            brute_force_attack "$lock_file" "$pin_length" ;;
-        6) read -p "Enter the path to the lock file: " lock_file
+        6) read -r -p "Enter the path to the lock file: " lock_file
            dictionary_attack "$lock_file" ;;
         7) analyze_gatekeeper "$device_serial" ;;
-        8) read -p "Enter monitoring duration in seconds: " duration
+        8) read -r -p "Enter monitoring duration in seconds: " duration
            monitor_gatekeeper_responses "$device_serial" "$duration" ;;
         *) log "ERROR" "Invalid choice." ;;
     esac
@@ -1014,7 +1049,7 @@ submenu_data_extraction() {
     echo "6. Signal Data"
     echo "7. Browser Data"
     echo "8. Bluetooth Pairing Keys"
-    read -p "Choice: " choice
+    read -r -p "Choice: " choice
     case $choice in
         1) recover_sms "$device_serial" ;;
         2) recover_call_logs "$device_serial" ;;
@@ -1028,7 +1063,7 @@ submenu_data_extraction() {
            echo "2. Firefox"
            echo "3. Brave"
            echo "4. Edge"
-           read -p "Browser: " browser_choice
+           read -r -p "Browser: " browser_choice
            case $browser_choice in
                1) extract_browser_data "$device_serial" "chrome" ;;
                2) extract_browser_data "$device_serial" "firefox" ;;
@@ -1056,21 +1091,22 @@ recover_sms() {
     if ! execute_with_retry "adb -s $device_serial pull /data/data/com.android.providers.telephony/databases/mmssms.db $sms_db" "SMS database transfer"; then
         log "ERROR" "Failed to pull SMS database. Root access required."
         return 1
-    }
+    fi
     
     if [ ! -f "$sms_db" ]; then
-        log "ERROR" "Failed to pull SMS database. Root access required."
+        log "ERROR" "SMS database file not found after pull attempt. Check transfer."
         return 1
-    }
+    fi
     
     log "INFO" "Extracting recent SMS messages..."
     sqlite3 "$sms_db" "SELECT address, date, body FROM sms ORDER BY date DESC LIMIT 10;" | awk -F'|' '{print "From: "$1" | Date: "$2" | Msg: "$3}'
     
-    read -p "Keep SMS database? (y/n): " keep
+    read -r -p "Keep SMS database? (y/n): " keep
     if [ "$keep" != "y" ]; then
         secure_delete_file "$sms_db"
     else
-        local output_file="sms_database_$(date +%s).db"
+        local output_file
+        output_file="sms_database_$(date +%s).db"
         cp "$sms_db" "$output_file"
         chmod 600 "$output_file"
         log "INFO" "SMS database saved as $output_file"
@@ -1094,21 +1130,22 @@ recover_call_logs() {
     if ! execute_with_retry "adb -s $device_serial pull /data/data/com.android.providers.contacts/databases/contacts2.db $call_db" "Call logs transfer"; then
         log "ERROR" "Failed to pull call log database. Root access required."
         return 1
-    }
+    fi
     
     if [ ! -f "$call_db" ]; then
-        log "ERROR" "Failed to pull call log database. Root access required."
+        log "ERROR" "Call log database file not found after pull attempt. Check transfer."
         return 1
-    }
+    fi
     
     log "INFO" "Extracting recent call logs..."
     sqlite3 "$call_db" "SELECT number, date, duration, type FROM calls ORDER BY date DESC LIMIT 10;" | awk -F'|' '{print "Number: "$1" | Date: "$2" | Duration: "$3" | Type: "$4}'
     
-    read -p "Keep call log database? (y/n): " keep
+    read -r -p "Keep call log database? (y/n): " keep
     if [ "$keep" != "y" ]; then
         secure_delete_file "$call_db"
     else
-        local output_file="call_logs_$(date +%s).db"
+        local output_file
+        output_file="call_logs_$(date +%s).db"
         cp "$call_db" "$output_file"
         chmod 600 "$output_file"
         log "INFO" "Call logs database saved as $output_file"
@@ -1126,12 +1163,14 @@ live_analysis() {
     echo "2. List running processes"
     echo "3. List installed apps"
     echo "4. Monitor Keystore Access"
-    read -p "Choice: " choice
+    read -r -p "Choice: " choice
     case $choice in
         1) 
-           local log_file="$TEMP_DIR/system_logs_$(date +%s).txt"
+           local log_file
+           log_file="$TEMP_DIR/system_logs_$(date +%s).txt"
            if execute_with_retry "adb -s $device_serial logcat -d > $log_file" "Log capture"; then
-               local output_file="system_logs_$(date +%s).txt"
+               local output_file
+                output_file="system_logs_$(date +%s).txt"
                cp "$log_file" "$output_file"
                chmod 600 "$output_file"
                log "INFO" "Logs saved to $output_file"
@@ -1147,10 +1186,11 @@ live_analysis() {
 
 custom_data_extraction() {
     local device_serial="$1"
-    read -p "Enter file path to pull: " file_path
-    read -p "Is this a SQLite database? (y/n): " is_db
+    read -r -p "Enter file path to pull: " file_path
+    read -r -p "Is this a SQLite database? (y/n): " is_db
     
-    local local_file="$TEMP_DIR/$(basename "$file_path")"
+    local local_file
+    local_file="$TEMP_DIR/$(basename "$file_path")"
     
 
     execute_with_retry "adb -s $device_serial shell 'su -c \"chmod 644 $file_path\"'" "Setting permissions" || true
@@ -1166,17 +1206,18 @@ custom_data_extraction() {
     fi
     
     if [ "$is_db" = "y" ]; then
-        read -p "Enter SQL query: " sql_query
+        read -r -p "Enter SQL query: " sql_query
         sqlite3 "$local_file" "$sql_query"
     else
         log "INFO" "File pulled: $(basename "$file_path")"
     fi
     
-    read -p "Keep file? (y/n): " keep
+    read -r -p "Keep file? (y/n): " keep
     if [ "$keep" != "y" ]; then
         secure_delete_file "$local_file"
     else
-        local output_file="$(basename "$file_path")_$(date +%s)"
+        local output_file
+        output_file="$(basename "$file_path")_$(date +%s)"
         cp "$local_file" "$output_file"
         chmod 600 "$output_file"
         log "INFO" "File saved as $output_file"
@@ -1194,16 +1235,17 @@ submenu_forensic_analysis() {
     echo "3. Search Existing Snapshot"
     echo "4. Extract SQLite Databases"
     echo "5. Analyze App Data"
-    read -p "Choice: " choice
+    read -r -p "Choice: " choice
     case $choice in
         1) create_device_snapshot "$device_serial" ;;
         2) 
-           read -p "Enter directories to snapshot (space-separated): " custom_dirs
+           read -r -p "Enter directories to snapshot (space-separated): " custom_dirs
            create_device_snapshot "$device_serial" "$custom_dirs"
            ;;
         3) 
 
-           local snapshots=($(find "$OUTPUT_DIR" -maxdepth 1 -name "forensics_*" -type d | sort -r))
+           local snapshots
+           mapfile -t snapshots < <(find "$OUTPUT_DIR" -maxdepth 1 -name "forensics_*" -type d | sort -r)
            if [ ${#snapshots[@]} -eq 0 ]; then
                log "ERROR" "No snapshots found. Create a snapshot first."
                return 1
@@ -1214,8 +1256,8 @@ submenu_forensic_analysis() {
                echo "$((i+1)). $(basename "${snapshots[$i]}")"
            done
            
-           read -p "Select snapshot number: " snapshot_num
-           read -p "Enter search pattern: " search_pattern
+           read -r -p "Select snapshot number: " snapshot_num
+            read -r -p "Enter search pattern: " search_pattern
            
            if [[ "$snapshot_num" =~ ^[0-9]+$ && "$snapshot_num" -ge 1 && "$snapshot_num" -le ${#snapshots[@]} ]]; then
                search_forensic_data "${snapshots[$((snapshot_num-1))]}" "$search_pattern"
@@ -1225,7 +1267,8 @@ submenu_forensic_analysis() {
            ;;
         4)
 
-           local snapshots=($(find "$OUTPUT_DIR" -maxdepth 1 -name "forensics_*" -type d | sort -r))
+           local snapshots
+           mapfile -t snapshots < <(find "$OUTPUT_DIR" -maxdepth 1 -name "forensics_*" -type d | sort -r)
            if [ ${#snapshots[@]} -eq 0 ]; then
                log "ERROR" "No snapshots found. Create a snapshot first."
                return 1
@@ -1236,16 +1279,19 @@ submenu_forensic_analysis() {
                echo "$((i+1)). $(basename "${snapshots[$i]}")"
            done
            
-           read -p "Select snapshot number: " snapshot_num
+           read -r -p "Select snapshot number: " snapshot_num
            
            if [[ "$snapshot_num" =~ ^[0-9]+$ && "$snapshot_num" -ge 1 && "$snapshot_num" -le ${#snapshots[@]} ]]; then
-               local db_dir="$OUTPUT_DIR/databases_$(date +%Y%m%d_%H%M%S)"
+               local db_dir
+               db_dir="$OUTPUT_DIR/databases_$(date +%Y%m%d_%H%M%S)"
                mkdir -p "$db_dir"
                
                log "INFO" "Extracting SQLite databases to $db_dir"
                find "${snapshots[$((snapshot_num-1))]}" -name "*.db" -o -name "*.sqlite" | while read -r db; do
-                   local db_name=$(basename "$db")
-                   local db_path=$(dirname "$db" | sed "s|${snapshots[$((snapshot_num-1))]}||")
+                   local db_name
+                   db_name=$(basename "$db")
+                   local db_path
+                   db_path=$(dirname "$db" | sed "s|${snapshots[$((snapshot_num-1))]}||")
                    local target_dir="$db_dir$db_path"
                    
                    mkdir -p "$target_dir"
@@ -1260,7 +1306,8 @@ submenu_forensic_analysis() {
            ;;
         5)
 
-           local snapshots=($(find "$OUTPUT_DIR" -maxdepth 1 -name "forensics_*" -type d | sort -r))
+           local snapshots
+           mapfile -t snapshots < <(find "$OUTPUT_DIR" -maxdepth 1 -name "forensics_*" -type d | sort -r)
            if [ ${#snapshots[@]} -eq 0 ]; then
                log "ERROR" "No snapshots found. Create a snapshot first."
                return 1
@@ -1271,12 +1318,13 @@ submenu_forensic_analysis() {
                echo "$((i+1)). $(basename "${snapshots[$i]}")"
            done
            
-           read -p "Select snapshot number: " snapshot_num
-           read -p "Enter package name (or part of it): " package_name
+           read -r -p "Select snapshot number: " snapshot_num
+            read -r -p "Enter package name (or part of it): " package_name
            
            if [[ "$snapshot_num" =~ ^[0-9]+$ && "$snapshot_num" -ge 1 && "$snapshot_num" -le ${#snapshots[@]} ]]; then
                local snapshot="${snapshots[$((snapshot_num-1))]}"
-               local app_analysis_file="$OUTPUT_DIR/app_analysis_$(date +%Y%m%d_%H%M%S).txt"
+               local app_analysis_file
+               app_analysis_file="$OUTPUT_DIR/app_analysis_$(date +%Y%m%d_%H%M%S).txt"
                
                log "INFO" "Analyzing app data for package: $package_name"
                
@@ -1297,9 +1345,9 @@ submenu_forensic_analysis() {
                    find "$snapshot" -path "*data*$package_name*/shared_prefs" -type d | while read -r pref_dir; do
                        find "$pref_dir" -name "*.xml" | while read -r pref_file; do
                            echo "File: $pref_file"
-                           echo "```"
-                           cat "$pref_file" | grep -v "^$" | head -20
-                           echo "```"
+                           echo '```'
+                           grep -v "^$" "$pref_file" | head -20
+                           echo '```'
                            echo ""
                        done
                    done
@@ -1331,8 +1379,10 @@ submenu_forensic_analysis() {
 create_device_snapshot() {
     local device_serial="$1"
     local dirs_to_backup="${2:-$SNAPSHOT_DIRS}"
-    local output_dir="$OUTPUT_DIR/forensics_$(date +%Y%m%d_%H%M%S)"
-    local archive_name="device_snapshot_$(date +%Y%m%d_%H%M%S).tar.gz"
+    local output_dir
+    output_dir="$OUTPUT_DIR/forensics_$(date +%Y%m%d_%H%M%S)"
+    local archive_name
+    archive_name="device_snapshot_$(date +%Y%m%d_%H%M%S).tar.gz"
     local temp_archive="$TEMP_DIR/$archive_name"
     
     log "INFO" "Creating device snapshot for forensic analysis..."
@@ -1356,14 +1406,16 @@ create_device_snapshot() {
 
         for dir in $dirs_to_backup; do
             log "INFO" "Pulling directory: $dir"
-            local dir_name=$(basename "$dir")
+            local dir_name
+            dir_name=$(basename "$dir")
             local output_subdir="$output_dir/$dir_name"
             mkdir -p "$output_subdir"
             
             execute_with_retry "adb -s $device_serial shell 'su -c \"find $dir -type f 2>/dev/null\"'" "Find files" | while read -r file; do
                 if [ -n "$file" ]; then
-                    local rel_path="${file#$dir}"
-                    local target_dir="$output_subdir$(dirname "$rel_path")"
+                    local rel_path="${file#"$dir"}"
+                    local target_dir
+                    target_dir="$output_subdir$(dirname "$rel_path")"
                     
                     mkdir -p "$target_dir"
                     execute_with_retry "adb -s $device_serial pull \"$file\" \"$target_dir/\"" "Pull file $file"
@@ -1460,7 +1512,7 @@ create_forensics_summary() {
         echo "### Potential Sensitive Data Locations"
         {
 
-            find "$snapshot_dir" -type f -name "*.xml" -o -name "*.json" -o -name "*.properties" -o -name "*.conf" | xargs grep -l 'key\|api\|token\|secret\|password' 2>/dev/null
+            find "$snapshot_dir" -type f \( -name "*.xml" -o -name "*.json" -o -name "*.properties" -o -name "*.conf" \) -print0 | xargs -0 grep -l 'key\|api\|token\|secret\|password' 2>/dev/null
             
 
             find "$snapshot_dir" -type f -name "*.xml" -o -name "*.properties" -o -name "*.conf" -o -name "*.ini" | sort
@@ -1471,7 +1523,10 @@ create_forensics_summary() {
             echo "- $(realpath --relative-to="$snapshot_dir" "$file")"
         done
         
-    } > "$summary_file"
+    } > "${summary_file}.tmp"
+    
+    # Move the temporary file to the final destination
+    mv "${summary_file}.tmp" "$summary_file"
     
     log "INFO" "Forensics summary created: $summary_file"
 }
@@ -1480,7 +1535,8 @@ create_forensics_summary() {
 search_forensic_data() {
     local snapshot_dir="$1"
     local search_pattern="$2"
-    local output_file="$OUTPUT_DIR/forensic_search_$(date +%Y%m%d_%H%M%S).txt"
+    local output_file
+    output_file="$OUTPUT_DIR/forensic_search_$(date +%Y%m%d_%H%M%S).txt"
     
     if [ ! -d "$snapshot_dir" ]; then
         log "ERROR" "Snapshot directory not found: $snapshot_dir"
@@ -1514,7 +1570,8 @@ capture_network_traffic() {
     local device_serial="$1"
     local duration="$2"
     local filter="${3:-$PCAP_FILTER}"
-    local output_file="$OUTPUT_DIR/network_capture_$(date +%Y%m%d_%H%M%S).pcap"
+    local output_file
+    output_file="$OUTPUT_DIR/network_capture_$(date +%Y%m%d_%H%M%S).pcap"
     
     log "INFO" "Starting network traffic capture for $duration seconds..."
     log "DEBUG" "Using filter: $filter"
@@ -1673,11 +1730,11 @@ submenu_network_analysis() {
     echo "2. Capture Traffic with Custom Duration"
     echo "3. Capture Traffic with Custom Filter"
     echo "4. Analyze Existing Capture"
-    read -p "Choice: " choice
+    read -r -p "Choice: " choice
     case $choice in
         1) capture_network_traffic "$device_serial" 30 ;;
         2) 
-           read -p "Enter capture duration (seconds): " duration
+           read -r -p "Enter capture duration (seconds): " duration
            if [[ "$duration" =~ ^[0-9]+$ ]]; then
                capture_network_traffic "$device_serial" "$duration"
            else
@@ -1685,8 +1742,8 @@ submenu_network_analysis() {
            fi
            ;;
         3) 
-           read -p "Enter capture duration (seconds): " duration
-           read -p "Enter capture filter (e.g., 'port 80' or 'host 8.8.8.8'): " filter
+           read -r -p "Enter capture duration (seconds): " duration
+           read -r -p "Enter capture filter (e.g., 'port 80' or 'host 8.8.8.8'): " filter
            if [[ "$duration" =~ ^[0-9]+$ ]]; then
                capture_network_traffic "$device_serial" "$duration" "$filter"
            else
@@ -1695,7 +1752,8 @@ submenu_network_analysis() {
            ;;
         4) 
 
-           local captures=($(find "$OUTPUT_DIR" -name "network_capture_*.pcap" | sort -r))
+           local captures
+           mapfile -t captures < <(find "$OUTPUT_DIR" -name "network_capture_*.pcap" | sort -r)
            if [ ${#captures[@]} -eq 0 ]; then
                log "ERROR" "No capture files found. Create a capture first."
                return 1
@@ -1706,7 +1764,7 @@ submenu_network_analysis() {
                echo "$((i+1)). $(basename "${captures[$i]}")"
            done
            
-           read -p "Select capture number: " capture_num
+           read -r -p "Select capture number: " capture_num
            
            if [[ "$capture_num" =~ ^[0-9]+$ && "$capture_num" -ge 1 && "$capture_num" -le ${#captures[@]} ]]; then
                analyze_network_capture "${captures[$((capture_num-1))]}"
@@ -1776,7 +1834,8 @@ check_root() {
 
 extract_whatsapp_data() {
     local device_serial="$1"
-    local output_dir="$OUTPUT_DIR/app_whatsapp_$(date +%Y%m%d_%H%M%S)"
+    local output_dir
+    output_dir="$OUTPUT_DIR/app_whatsapp_$(date +%Y%m%d_%H%M%S)"
     local temp_dir="$TEMP_DIR/whatsapp"
     
     log "INFO" "Extracting WhatsApp data (requires root)..."
@@ -1796,7 +1855,7 @@ extract_whatsapp_data() {
     local chatsettings_path="/data/data/com.whatsapp/databases/chatsettings.db"
     
 
-    local media_path="/sdcard/WhatsApp/Media"
+    # local media_path="/sdcard/WhatsApp/Media"  # Unused, commented out
     
 
     log "INFO" "Pulling WhatsApp databases..."
@@ -1885,7 +1944,8 @@ extract_whatsapp_data() {
 
 extract_telegram_data() {
     local device_serial="$1"
-    local output_dir="$OUTPUT_DIR/app_telegram_$(date +%Y%m%d_%H%M%S)"
+    local output_dir
+    output_dir="$OUTPUT_DIR/app_telegram_$(date +%Y%m%d_%H%M%S)"
     local temp_dir="$TEMP_DIR/telegram"
     
     log "INFO" "Extracting Telegram data (requires root)..."
@@ -1901,12 +1961,13 @@ extract_telegram_data() {
 
     local telegram_path="/data/data/org.telegram.messenger"
     local cache_path="$telegram_path/cache"
-    local files_path="$telegram_path/files"
+    # local files_path="$telegram_path/files"  # Unused, commented out
     local db_path="$telegram_path/files/Telegram"
     
 
     log "INFO" "Identifying Telegram databases..."
-    local db_files=$(execute_with_retry "adb -s $device_serial shell 'su -c \"find $db_path -name \"*.db\"\"'" "Find Telegram databases")
+    local db_files
+    db_files=$(execute_with_retry "adb -s $device_serial shell 'su -c \"find $db_path -name \"*.db\"\"'" "Find Telegram databases")
     
 
     for db_file in $db_files; do
@@ -1914,7 +1975,8 @@ extract_telegram_data() {
         execute_with_retry "adb -s $device_serial shell 'su -c \"chmod 644 $db_file\"'" "Setting permissions" || true
         
 
-        local filename=$(basename "$db_file")
+        local filename
+        filename=$(basename "$db_file")
         execute_with_retry "adb -s $device_serial pull $db_file $temp_dir/$filename" "Pull $filename"
     done
     
@@ -1923,7 +1985,8 @@ extract_telegram_data() {
     execute_with_retry "adb -s $device_serial shell 'su -c \"find $cache_path -name \"mtproto*\"\"'" "Find MTProto files" | while read -r file; do
         if [ -n "$file" ]; then
             execute_with_retry "adb -s $device_serial shell 'su -c \"chmod 644 $file\"'" "Setting permissions" || true
-            local filename=$(basename "$file")
+            local filename
+            filename=$(basename "$file")
             execute_with_retry "adb -s $device_serial pull $file $temp_dir/$filename" "Pull $filename"
         fi
     done
@@ -1973,7 +2036,8 @@ extract_telegram_data() {
 
 extract_signal_data() {
     local device_serial="$1"
-    local output_dir="$OUTPUT_DIR/app_signal_$(date +%Y%m%d_%H%M%S)"
+    local output_dir
+    output_dir="$OUTPUT_DIR/app_signal_$(date +%Y%m%d_%H%M%S)"
     local temp_dir="$TEMP_DIR/signal"
     
     log "INFO" "Extracting Signal data (requires root)..."
@@ -2006,7 +2070,8 @@ extract_signal_data() {
     execute_with_retry "adb -s $device_serial shell 'su -c \"find $shared_prefs -name \"*.xml\"\"'" "Find preferences" | while read -r file; do
         if [ -n "$file" ]; then
             execute_with_retry "adb -s $device_serial shell 'su -c \"chmod 644 $file\"'" "Setting permissions" || true
-            local filename=$(basename "$file")
+            local filename
+            filename=$(basename "$file")
             execute_with_retry "adb -s $device_serial pull $file $temp_dir/$filename" "Pull $filename"
         fi
     done
@@ -2072,7 +2137,8 @@ extract_signal_data() {
 extract_browser_data() {
     local device_serial="$1"
     local browser_type="$2"
-    local output_dir="$OUTPUT_DIR/app_${browser_type}_$(date +%Y%m%d_%H%M%S)"
+    local output_dir
+    output_dir="$OUTPUT_DIR/app_${browser_type}_$(date +%Y%m%d_%H%M%S)"
     local temp_dir="$TEMP_DIR/$browser_type"
     
     log "INFO" "Extracting $browser_type browser data (requires root)..."
@@ -2135,7 +2201,8 @@ extract_browser_data() {
         execute_with_retry "adb -s $device_serial shell 'su -c \"find $browser_path -name \"*.db\"\"'" "Find Firefox databases" | while read -r file; do
             if [ -n "$file" ]; then
                 execute_with_retry "adb -s $device_serial shell 'su -c \"chmod 644 $file\"'" "Setting permissions" || true
-                local filename=$(basename "$file")
+                local filename
+                filename=$(basename "$file")
                 execute_with_retry "adb -s $device_serial pull $file $temp_dir/$filename" "Pull $filename"
             fi
         done
@@ -2222,7 +2289,8 @@ extract_browser_data() {
 
 extract_bluetooth_keys() {
     local device_serial="$1"
-    local output_dir="$OUTPUT_DIR/bluetooth_keys_$(date +%Y%m%d_%H%M%S)"
+    local output_dir
+    output_dir="$OUTPUT_DIR/bluetooth_keys_$(date +%Y%m%d_%H%M%S)"
     local temp_dir="$TEMP_DIR/bluetooth"
     
     log "INFO" "Extracting Bluetooth pairing keys (requires root)..."
@@ -2247,7 +2315,8 @@ extract_bluetooth_keys() {
         execute_with_retry "adb -s $device_serial shell 'su -c \"find $bt_path_legacy -type f\"'" "Find legacy files" | while read -r file; do
             if [ -n "$file" ]; then
                 execute_with_retry "adb -s $device_serial shell 'su -c \"chmod 644 $file\"'" "Setting permissions" || true
-                local filename=$(basename "$file")
+                local filename
+                filename=$(basename "$file")
                 execute_with_retry "adb -s $device_serial pull $file $temp_dir/legacy_$filename" "Pull $filename"
             fi
         done
@@ -2262,7 +2331,8 @@ extract_bluetooth_keys() {
         execute_with_retry "adb -s $device_serial shell 'su -c \"find $bt_path_modern -name \"*.conf\" -o -name \"*.xml\" -o -name \"*.bin\"\"'" "Find config files" | while read -r file; do
             if [ -n "$file" ]; then
                 execute_with_retry "adb -s $device_serial shell 'su -c \"chmod 644 $file\"'" "Setting permissions" || true
-                local filename=$(basename "$file")
+                local filename
+                filename=$(basename "$file")
                 execute_with_retry "adb -s $device_serial pull $file $temp_dir/$filename" "Pull $filename"
             fi
         done
@@ -2284,7 +2354,8 @@ extract_bluetooth_keys() {
         execute_with_retry "adb -s $device_serial shell 'su -c \"find $bt_path_new -name \"*.db\"\"'" "Find databases" | while read -r file; do
             if [ -n "$file" ]; then
                 execute_with_retry "adb -s $device_serial shell 'su -c \"chmod 644 $file\"'" "Setting permissions" || true
-                local filename=$(basename "$file")
+                local filename
+                filename=$(basename "$file")
                 execute_with_retry "adb -s $device_serial pull $file $temp_dir/$filename" "Pull $filename"
             fi
         done
@@ -2321,7 +2392,8 @@ extract_bluetooth_keys() {
             
 
             sqlite3 "$db_file" "SELECT * FROM sqlite_master WHERE type='table';" 2>/dev/null | grep -i "device\|addr\|pair" | while read -r table_info; do
-                local table_name=$(echo "$table_info" | awk '{print $2}')
+                local table_name
+                table_name=$(echo "$table_info" | awk '{print $2}')
                 echo "Table: $table_name"
                 sqlite3 "$db_file" "SELECT * FROM $table_name LIMIT 10;" 2>/dev/null || echo "  (Could not read table data)"
                 echo ""
@@ -2346,7 +2418,8 @@ extract_bluetooth_keys() {
 monitor_keystore_access() {
     local device_serial="$1"
     local duration="$2"
-    local output_file="$OUTPUT_DIR/keystore_access_$(date +%Y%m%d_%H%M%S).log"
+    local output_file
+    output_file="$OUTPUT_DIR/keystore_access_$(date +%Y%m%d_%H%M%S).log"
     
     log "INFO" "Monitoring Keystore access for $duration seconds..."
     
@@ -2406,7 +2479,8 @@ monitor_keystore_access() {
 
 analyze_gatekeeper() {
     local device_serial="$1"
-    local output_dir="$OUTPUT_DIR/gatekeeper_analysis_$(date +%Y%m%d_%H%M%S)"
+    local output_dir
+    output_dir="$OUTPUT_DIR/gatekeeper_analysis_$(date +%Y%m%d_%H%M%S)"
     local temp_dir="$TEMP_DIR/gatekeeper"
     
     log "INFO" "Analyzing Gatekeeper HAL for credential recovery (requires root)..."
@@ -2436,8 +2510,10 @@ analyze_gatekeeper() {
     execute_with_retry "adb -s $device_serial shell 'su -c \"find $gatekeeper_dir -type f 2>/dev/null\"'" "Find gatekeeper files" | while read -r file; do
         if [ -n "$file" ]; then
             execute_with_retry "adb -s $device_serial shell 'su -c \"chmod 644 $file\"'" "Setting permissions" || true
-            local rel_path="${file#$gatekeeper_dir/}"
-            local dir_path="$temp_dir/gatekeeper/$(dirname "$rel_path")"
+            local rel_path
+            rel_path="${file#"$gatekeeper_dir"/}"
+            local dir_path
+            dir_path="$temp_dir/gatekeeper/$(dirname "$rel_path")"
             mkdir -p "$dir_path"
             execute_with_retry "adb -s $device_serial pull $file $dir_path/" "Pull $file"
         fi
@@ -2511,8 +2587,10 @@ analyze_gatekeeper() {
             
            
             echo "### Hashcat Export"
-            local salt=$(sqlite3 "$temp_dir/locksettings.db" "SELECT value FROM locksettings WHERE name='lockscreen.password_salt';" 2>/dev/null)
-            local hash=$(sqlite3 "$temp_dir/locksettings.db" "SELECT value FROM locksettings WHERE name='lockscreen.password_hash';" 2>/dev/null)
+            local salt
+            salt=$(sqlite3 "$temp_dir/locksettings.db" "SELECT value FROM locksettings WHERE name='lockscreen.password_salt';" 2>/dev/null)
+            local hash
+            hash=$(sqlite3 "$temp_dir/locksettings.db" "SELECT value FROM locksettings WHERE name='lockscreen.password_hash';" 2>/dev/null)
             
             if [ -n "$salt" ] && [ -n "$hash" ]; then
                 echo "$hash:$salt" > "$output_dir/hashcat_export.txt"
@@ -2584,7 +2662,8 @@ analyze_gatekeeper() {
 monitor_gatekeeper_responses() {
     local device_serial="$1"
     local duration="$2"
-    local output_file="$OUTPUT_DIR/gatekeeper_monitor_$(date +%Y%m%d_%H%M%S).log"
+    local output_file
+    output_file="$OUTPUT_DIR/gatekeeper_monitor_$(date +%Y%m%d_%H%M%S).log"
     
     log "INFO" "Monitoring Gatekeeper responses for $duration seconds..."
     
