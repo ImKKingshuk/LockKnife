@@ -2,6 +2,62 @@
 
 All notable changes to `LockKnife : The Ultimate Android Security Research Tool` will be documented in this file.
 
+## [v3.0.0] - 2025-09-30
+
+### Added
+
+- **Modular Architecture**: Complete rewrite with modular components for better maintainability and extensibility
+- **Advanced Memory Analysis**: Comprehensive memory dumping, analysis, and leak detection capabilities
+- **Kernel & SELinux Analysis**: Deep kernel module analysis, SELinux policy inspection, and security feature assessment
+- **Cloud Backup Extraction**: Extract data from Google Drive, Samsung Cloud, and other cloud services
+- **Malware Analysis**: Built-in malware detection and analysis capabilities with YARA integration
+- **Vulnerability Scanning**: Automated vulnerability assessment and security auditing
+- **Biometric Data Analysis**: Extract and analyze fingerprint and facial recognition data
+- **System Service Analysis**: Monitor and analyze Android system services and frameworks
+- **Firmware Analysis**: Extract and analyze device firmware and bootloader information
+- **Enhanced Security Features**: Improved encryption, secure deletion, and anonymous operation modes
+- **Performance Optimizations**: Multi-threaded processing and optimized algorithms
+- **Extended App Support**: Analysis for 15+ popular applications with specialized extraction tools
+- **Configuration Enhancements**: Expanded configuration options for all new features
+- **Advanced Logging**: Multi-format logging (txt, json, csv) with performance metrics
+- **Dependency Management**: Improved dependency checking and installation
+- **Runtime Analysis Module**: Comprehensive runtime monitoring with process analysis, dynamic behavior tracking, system call tracing, Frida integration, and anti-debugging detection
+- **SSL Pinning Bypass Module**: Complete SSL pinning bypass capabilities with Frida scripts, certificate management, proxy configuration, and network interception tools
+- **Advanced APK Analysis Module**: Static and dynamic APK analysis including manifest parsing, permission analysis, code decompilation, vulnerability scanning, malware detection, and signature verification
+- **Hardware Security Analysis Module**: Deep hardware security assessment covering TEE analysis, hardware-backed keystores, secure elements, biometric hardware, cryptographic acceleration, and attack surface analysis
+- **Bootloader & Firmware Security Module**: Bootloader status checking, vulnerability assessment, OEM unlock analysis, boot/recovery image analysis, and comprehensive security reporting
+- **Enhanced Menu System**: Reorganized 20-option main menu with categorized features for better usability
+- **Modular Architecture Improvements**: Better module loading system and renamed config.sh to config_manager.sh for clarity
+- **Advanced Frida Integration**: Runtime instrumentation capabilities with SSL bypass, method hooking, and memory dumping
+- **System Integrity Verification**: Rootkit detection, system integrity checks, and comprehensive security assessments
+
+### Enhanced
+
+- **User Interface**: Improved menu layout with categorized options and emoji indicators
+- **Configuration System**: Enhanced config file management with better organization
+- **Update System**: Improved auto-update mechanism with better error handling
+- **Logging System**: Enhanced logging with better compatibility across bash versions
+
+### Changed
+
+- **Code Architecture**: Migrated from monolithic script to modular component system
+- **Configuration System**: Enhanced with validation and more comprehensive options
+- **Security Improvements**: Implemented secure memory handling and improved file operations
+- **User Interface**: Updated menu system to accommodate new features
+- **Performance**: Optimized algorithms and added parallel processing where applicable
+
+### Technical Improvements
+
+- **Cross-Platform Compatibility**: Fixed bash compatibility issues for older versions
+- **Memory Management**: Better memory handling and cleanup procedures
+- **Error Handling**: Improved error detection and recovery mechanisms
+- **Performance**: Optimized module loading and function execution
+- **Modular Design**: Separated concerns into core/, modules/, and utils/ directories
+- **Error Handling**: Enhanced error handling and recovery mechanisms
+- **Memory Management**: Secure memory clearing and leak detection
+- **File Security**: Improved secure file handling and encryption capabilities
+- **Cross-Platform**: Better Windows compatibility and environment detection
+
 ## [v2.0.1] - 2025-07-23
 
 ### Changed
@@ -12,13 +68,12 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 ### Added
 
-- **Configuration System**: Added support for customizable settings via config files in multiple locations.
+- **Configuration System**: Customize tool behavior via config files in multiple locations or command-line options.
 - **App-Specific Extraction**: Added specialized extraction for WhatsApp, Telegram, Signal, and browsers.
 - **Bluetooth Pairing Keys**: Added extraction and analysis of Bluetooth pairing keys.
 - **Keystore Access Monitoring**: Added monitoring of keystore access attempts.
 - **Gatekeeper HAL Analysis**: Added advanced credential recovery via Gatekeeper HAL analysis.
 - **Gesture Pattern Recognition**: Implemented precomputed gesture pattern hash mapping with visual representation.
-- **File System Snapshot**: Added comprehensive device snapshot functionality for forensic analysis.
 - **Network Traffic Analysis**: New capability to capture and analyze network traffic with tcpdump and tshark.
 - **Forensic Analysis Tools**: Added tools for analyzing app data, searching snapshots, and extracting sensitive information.
 - **Output Directory**: All outputs are now organized in a dedicated directory with timestamps.
