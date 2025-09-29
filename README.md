@@ -1,16 +1,32 @@
 <h1 align="center">LockKnife</h1>
 <h3 align="center">v3.0.0</h3>
 
-<p align="center">LockKnife : The Ultimate Android Security Research Tool - Your Gateway to Android Security Research! 🗝️ Dive deep into Android security with this powerful command-line tool designed for researchers. Recover lock screen passwords, Crack lock screen Passwords / Pins / Patterns, extract sensitive data like SMS, Call Logs and Wi-Fi credentials, assess device security, perform network traffic analysis, create file system snapshots for forensic analysis, and much more. Connect your device and let LockKnife unlock a world of possibilities! 🔒💫</p>
+<p align="center">LockKnife : The Ultimate Android Security Research Tool - Your Complete Android Security Research Arsenal! 🗝️🔬🔒 Dive deep into Android security with this enterprise-grade command-line tool featuring advanced runtime analysis, SSL pinning bypass, comprehensive APK analysis, hardware security assessment, bootloader exploitation, and 20+ specialized modules. Recover lock screen credentials, perform dynamic behavior analysis, bypass security measures, analyze firmware, assess hardware security (TEE, keystores, biometrics), extract cloud backups, detect malware, scan vulnerabilities, and conduct professional forensic investigations. Connect your device and unleash the full power of Android security research! 🔒💫🚀</p>
 
 ## What's New (v3.0.0)
 
+- **Modular Architecture**: Complete rewrite with modular components for better maintainability and extensibility
+- **Advanced Memory Analysis**: Comprehensive memory dumping, analysis, and leak detection capabilities
+- **Kernel & SELinux Analysis**: Deep kernel module analysis, SELinux policy inspection, and security feature assessment
+- **Cloud Backup Extraction**: Extract data from Google Drive, Samsung Cloud, and other cloud services
+- **Malware Analysis**: Built-in malware detection and analysis capabilities with YARA integration
+- **Vulnerability Scanning**: Automated vulnerability assessment and security auditing
+- **Biometric Data Analysis**: Extract and analyze fingerprint and facial recognition data
+- **System Service Analysis**: Monitor and analyze Android system services and frameworks
+- **Firmware Analysis**: Extract and analyze device firmware and bootloader information
+- **Enhanced Security Features**: Improved encryption, secure deletion, and anonymous operation modes
+- **Performance Optimizations**: Multi-threaded processing and optimized algorithms
+- **Extended App Support**: Analysis for 15+ popular applications with specialized extraction tools
+- **Configuration Enhancements**: Expanded configuration options for all new features
+- **Advanced Logging**: Multi-format logging (txt, json, csv) with performance metrics
+- **Dependency Management**: Improved dependency checking and installation
 - **Runtime Analysis Module**: Comprehensive runtime monitoring with process analysis, dynamic behavior tracking, system call tracing, Frida integration, and anti-debugging detection
 - **SSL Pinning Bypass Module**: Complete SSL pinning bypass capabilities with Frida scripts, certificate management, proxy configuration, and network interception tools
 - **Advanced APK Analysis Module**: Static and dynamic APK analysis including manifest parsing, permission analysis, code decompilation, vulnerability scanning, malware detection, and signature verification
 - **Hardware Security Analysis Module**: Deep hardware security assessment covering TEE analysis, hardware-backed keystores, secure elements, biometric hardware, cryptographic acceleration, and attack surface analysis
 - **Bootloader & Firmware Security Module**: Bootloader status checking, vulnerability assessment, OEM unlock analysis, boot/recovery image analysis, and comprehensive security reporting
 - **Enhanced Menu System**: Reorganized 20-option main menu with categorized features for better usability
+- **Modular Architecture Improvements**: Better module loading system and renamed config.sh to config_manager.sh for clarity
 - **Advanced Frida Integration**: Runtime instrumentation capabilities with SSL bypass, method hooking, and memory dumping
 - **System Integrity Verification**: Rootkit detection, system integrity checks, and comprehensive security assessments
 
