@@ -1,34 +1,31 @@
 <h1 align="center">LockKnife</h1>
-<h3 align="center">v3.0.0</h3>
+<h3 align="center">v3.5.0</h3>
 
-<p align="center">LockKnife : The Ultimate Android Security Research Tool - Your Complete Android Security Research Arsenal! 🗝️🔬🔒 Dive deep into Android security with this enterprise-grade command-line tool featuring advanced runtime analysis, SSL pinning bypass, comprehensive APK analysis, hardware security assessment, bootloader exploitation, and 20+ specialized modules. Recover lock screen credentials, perform dynamic behavior analysis, bypass security measures, analyze firmware, assess hardware security (TEE, keystores, biometrics), extract cloud backups, detect malware, scan vulnerabilities, and conduct professional forensic investigations. Connect your device and unleash the full power of Android security research! 🔒💫🚀</p>
+<p align="center">LockKnife : The Ultimate Android Security Research Tool - Your Complete Android Security Research Arsenal! 🗝️🔬🔒 Dive deep into Android security with this next-generation enterprise-grade command-line tool featuring AI-powered analysis, cryptocurrency wallet forensics, threat intelligence integration, Android 16 support, and 30+ specialized modules. Recover lock screen credentials, perform AI-driven behavior analysis, analyze crypto wallets, detect threats with real-time intelligence, extract Private Space data (Android 15+), analyze passkeys (Android 14+), orchestrate multi-device investigations, generate professional forensic reports, and conduct cutting-edge security research. Connect your device and unleash the full power of advanced Android security research! 🔒💫🚀</p>
 
-## What's New (v3.0.0)
+## What's New (v3.5.0)
 
-- **Modular Architecture**: Complete rewrite with modular components for better maintainability and extensibility
-- **Advanced Memory Analysis**: Comprehensive memory dumping, analysis, and leak detection capabilities
-- **Kernel & SELinux Analysis**: Deep kernel module analysis, SELinux policy inspection, and security feature assessment
-- **Cloud Backup Extraction**: Extract data from Google Drive, Samsung Cloud, and other cloud services
-- **Malware Analysis**: Built-in malware detection and analysis capabilities with YARA integration
-- **Vulnerability Scanning**: Automated vulnerability assessment and security auditing
-- **Biometric Data Analysis**: Extract and analyze fingerprint and facial recognition data
-- **System Service Analysis**: Monitor and analyze Android system services and frameworks
-- **Firmware Analysis**: Extract and analyze device firmware and bootloader information
-- **Enhanced Security Features**: Improved encryption, secure deletion, and anonymous operation modes
-- **Performance Optimizations**: Multi-threaded processing and optimized algorithms
-- **Extended App Support**: Analysis for 15+ popular applications with specialized extraction tools
-- **Configuration Enhancements**: Expanded configuration options for all new features
-- **Advanced Logging**: Multi-format logging (txt, json, csv) with performance metrics
-- **Dependency Management**: Improved dependency checking and installation
-- **Runtime Analysis Module**: Comprehensive runtime monitoring with process analysis, dynamic behavior tracking, system call tracing, Frida integration, and anti-debugging detection
-- **SSL Pinning Bypass Module**: Complete SSL pinning bypass capabilities with Frida scripts, certificate management, proxy configuration, and network interception tools
-- **Advanced APK Analysis Module**: Static and dynamic APK analysis including manifest parsing, permission analysis, code decompilation, vulnerability scanning, malware detection, and signature verification
-- **Hardware Security Analysis Module**: Deep hardware security assessment covering TEE analysis, hardware-backed keystores, secure elements, biometric hardware, cryptographic acceleration, and attack surface analysis
-- **Bootloader & Firmware Security Module**: Bootloader status checking, vulnerability assessment, OEM unlock analysis, boot/recovery image analysis, and comprehensive security reporting
-- **Enhanced Menu System**: Reorganized 20-option main menu with categorized features for better usability
-- **Modular Architecture Improvements**: Better module loading system and renamed config.sh to config_manager.sh for clarity
-- **Advanced Frida Integration**: Runtime instrumentation capabilities with SSL bypass, method hooking, and memory dumping
-- **System Integrity Verification**: Rootkit detection, system integrity checks, and comprehensive security assessments
+### 🚀 Next-Generation Features
+
+- **Android 16 Support**: Full compatibility with Android 16 (API 36) and latest Android versions
+- **AI-Powered Analysis**: Machine learning-based password prediction, anomaly detection, and malware classification
+- **Cryptocurrency Wallet Forensics**: Complete blockchain and crypto wallet analysis, transaction tracking, and seed phrase recovery
+- **Threat Intelligence Integration**: Real-time CTI feeds from VirusTotal, AlienVault OTX, and other platforms
+- **Private Space Analysis**: Android 15+ Private Space detection, extraction, and security assessment
+- **Passkey & Credential Manager**: Android 14+ modern authentication analysis including WebAuthn and FIDO2
+- **Multi-Device Orchestration**: Analyze multiple devices simultaneously with cross-device correlation
+- **Advanced Report Generator**: Professional forensic reports with executive summaries and compliance reporting
+- **Real-Time Monitoring**: Live device activity monitoring with alerts and dashboards
+- **IoT Device Analysis**: Connected device communication analysis and security assessment
+- **Plugin System**: Extensible architecture for community contributions and custom modules
+
+### ⚙️ Enhanced Core Features
+
+- **30+ Specialized Modules**: Expanded from 20 to 30+ analysis modules
+- **Improved Performance**: Parallel processing, checkpointing, and optimized algorithms
+- **Better UX**: Enhanced menu system with Android version indicators and feature availability
+- **Comprehensive Configuration**: 100+ configuration options for fine-tuned control
+- **Cross-Platform Improvements**: Better Windows WSL, macOS ARM, and Linux compatibility
 
 ## Features
 
@@ -37,7 +34,10 @@
 - 📱 **Multiple Android Versions Supported**: Tailored options for different Android versions:
   - Android 5 and Older
   - Android 6 to 9
-  - Android 10+ and Newer Versions (Android 14)
+  - Android 10 to 13
+  - Android 14 (Credential Manager support)
+  - Android 15 (Private Space support)
+  - Android 16+ (Full next-gen features)
 - ⚙️ **Attack Methods**:
   - **Dictionary Attack**: Use custom wordlists to recover alphanumeric passwords.
   - **Brute Force**: Try all possible combinations for 4, 6, or 8-digit PINs.
@@ -136,6 +136,42 @@
 - 🔒 **Enhanced Security**: Encryption, secure deletion, and anonymous operation modes.
 - 📈 **Performance Optimized**: Multi-threaded processing and optimized algorithms.
 - ⚙️ **Customizable Configuration**: Configure tool behavior via configuration files or command-line options.
+- 🤖 **AI-Powered Analysis** :
+  - **Password Pattern Prediction**: ML-based password guessing and pattern analysis
+  - **Behavioral Anomaly Detection**: Detect suspicious activities with AI
+  - **Malware Classification**: Neural network-based malware identification
+  - **Smart Data Correlation**: AI-driven evidence correlation
+- ₿ **Cryptocurrency Forensics** :
+  - **Wallet Detection**: Identify Bitcoin, Ethereum, and altcoin wallets
+  - **Transaction Analysis**: Blockchain transaction history tracking
+  - **Seed Phrase Recovery**: Attempt to recover wallet seed phrases
+  - **Exchange App Analysis**: Forensics for Coinbase, Binance, etc.
+  - **NFT & DeFi Analysis**: Non-fungible token and DeFi protocol analysis
+- 🌐 **Threat Intelligence** :
+  - **IOC Detection**: Indicators of Compromise identification
+  - **Real-Time Threat Feeds**: Integration with VirusTotal, AlienVault OTX
+  - **CVE Vulnerability Checks**: Automated vulnerability assessment
+  - **Threat Actor Attribution**: Advanced threat analysis
+- 🔒 **Private Space Analysis** (v4.0.0 - Android 15+):
+  - **Private Space Detection**: Identify Android 15 Private Space usage
+  - **Multi-Profile Extraction**: Extract data from isolated user profiles
+  - **Isolation Testing**: Test app isolation boundaries
+  - **Privacy Assessment**: Security analysis of Private Space implementation
+- 🔑 **Passkey & Credential Analysis** (v4.0.0 - Android 14+):
+  - **Credential Manager Detection**: Identify modern credential storage
+  - **WebAuthn Analysis**: Analyze web authentication credentials
+  - **FIDO2 Support**: Security key and passkey forensics
+  - **Biometric Binding**: Analyze passkey-biometric associations
+- 📱 **Multi-Device Orchestration** :
+  - **Simultaneous Analysis**: Analyze multiple devices at once
+  - **Cross-Device Correlation**: Find relationships between devices
+  - **Synchronized Extraction**: Parallel data extraction
+  - **Comparative Analysis**: Compare security postures
+- 📊 **Advanced Report Generation** :
+  - **Executive Summaries**: High-level reports for stakeholders
+  - **Technical Reports**: Detailed technical analysis
+  - **Compliance Reports**: GDPR, HIPAA compliance documentation
+  - **Multiple Formats**: PDF, HTML, JSON, XML export
 
 ## Requirements
 

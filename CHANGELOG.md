@@ -2,6 +2,137 @@
 
 All notable changes to `LockKnife : The Ultimate Android Security Research Tool` will be documented in this file.
 
+## [v3.5.0] - 2025-11-06
+
+### 🚀 Major New Features
+
+#### Android Version Support
+
+- **Android 16 (API 36) Full Support**: Complete compatibility with Android 16 and latest security features
+- **Android 15 Private Space**: Dedicated module for Private Space detection, extraction, and analysis
+- **Android 14 Credential Manager**: Passkey and modern credential analysis with WebAuthn/FIDO2 support
+- **Automatic Version Detection**: Smart adaptation to device Android version with feature availability indicators
+- **Version-Specific Optimization**: Tailored extraction and analysis methods based on Android API level
+
+#### AI-Powered Analysis (New Module)
+
+- **Password Pattern Prediction**: Machine learning-based password guessing with statistical analysis
+- **Behavioral Anomaly Detection**: AI-driven detection of suspicious device activities
+- **ML Malware Classification**: Neural network-based malware identification and classification
+- **Activity Pattern Analysis**: User behavior pattern recognition and timeline correlation
+- **Smart Data Correlation**: AI-powered evidence correlation across multiple data sources
+- **Threat Detection**: Automated threat identification using AI algorithms
+- **Neural Code Analysis**: Deep code pattern analysis for vulnerability detection
+
+#### Cryptocurrency Wallet Forensics (New Module)
+
+- **Multi-Chain Wallet Detection**: Support for Bitcoin, Ethereum, and 20+ cryptocurrency wallets
+- **Transaction History Analysis**: Blockchain transaction tracking and analysis
+- **Seed Phrase Recovery**: Advanced techniques for recovering wallet seed phrases
+- **Private Key Extraction**: Secure extraction of cryptocurrency private keys
+- **Exchange App Forensics**: Specialized analysis for Coinbase, Binance, Kraken, and other exchanges
+- **NFT Analysis**: Non-fungible token holdings and transaction analysis
+- **DeFi Protocol Analysis**: Decentralized finance application forensics
+- **Blockchain Address Analysis**: Address clustering and ownership analysis
+
+#### Threat Intelligence Integration (New Module)
+
+- **Real-Time CTI Feeds**: Integration with VirusTotal, AlienVault OTX, Abuse.ch, and MISP
+- **IOC Detection**: Comprehensive Indicators of Compromise identification
+- **App Reputation Analysis**: Cloud-based application reputation checking
+- **URL/Domain Analysis**: Malicious domain and phishing detection
+- **File Hash Lookup**: Instant malware identification via hash databases
+- **IP Reputation Checks**: Network threat intelligence for connections
+- **CVE Vulnerability Checks**: Automated vulnerability assessment against CVE databases
+- **Threat Actor Attribution**: Advanced threat analysis and actor identification
+
+#### Private Space Analysis (New Module - Android 15+)
+
+- **Private Space Detection**: Automatic identification of Private Space usage
+- **Multi-Profile Analysis**: Complete analysis of all user profiles
+- **Isolated Data Extraction**: Extract data from Private Space applications
+- **Security Assessment**: Evaluate Private Space implementation security
+- **Isolation Boundary Testing**: Test app isolation and sandbox effectiveness
+- **Access Control Analysis**: Analyze authentication and permission boundaries
+- **Data Leak Detection**: Identify potential cross-profile data leaks
+
+#### Passkey & Credential Manager Analysis (New Module - Android 14+)
+
+- **Credential Manager Detection**: Identify Android 14+ credential storage
+- **Passkey Extraction**: Extract and analyze passkey data
+- **WebAuthn Credential Analysis**: Analyze web authentication credentials
+- **FIDO2 Security Key Support**: External authenticator forensics
+- **Biometric Binding Analysis**: Passkey-biometric association analysis
+- **Credential Provider Analysis**: Third-party password manager analysis
+- **Usage Statistics**: Passkey usage patterns and timeline
+
+#### Multi-Device Orchestration (New Module)
+
+- **Parallel Device Analysis**: Analyze multiple devices simultaneously
+- **Synchronized Extraction**: Coordinated data extraction across devices
+- **Cross-Device Correlation**: Find relationships and connections between devices
+- **Comparative Analysis**: Compare security postures across devices
+- **Multi-Device Timeline**: Unified timeline reconstruction from all devices
+- **Network Topology Mapping**: Map device network relationships
+- **Scalable Architecture**: Support for analyzing 5+ devices concurrently
+
+#### Advanced Report Generator (New Module)
+
+- **Executive Summary Reports**: High-level reports for stakeholders and management
+- **Technical Analysis Reports**: Detailed technical findings and evidence
+- **Timeline Reports**: Comprehensive event timeline reconstruction
+- **Security Assessment Reports**: Risk scoring and vulnerability analysis
+- **Evidence Collection Reports**: Chain of custody and forensic documentation
+- **Compliance Reports**: GDPR, HIPAA, and regulatory compliance reporting
+- **Multiple Export Formats**: PDF, HTML, JSON, XML, and CSV export
+- **Custom Report Builder**: Build reports with selected sections and data
+- **Report Templates**: Pre-built templates for common use cases
+
+### 📱 Platform Support
+
+#### New Android Versions
+
+- Full support for Android 16 (API 36) with quantum-resistant crypto analysis
+- Complete Android 15 (API 35) support with Private Space features
+- Enhanced Android 14 (API 34) support with Credential Manager
+- Backward compatibility maintained for Android 5+ through Android 13
+
+#### Platform Improvements
+
+- macOS Apple Silicon (M1/M2/M3) optimization
+- Windows WSL 2 full compatibility
+- Linux ARM64 support
+- Improved ADB connection handling
+- Better USB debugging detection
+
+### 🐛 Bug Fixes
+
+- Fixed bash compatibility issues with older versions
+- Improved error handling in module loading
+- Better handling of disconnected devices
+- Fixed memory leaks in long-running operations
+- Corrected file permission issues on Windows
+- Improved config file parsing
+- Fixed Unicode handling in output files
+- Better handling of special characters in filenames
+
+### ⚠️ Breaking Changes
+
+- Configuration file format updated (auto-migration supported)
+- Some menu option numbers changed (expanded from 20 to 30)
+- Output directory structure reorganized for better organization
+- Log format enhanced (backward compatible)
+
+### 🔮 Experimental Features
+
+- Plugin system (disabled by default)
+- Real-time monitoring dashboard (under development)
+- IoT device analysis (under development)
+- API access (disabled by default)
+- Cloud-based collaborative analysis (planned)
+
+---
+
 ## [v3.0.0] - 2025-09-30
 
 ### Added
