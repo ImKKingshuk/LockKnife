@@ -8,6 +8,7 @@ source "core/config_manager.sh"
 source "core/logging.sh"
 source "core/device.sh"
 source "core/security.sh"
+source "core/android_version_support.sh"
 
 # Load feature modules
 load_modules() {
@@ -446,9 +447,27 @@ main_menu() {
 
     while true; do
         echo
-        echo "LockKnife - Ultimate Android Security Research Tool"
-        echo "=================================================="
-        echo "Connected Device: $device_serial"
+        echo "════════════════════════════════════════════════════════"
+        echo "    LockKnife v4.0.0 - Ultimate Android Security Tool"
+        echo "════════════════════════════════════════════════════════"
+        echo "Device: $device_serial"
+        
+        # Display Android version support info
+        local api_level
+        api_level=$(get_api_level "$device_serial")
+        local android_version
+        android_version=$(get_android_version "$device_serial")
+        echo "Android: $android_version (API $api_level)"
+        
+        if [[ $api_level -ge 36 ]]; then
+            echo "✓ Android 16 Full Support Active"
+        elif [[ $api_level -ge 35 ]]; then
+            echo "✓ Android 15 Support (Private Space available)"
+        elif [[ $api_level -ge 34 ]]; then
+            echo "✓ Android 14 Support (Credential Manager available)"
+        fi
+        
+        echo "════════════════════════════════════════════════════════"
         echo
         echo "🔐 CORE FEATURES"
         echo "1. Password Recovery          2. Data Extraction"
@@ -467,6 +486,15 @@ main_menu() {
         echo "🔬 ADVANCED FEATURES"
         echo "17. Biometric Data Analysis  18. System Service Analysis"
         echo "19. Firmware Extraction      20. Configuration & Tools"
+        echo
+        echo "🚀 NEXT-GEN FEATURES (v4.0.0)"
+        echo "21. AI-Powered Analysis      22. Crypto Wallet Forensics"
+        echo "23. Threat Intelligence      24. Private Space (Android 15+)"
+        echo "25. Passkey Analysis         26. Multi-Device Orchestration"
+        echo
+        echo "📊 UTILITIES"
+        echo "27. Advanced Report Generator 28. Real-Time Monitoring"
+        echo "29. IoT Device Analysis      30. Plugin Management"
         echo
         echo "0. Exit"
         echo
@@ -494,6 +522,16 @@ main_menu() {
             18) system_service_analysis "$device_serial" ;;
             19) firmware_extraction_menu "$device_serial" ;;
             20) configuration_tools ;;
+            21) ai_analysis_menu "$device_serial" ;;
+            22) crypto_forensics_menu "$device_serial" ;;
+            23) threat_intelligence_menu "$device_serial" ;;
+            24) private_space_menu "$device_serial" ;;
+            25) passkey_analysis_menu "$device_serial" ;;
+            26) multi_device_menu ;;
+            27) report_generator_menu "$device_serial" ;;
+            28) realtime_monitoring_menu "$device_serial" ;;
+            29) iot_device_analysis_menu "$device_serial" ;;
+            30) plugin_management_menu ;;
             0)
                 log "INFO" "User requested exit"
                 return 0
@@ -715,6 +753,54 @@ update_tool() {
         log "INFO" "Restarting LockKnife..."
         exec "$0" "$@"
     fi
+}
+
+# Placeholder menu functions for new features
+realtime_monitoring_menu() {
+    local device_serial="$1"
+    echo
+    echo "📡 Real-Time Monitoring Dashboard"
+    echo "════════════════════════════════════════════════════════"
+    echo "Live monitoring features:"
+    echo "• Process activity monitoring"
+    echo "• Network traffic visualization"
+    echo "• System resource tracking"
+    echo "• Event log streaming"
+    echo "• Alert notifications"
+    echo ""
+    echo "⚠️  This feature is under development"
+    read -r -p "Press Enter to return to main menu..."
+}
+
+iot_device_analysis_menu() {
+    local device_serial="$1"
+    echo
+    echo "🌐 IoT Device Analysis"
+    echo "════════════════════════════════════════════════════════"
+    echo "IoT analysis capabilities:"
+    echo "• Detect connected IoT devices"
+    echo "• Bluetooth LE device scanning"
+    echo "• Smart home protocol analysis"
+    echo "• IoT communication monitoring"
+    echo "• Security assessment"
+    echo ""
+    echo "⚠️  This feature is under development"
+    read -r -p "Press Enter to return to main menu..."
+}
+
+plugin_management_menu() {
+    echo
+    echo "🔌 Plugin Management System"
+    echo "════════════════════════════════════════════════════════"
+    echo "Plugin system features:"
+    echo "• Install community plugins"
+    echo "• Browse plugin marketplace"
+    echo "• Manage installed plugins"
+    echo "• Create custom plugins"
+    echo "• Plugin security scanning"
+    echo ""
+    echo "⚠️  This feature is under development"
+    read -r -p "Press Enter to return to main menu..."
 }
 
 # Entry point
