@@ -1,7 +1,38 @@
-<h1 align="center">LockKnife</h1>
-<h3 align="center">v3.5.0</h3>
+<div align="center">
 
-<p align="center">LockKnife : The Ultimate Android Security Research Tool - Your Complete Android Security Research Arsenal! 🗝️🔬🔒 Dive deep into Android security with this next-generation enterprise-grade command-line tool featuring AI-powered analysis, cryptocurrency wallet forensics, threat intelligence integration, Android 16 support, and 20+ specialized modules. Recover lock screen credentials, perform AI-driven behavior analysis, analyze crypto wallets, detect threats with real-time intelligence, extract Private Space data (Android 15+), analyze passkeys (Android 14+), orchestrate multi-device investigations, generate professional forensic reports, and conduct cutting-edge security research. Connect your device and unleash the full power of advanced Android security research! 🔒💫🚀</p>
+<img src="https://lockknife.vercel.app/icon.png" width="75" alt="LockKnife Icon"/>
+
+# LockKnife
+
+### The Ultimate Android Security Research Tool
+
+### One Tool. Any Device. Full Control. Enterprise Grade. Unlimited Power
+
+#### Forensics, Analysis, Recovery, Intelligence - Everything
+
+LockKnife : The Ultimate Android Security Research Tool - Your Complete Android Security Research Arsenal! 🗝️🔬🔒 Dive deep into Android security with this next-generation enterprise-grade command-line tool featuring AI-powered analysis, cryptocurrency wallet forensics, threat intelligence integration, Android 16 support, and 20+ specialized modules. Recover lock screen credentials, perform AI-driven behavior analysis, analyze crypto wallets, detect threats with real-time intelligence, extract Private Space data (Android 15+), analyze passkeys (Android 14+), orchestrate multi-device investigations, generate professional forensic reports, and conduct cutting-edge security research. Connect your device and unleash the full power of advanced Android security research! 🔒💫🚀
+
+<br>
+
+[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20Windows-brightgreen)]()
+[![Version](https://img.shields.io/badge/Release-v3.5.0-red)]()
+[![License](https://img.shields.io/badge/License-GPLv3-blue)]()
+
+<a href="https://lockknife.vercel.app">
+    <img width="180" src="https://img.shields.io/badge/Website-LockKnife-blue?logo=google-chrome&style=square" alt="Website"/>
+</a>
+
+<br>
+
+<p>
+ <img height="30" src="https://img.shields.io/badge/Desktop_Apps_Coming_Soon-Under_Development-8A2BE2?style=for-the-badge&logo=tux&logoColor=white&style=square"/>
+ <br/>
+ <img height="25" src="https://img.shields.io/badge/macOS-101010?style=for-the-badge&logo=apple&logoColor=white&style=square"/>
+ <img height="25" src="https://img.shields.io/badge/Linux-101010?style=for-the-badge&logo=linux&logoColor=white&style=square"/>
+ <img height="25" src="https://img.shields.io/badge/Windows-101010?style=for-the-badge&logo=microsoft&logoColor=white&style=square"/>
+
+</p>
+</div>
 
 ## Features Status Legend
 
@@ -17,6 +48,7 @@
 ## Core Features ✅
 
 ### 🔒 Password Recovery ✅
+
 - **Gesture Pattern Recovery** ✅: Recover lock screen gesture patterns with hash mapping and visualization
 - **Dictionary Attack** ✅: Use custom wordlists to recover alphanumeric passwords with parallel processing support
 - **Brute Force Attack** ✅: PIN cracking for 4, 6, or 8-digit PINs with progress tracking
@@ -25,6 +57,7 @@
 - **Gatekeeper HAL Analysis** ✅: Modern credential storage analysis and response monitoring
 
 ### 📱 Android Version Support ✅
+
 - Android 5 and Older ✅
 - Android 6 to 9 ✅
 - Android 10 to 13 ✅
@@ -33,6 +66,7 @@
 - Android 16+ (Full compatibility mode) 🔧
 
 ### 📊 Data Extraction ✅
+
 - **SMS Messages Extraction** ✅: Pull and analyze mmssms.db with statistics
 - **Call Logs Extraction** ✅: Full call history with type classification
 - **Wi-Fi Passwords** ✅: Complete WiFi credential extraction
@@ -47,6 +81,7 @@
 ## Analysis Tools
 
 ### 🔍 Forensic Analysis ✅
+
 - **Device Snapshot Creation** ✅: Capture file system for offline analysis
 - **Live Analysis** ✅: Real-time device state analysis
 - **Custom Data Extraction** ✅: Pull specific files or directories
@@ -55,18 +90,21 @@
 - **App-Specific Extraction** ✅: Specialized tools for popular messaging apps
 
 ### 🚀 Runtime Analysis 🔧
+
 - **Process Monitoring** 🔧: Real-time process listing and analysis
 - **Memory Mapping** 🔧: Process memory inspection
 - **Frida Integration** 🔬: Runtime instrumentation (requires Frida server on device)
 - **Anti-Debugging Detection** 🔬: Identify debugging attempts
 
 ### 🔓 SSL Pinning Bypass 🔧
+
 - **Certificate Pinning Detection** 🔧: Identify SSL pinning implementations
 - **Frida SSL Bypass** 🔬: Runtime SSL bypass scripts (requires Frida)
 - **Network Interception Setup** 🔧: MITM proxy configuration
 - **Burp Suite Integration** 🔧: Proxy setup guidance
 
 ### 📱 Advanced APK Analysis 🔧
+
 - **Static Analysis** ✅: Manifest parsing, permission analysis, resource inspection
 - **Code Analysis** 🔧: DEX/SMALI inspection (requires external tools)
 - **Vulnerability Scanning** 🔧: Automated security checks
@@ -74,17 +112,20 @@
 - **Signature Verification** ✅: APK signature validation
 
 ### 🌐 Network Traffic Analysis ✅
+
 - **Traffic Capture** ✅: Record network traffic with tcpdump (requires root)
 - **Protocol Analysis** ✅: Analyze with tshark integration
 - **HTTP/DNS Analysis** ✅: Request and query extraction
 - **Unencrypted Traffic Detection** ✅: Identify insecure communications
 
 ### 🔍 Advanced Memory Analysis 🔧
+
 - **Memory Dumping** 🔬: Process memory extraction (requires root)
 - **Memory Leak Detection** 🔬: Basic allocation analysis
 - **Heap/Stack Analysis** 🔬: Memory inspection capabilities
 
 ### 🧠 Kernel & SELinux Analysis 🔧
+
 - **Kernel Module Analysis** 🔧: Inspect loaded modules
 - **SELinux Policy Analysis** 🔧: Review security policies
 - **Security Feature Assessment** 🔧: Evaluate hardening status
@@ -95,6 +136,7 @@
 ## Security Assessment
 
 ### 🦠 Malware Analysis ✅
+
 - **Application Scanning** ✅: Check installed apps for suspicious indicators
 - **Permission Analysis** ✅: Identify dangerous permission combinations
 - **Package Analysis** ✅: Verify app signatures and sources
@@ -103,23 +145,27 @@
 - **YARA Integration** 🔬: Pattern matching (requires YARA installation)
 
 ### 🔍 Vulnerability Scanning 🔧
+
 - **System Vulnerabilities** 🔧: Check for known Android security issues
 - **App Vulnerabilities** 🔧: Analyze installed apps for flaws
 - **Configuration Issues** 🔧: Identify insecure settings
 
 ### 🔧 Hardware Security Analysis 🔧
+
 - **TEE Analysis** 🔧: Trusted Execution Environment assessment
 - **Hardware-Backed Keystore** 🔧: Secure key storage analysis
 - **Secure Element Analysis** 🔬: eSE/UICC evaluation
 - **Biometric Hardware** 🔧: Fingerprint/face recognition assessment
 
 ### 🔩 Bootloader & Firmware 🔧
+
 - **Bootloader Assessment** ✅: Lock status and OEM unlock detection
 - **Firmware Extraction** 🔧: Partition dumping capabilities
 - **Boot Image Analysis** 🔬: Inspect boot images
 - **Verified Boot Status** ✅: Check integrity verification
 
 ### ☁️ Cloud Backup Extraction 🔬
+
 - **Google Drive** 🔬: Synced data detection (limited extraction)
 - **Samsung Cloud** 🔬: Samsung account detection
 - **Cloud Configuration** 🔧: Backup settings analysis
@@ -131,6 +177,7 @@
 > 🔬 **Note**: These features are newly added and provide foundational analysis capabilities. As they are under active development, results may be incomplete. Some features generate reports based on available data analysis.
 
 ### 🤖 AI-Powered Analysis 🔬
+
 - **Password Pattern Prediction** 🔧: Statistical analysis-based password guessing
 - **Behavioral Anomaly Detection** 🔧: Process and network anomaly identification
 - **Malware Classification** 🔧: Pattern-based risk scoring
@@ -139,6 +186,7 @@
 - **Data Correlation** 🔬: Cross-reference extracted data
 
 ### ₿ Cryptocurrency Forensics 🔬
+
 - **Wallet Detection** ✅: Identify crypto wallet apps (Coinbase, Binance, MetaMask, etc.)
 - **Wallet Data Extraction** 🔧: Extract wallet app data (requires root)
 - **Transaction History** 🔬: Transaction data analysis
@@ -148,6 +196,7 @@
 - **NFT & DeFi Analysis** 🔬: Token and protocol detection
 
 ### 🌐 Threat Intelligence 🔬
+
 - **IOC Detection** 🔧: Indicators of Compromise identification
 - **App Reputation Analysis** 🔧: Check apps against threat databases
 - **URL/Domain Analysis** 🔬: Domain reputation (requires API keys)
@@ -157,6 +206,7 @@
 - **Real-Time Threat Feeds** 🔬: Integration with VirusTotal, AlienVault OTX (requires API keys)
 
 ### 🔒 Private Space Analysis (Android 15+) 🔧
+
 - **Private Space Detection** ✅: Identify Private Space usage
 - **User Profile Analysis** ✅: Detect multiple isolated profiles
 - **Private App Listing** 🔧: List apps in Private Space
@@ -165,6 +215,7 @@
 - **Isolation Boundary Testing** 🔬: Test app isolation
 
 ### 🔑 Passkey & Credential Analysis (Android 14+) 🔧
+
 - **Credential Manager Detection** ✅: Identify modern credential storage
 - **Passkey Data Extraction** 🔧: Extract passkey metadata (requires root)
 - **WebAuthn Analysis** 🔧: Analyze web authentication credentials
@@ -172,6 +223,7 @@
 - **Biometric Binding** 🔬: Analyze passkey-biometric associations
 
 ### 📱 Multi-Device Orchestration 🔧
+
 - **Device Scanning** ✅: Detect all connected devices
 - **Parallel Information Gathering** ✅: Simultaneous data collection
 - **Synchronized Extraction** 🔧: Parallel data extraction
@@ -180,6 +232,7 @@
 - **Multi-Device Timeline** 🔬: Unified event reconstruction
 
 ### 📊 Advanced Report Generation ✅
+
 - **Executive Summary** ✅: High-level reports for stakeholders
 - **Technical Reports** ✅: Detailed technical analysis
 - **Timeline Reports** 🔧: Event timeline reconstruction
@@ -193,6 +246,7 @@
 ## Features 🚧 (Coming Soon)
 
 ### 📡 Real-Time Monitoring 🚧
+
 - Live device activity monitoring
 - Process activity dashboards
 - Network traffic visualization
@@ -200,6 +254,7 @@
 - Alert notifications
 
 ### 🌐 IoT Device Analysis 🚧
+
 - Detect connected IoT devices
 - Bluetooth LE device scanning
 - Smart home protocol analysis
@@ -207,6 +262,7 @@
 - Security assessment
 
 ### 🔌 Plugin System 🚧
+
 - Install community plugins
 - Browse plugin marketplace
 - Custom plugin development
@@ -234,26 +290,32 @@
 ### Optional Dependencies for Enhanced Features
 
 **Memory Analysis:**
+
 - gdb/lldb for debugging capabilities
 - valgrind for memory leak detection
 
 **Kernel Analysis:**
+
 - Kernel headers for inspection
 - SELinux policy tools
 
 **Malware Analysis:**
+
 - ClamAV or similar antivirus
 - [YARA](https://virustotal.github.io/yara/) for pattern matching
 
 **Network Analysis:**
+
 - tcpdump for traffic capture
 - nmap for network scanning
 
 **Threat Intelligence:**
+
 - VirusTotal API key
 - AlienVault OTX API key
 
 **Reports:**
+
 - pandoc for PDF/HTML export
 
 ## How to Use
@@ -292,14 +354,13 @@ LockKnife looks for configuration files in the following locations (in order):
 You can also specify a custom config file using the `--config=FILE` command-line option.
 
 See `lockknife.conf` for all 100+ configurable options including:
+
 - Attack settings (wordlist, parallel jobs, PIN length)
 - Forensics settings (snapshot directories, PCAP filters)
 - App-specific extraction options
 - Advanced analysis depth settings
 - Threat intelligence API keys
 - Report generation preferences
-
-
 
 ## Disclaimer
 
