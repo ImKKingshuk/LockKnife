@@ -130,3 +130,11 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# LockKnife Specific
+lockknife.conf
+lockknife_output/
+*.pcap
+*.db
+*.log
+
