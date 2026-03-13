@@ -1,0 +1,111 @@
+name: release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  rust-tests:
+    name: Rust tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - run: uv run maturin develop
+      - run: uv run cargo test --workspace
+
+  build-wheels:
+    name: Build wheels — ${{ matrix.target }} (${{ matrix.os }})
+    needs: [rust-tests]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ── Linux ──────────────────────────────────────────
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            manylinux: "2014"
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            # ring fails in the older auto-selected ARM cross image; use an
+            # explicit newer manylinux cross image/toolchain for release builds.
+            manylinux: "2_28"
+          # ── macOS ──────────────────────────────────────────
+          - os: macos-latest      # Apple Silicon runner
+            target: aarch64-apple-darwin
+            manylinux: "off"
+          # ── Windows ────────────────────────────────────────
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            manylinux: "off"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: -m lockknife-core/Cargo.toml --release --out dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.target }}
+          path: dist/*.whl
+
+  build-sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: -m lockknife-core/Cargo.toml --out dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  upload-release:
+    name: Upload to GitHub Release
+    needs: [build-wheels, build-sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List built artifacts
+        run: ls -lh dist/
+
+      - name: Upload wheels & sdist to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

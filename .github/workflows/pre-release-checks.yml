@@ -1,0 +1,49 @@
+name: pre-release checks
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - run: uv run maturin develop
+      - run: uv run lockknife --version
+      - run: uv run lockknife --cli --help
+      - run: uv run cargo test --workspace
+      - run: uv run cargo fmt --check
+      - run: uv run cargo clippy --workspace -- -D warnings
+      - run: uv run pytest --cov=lockknife --cov=lockknife_headless_cli --cov-report=term-missing --cov-fail-under=79
+      - run: uv run python -m mypy lockknife_headless_cli/*.py --show-error-codes --no-pretty
+      - run: uv run mypy lockknife
+      - run: uv run bandit -c bandit.yaml -r lockknife lockknife_headless_cli --severity-level medium
+      - run: uv run pip-audit
+
+  build-check:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: -m lockknife-core/Cargo.toml --release --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: check-wheels-${{ matrix.os }}
+          path: dist/*
+          retention-days: 3
