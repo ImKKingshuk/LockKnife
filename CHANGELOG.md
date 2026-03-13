@@ -2,9 +2,232 @@
 
 All notable changes to `LockKnife : The Ultimate Android Security Research Tool` will be documented in this file.
 
-## [v3.5.0] - 2025-11-06
+## [v1.0.0] - 2026-03-15
 
-### 🚀 Major New Features
+### Full Rewrite: Python + Rust (New Era)
+
+This release marks the transition from a Bash-only tool to a modular, TUI + headless CLI with a Rust native core. LockKnife is now a unified Android security research platform combining forensics, analysis, recovery, runtime instrumentation, and intelligence in one framework.
+
+### 🎯 Product Architecture
+
+- **TUI (Primary)**: Full-screen terminal UI as the default experience (`lockknife`) - case-driven workflows, live output, result viewer, and operator-guided execution
+- **CLI (Secondary)**: Headless command-line interface (`lockknife --cli` or `lockknife --headless`) for quick tasks, automation, scripting, and CI/CD integration
+- **Interactive (Legacy)**: Old classic menu-driven interface (`lockknife interactive`) for backward compatibility
+
+### 🏗️ Core Platform
+
+#### Python + Rust Hybrid Architecture
+
+- **Python Orchestration Layer**: CLI, device I/O, modules, reporting, and integrations under `lockknife/core/`, `lockknife_headless_cli/`, and `lockknife/modules/`
+- **Rust Native** (`lockknife.lockknife_core`) for performance-critical operations:
+  - Cryptographic primitives: hashing/HMAC, AES-GCM encryption/decryption
+  - High-speed PIN bruteforce (production-ready, Rust-accelerated)
+  - Dictionary attacks with rule-based password mutations
+  - SQLite bulk table extraction to JSON with correlation primitives
+  - Binary helpers: DEX/ELF header parsing, pattern scanning
+  - Network primitives: IPv4 parsing and packet analysis helpers
+
+#### Configuration & Logging
+
+- TOML-based configuration (`lockknife.toml`) with multi-location support:
+  - `./lockknife.toml`
+  - `$HOME/.config/lockknife/lockknife.toml`
+  - `$HOME/.lockknife.toml`
+  - `/etc/lockknife.toml`
+- Legacy `lockknife.conf` auto-mapping for backward compatibility
+- Structured logging with console and JSON formats
+- Environment variable override support
+- Shell completion for bash, zsh, and fish
+
+### 📱 Device & Orchestration
+
+- **ADB Management**: Device listing, connection, info, shell access (`lockknife device ...`)
+- **Multi-Device Support**: Parallel execution for supported operations across multiple devices
+- **Device Targeting**: Smart device selection and targeting system
+- **Feature Matrix**: Runtime feature availability detection based on device access level (userdebug/root), OEM paths, and Android version
+- **Health Monitoring**: Device health checks and diagnostics
+
+### 🔐 Credentials & Recovery
+
+#### Production-Ready (Rust-Accelerated)
+
+- **Offline PIN Bruteforce** (`lockknife crack pin`): High-speed 4/6/8-digit PIN cracking
+- **Dictionary Attack** (`lockknife crack password`): Wordlist-based password recovery
+- **Rule-Based Mutations** (`lockknife crack password-rules`): Advanced password transformation rules
+
+#### Best-Effort (Device-Dependent)
+
+- **Device-Side PIN Recovery** (`lockknife crack pin-device`): On-device PIN extraction pipeline
+- **Gesture Recovery** (`lockknife crack gesture`): Pattern lock analysis with visual representation
+- **WiFi Password Extraction** (`lockknife crack wifi`): WiFi credential recovery (often requires root)
+- **Keystore Listing** (`lockknife crack keystore`): Android keystore inventory
+- **Passkey Export** (`lockknife crack passkeys`): FIDO2/WebAuthn credential extraction (Android 14+)
+
+### 📤 Extraction & Forensics
+
+#### Data Extraction (Functional)
+
+- **SMS/Contacts/Call Logs** (`lockknife extract sms|contacts|call-logs`)
+- **Browser Artifacts**: Chrome/Firefox history, bookmarks, downloads, cookies, saved logins
+- **Media Extraction**: Photos, videos with EXIF metadata preservation
+- **Location Artifacts**: GPS data, location history, dumpsys snapshots
+- **Messaging Apps** (best-effort): WhatsApp, Telegram, Signal (encryption/key dependent)
+
+#### Forensic Analysis (Production-Ready)
+
+- **SQLite Analysis** (`lockknife forensics sqlite`): Rust-accelerated bulk extraction and inspection
+- **Timeline Building** (`lockknife forensics timeline`): Cross-artifact timeline reconstruction
+- **Correlation Engine** (`lockknife forensics correlate`): Rust-assisted artifact correlation
+- **ALEAPP Compatibility** (`lockknife forensics parse`): Artifact normalization and export
+- **Device Snapshots** (`lockknife forensics snapshot`): Full device state capture (best-effort)
+- **Recovery Heuristics** (`lockknife forensics recover`): Deleted record recovery (best-effort)
+- **Artifact Registry**: Extensible artifact parser system with protobuf, accounts, app usage, Bluetooth, notifications, WiFi history
+
+### 📦 APK Analysis (Dependency-Gated: `lockknife[apk]`)
+
+- **Manifest Parsing**: Component extraction, permission analysis, metadata inspection
+- **Permission Risk Scoring**: Heuristic vulnerability assessment
+- **Signing Analysis**: Certificate verification, signature validation
+- **Code Signal Detection**: Suspicious code pattern identification
+- **DEX Header Extraction**: Rust-powered DEX file analysis
+- **Decompile Workflow**: APK unpack, manifest.json generation (structured stage reporting)
+- **YARA/Pattern Scanning** (`lockknife apk scan`): Malware detection with Rust pattern engine
+
+### 🧪 Runtime Instrumentation (Dependency-Gated: `lockknife[runtime]`)
+
+- **Frida Session Management**: Attach, spawn, script loading
+- **SSL Pinning Bypass** (`lockknife runtime bypass-ssl`)
+- **Root Detection Bypass** (`lockknife runtime bypass-root`)
+- **Method Tracing** (`lockknife runtime trace`)
+- **Memory Search** (`lockknife runtime memory-search`)
+- **Heap Dump** (`lockknife runtime heap-dump`)
+- **Session Orchestration**: Multi-target session management with helper families
+
+### 🌐 Network Analysis (Dependency-Gated: `lockknife[network]`)
+
+- **Device Capture** (`lockknife network capture`): tcpdump-based packet capture (requires root)
+- **PCAP Analysis** (`lockknife network analyze`): Traffic inspection and protocol analysis
+- **API Discovery** (`lockknife network api-discovery`): Endpoint extraction and mapping
+- **Rust Primitives**: IPv4 parsing and network data structure helpers
+
+### 🛡️ Security Assessment (Functional)
+
+- **Device Posture Audit** (`lockknife security scan`): Comprehensive security checks
+- **SELinux Analysis** (`lockknife security selinux`): Policy inspection and enforcement status
+- **Bootloader Status** (`lockknife security bootloader`): Lock status and vulnerability assessment
+- **Hardware Security** (`lockknife security hardware`): TEE, secure element, biometric hardware analysis
+- **Malware Scanning** (`lockknife security malware`): Rust pattern engine with optional YARA fallback
+- **OWASP MASTG Mapping** (`lockknife security owasp`): Finding categorization and compliance reporting
+
+### 📊 Reporting & Case Management (Functional)
+
+#### Report Generation
+
+- **Multi-Format Export**: HTML, JSON, CSV (functional), PDF (dependency-gated: weasyprint/xhtml2pdf)
+- **Report Types**:
+  - Executive summaries for stakeholders
+  - Technical analysis reports with detailed findings
+  - Timeline reports with event reconstruction
+  - Security assessment reports with risk scoring
+- **Chain of Custody** (`lockknife report chain-of-custody`): Evidence tracking and lineage
+- **Integrity Verification** (`lockknife report integrity`): Artifact hash verification and tamper detection
+
+#### Case Workspace Management
+
+- **Case-First Architecture**: Unified workspace for extraction, forensics, runtime, APK review, and reporting
+- **Artifact Lineage**: Complete evidence tracking with integrity hashes
+- **Manifest System**: Case metadata, artifact inventory, and custody records
+- **Enrichment Pipeline**: Automated case enrichment with orchestrator, payloads, runs, and summary generation
+
+### 🔍 Intelligence & AI (Dependency-Gated)
+
+#### Threat Intelligence (`lockknife[threat-intel]`)
+
+- **VirusTotal Integration** (`lockknife intel virustotal`): File/URL reputation checks
+- **AlienVault OTX** (`lockknife intel reputation`): Threat intelligence feeds
+- **IOC Detection** (`lockknife intel ioc`): Indicator of Compromise identification
+- **CVE Lookup** (`lockknife intel cve`): Vulnerability database queries
+- **STIX/TAXII** (`lockknife intel stix|taxii`): Structured threat information exchange
+
+#### AI/ML Workflows (`lockknife[ml]`)
+
+- **Anomaly Detection** (`lockknife ai anomaly`): Behavioral anomaly scoring
+- **Malware Classification** (`lockknife ai train-malware|classify-malware`): Neural network-based detection
+- **Password Prediction** (`lockknife ai predict-password`): ML-assisted password recovery
+
+### 💰 Crypto Wallet Forensics (Functional)
+
+- **Wallet Detection** (`lockknife crypto-wallet wallet`): Multi-chain wallet identification
+- **Address Extraction**: Bitcoin, Ethereum, and 20+ cryptocurrency support
+- **Transaction Analysis**: Blockchain transaction tracking (data/network dependent)
+
+### 🎨 TUI Features (Primary Product Surface)
+
+- **Full-Screen Interface**: Async operations with overlays and panels
+- **Module Catalog**: Searchable feature browser with capability badges
+- **Result Viewer**: Export, copy, and review operation outputs
+- **Action Matrix**: Feature status and requirement visibility
+- **Search & Navigation**: Keyboard-driven workflow with `/` search, tab navigation
+- **Theme Support**: Cycle themes with `t` key
+- **Config Editor**: In-TUI configuration management with `c` key
+- **Keybindings**:
+  - `q`: Quit
+  - `Tab`: Navigate panels
+  - `Arrow keys`: Move selection
+  - `Enter`: Open action menu
+  - `/`: Search modules/output
+  - `?`: Help
+  - `t`: Theme cycle
+  - `c`: Config editor
+  - `e`: Export last result
+  - `v`: Result viewer
+  - `PageUp/PageDown`: Scroll modules
+  - `Ctrl+Up/Down`: Adjust panel height
+  - `y`: Copy result in viewer
+
+### 📦 Optional Extras (Dependency-Gated Features)
+
+Install additional capabilities via pip extras:
+
+- `lockknife[apk]`: APK analysis, manifest parsing, decompilation
+- `lockknife[frida]`: Runtime instrumentation, bypass workflows
+- `lockknife[ml]`: AI/ML analysis, anomaly detection, password prediction
+- `lockknife[threat-intel]`: Threat intelligence feeds, IOC detection
+- `lockknife[network]`: PCAP analysis, API discovery (requires scapy)
+- `lockknife[yara]`: YARA-backed malware scanning (optional fallback)
+
+### 🔄 Migration from v0.4.x
+
+#### Breaking Changes
+
+- **Bash-only bootstrap removed**: `LockKnife.sh` / curl-pipe-bash install no longer primary entrypoint
+- **Configuration format**: Primary config is now `lockknife.toml` (legacy `lockknife.conf` auto-mapped)
+- **CLI interface**: Menu-driven Bash workflow replaced with Click-based CLI
+  - Use `lockknife` for TUI (new default)
+  - Use `lockknife --cli` for headless commands
+  - Use `lockknife interactive` for classic menu experience
+- **Dependency management**: Advanced features gated behind optional extras
+- **Output structure**: Reorganized for case-first workflows
+
+#### Compatibility
+
+- **Python 3.11+** required
+- **Rust toolchain** required for building from source
+- **ADB** (Android platform-tools) required for device operations
+- **Platform support**: macOS, Linux, Windows (WSL)
+
+### 🎯 Design Philosophy
+
+- **Case-First**: Unified workspace for the full investigation lifecycle
+- **Operator-Centric**: TUI as primary surface with guided workflows
+- **Modular**: Importable APIs, not just CLI commands
+- **Testable**: Comprehensive test coverage with clear boundaries
+- **Transparent**: Feature status visibility and realistic expectations
+- **Extensible**: Plugin system and artifact registry for custom workflows
+
+## [v0.4.0] - 2025-11-06
+
+### Last Version with Bash
 
 #### Android Version Support
 
@@ -133,7 +356,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 ---
 
-## [v3.0.0] - 2025-09-30
+## [v0.3.5] - 2025-09-30
 
 ### Added
 
@@ -189,13 +412,13 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 - **File Security**: Improved secure file handling and encryption capabilities
 - **Cross-Platform**: Better Windows compatibility and environment detection
 
-## [v2.0.1] - 2025-07-23
+## [v0.3.1] - 2025-07-23
 
 ### Changed
 
 - Minor Optimizations: General improvements and optimizations.
 
-## [v2.0.0] - 2025-05-30
+## [v0.3.0] - 2025-05-30
 
 ### Added
 
@@ -216,7 +439,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 - **Enhanced Security**: All sensitive files are now stored with proper permissions and securely deleted.
 - **Better File Handling**: Improved file transfer and management between device and host.
 
-## [v1.9.0] - 2025-04-15
+## [v0.2.7] - 2025-04-15
 
 ### Added
 
@@ -235,7 +458,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 - **User Interface**: Enhanced progress tracking for long-running operations.
 - **File Permissions**: Setting secure permissions (chmod 600) on all extracted files.
 
-## [v1.8.5] - 2025-02-26
+## [v0.2.6] - 2025-02-26
 
 ### Added
 
@@ -249,7 +472,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 - Improved Dependency Management: Checks for missing dependencies and attempts to install them via common package managers like apt, brew, or dnf.
 - Minor Optimizations: General improvements for better performance and usability.
 
-## [v1.7.5] - 2024-11-28
+## [v0.2.5] - 2024-11-28
 
 ### Added
 
@@ -261,13 +484,13 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 - Improved Dependency Management: Checks for missing dependencies and assists in installing them via common package managers like apt, brew, or dnf.
 - Minor Optimizations: General improvements and optimizations.
 
-## [v1.6.2] - 2024-08-15
+## [v0.2.4] - 2024-08-15
 
 ### Changed
 
 - Minor Optimizations: General improvements and optimizations.
 
-## [v1.6.1] - 2024-06-16
+## [v0.2.3] - 2024-06-16
 
 ### Added
 
@@ -277,7 +500,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 - Minor Optimizations: General improvements and optimizations.
 
-## [v1.5.0] - 2024-06-05
+## [v0.2.2] - 2024-06-05
 
 ### Added
 
@@ -290,7 +513,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
   - Android 6 to 9.
   - Android 10+ and Newer.
 
-## [v1.3.1] - 2024-06-02
+## [v0.2.1] - 2024-06-02
 
 ### Added
 
@@ -302,7 +525,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
   - Password Recovery.
   - Privacy Protection Password Recovery.
 
-## [v1.2.0] - 2023-12-23
+## [v0.1.1] - 2023-12-23
 
 ### Added
 
@@ -310,7 +533,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
   - Wi-Fi Password Recovery.
   - Gesture Password Recovery.
 
-## [v1.0.0] - 2023-07-20
+## [v0.1.0] - 2023-07-20
 
 ### Added
 

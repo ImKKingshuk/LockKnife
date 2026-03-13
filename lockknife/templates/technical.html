@@ -1,0 +1,276 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>LockKnife Technical Report</title>
+    <style>
+      :root {
+        --bg: #0b0f19;
+        --card: #111827;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --border: rgba(255, 255, 255, 0.08);
+        --critical: #b91c1c;
+        --high: #dc2626;
+        --medium: #f59e0b;
+        --low: #10b981;
+        --info: #60a5fa;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 32px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      }
+      .container { max-width: 1100px; margin: 0 auto; }
+      .header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+      .brand { font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }
+      .sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
+      .meta { color: var(--muted); font-size: 13px; text-align: right; }
+      .card { margin-top: 18px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+      h2 { margin: 0 0 10px 0; font-size: 14px; color: var(--muted); font-weight: 600; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+      th { text-align: left; color: var(--muted); font-weight: 600; }
+      pre { margin: 0; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+      .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
+      .sev-critical { background: rgba(185, 28, 28, 0.18); border-color: rgba(185, 28, 28, 0.35); }
+      .sev-high { background: rgba(220, 38, 38, 0.14); border-color: rgba(220, 38, 38, 0.35); }
+      .sev-medium { background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.35); }
+      .sev-low { background: rgba(16, 185, 129, 0.14); border-color: rgba(16, 185, 129, 0.35); }
+      .sev-info { background: rgba(96, 165, 250, 0.14); border-color: rgba(96, 165, 250, 0.35); }
+      .muted { color: var(--muted); }
+      .segbar { display: flex; gap: 2px; }
+      .seg { flex: 1; height: 10px; border-radius: 999px; background: rgba(255,255,255,0.07); border: 1px solid var(--border); }
+      .seg-critical { background: rgba(185, 28, 28, 0.9); border-color: rgba(185, 28, 28, 0.35); }
+      .seg-high { background: rgba(220, 38, 38, 0.9); border-color: rgba(220, 38, 38, 0.35); }
+      .seg-medium { background: rgba(245, 158, 11, 0.9); border-color: rgba(245, 158, 11, 0.35); }
+      .seg-low { background: rgba(16, 185, 129, 0.9); border-color: rgba(16, 185, 129, 0.35); }
+      .seg-info { background: rgba(96, 165, 250, 0.9); border-color: rgba(96, 165, 250, 0.35); }
+      .footer { margin-top: 22px; color: var(--muted); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <div class="brand">LockKnife Technical Report</div>
+          <div class="sub">Raw evidence + derived findings rendered for review</div>
+        </div>
+        <div class="meta">
+          <div><span class="muted">Case ID:</span> {{ case_id }}</div>
+          {% if case_title %}<div><span class="muted">Title:</span> {{ case_title }}</div>{% endif %}
+          {% if examiner %}<div><span class="muted">Examiner:</span> {{ examiner }}</div>{% endif %}
+          <div><span class="muted">Generated:</span> {{ generated_at }}</div>
+        </div>
+      </div>
+
+      {% set ns = namespace(total=0, critical=0, high=0, medium=0, low=0, info=0) %}
+      {% if artifacts is sequence and artifacts is not string %}
+        {% for a in artifacts %}
+          {% if a is mapping %}
+            {% set ns.total = ns.total + 1 %}
+            {% if a.get('severity') == 'critical' %}{% set ns.critical = ns.critical + 1 %}{% endif %}
+            {% if a.get('severity') == 'high' %}{% set ns.high = ns.high + 1 %}{% endif %}
+            {% if a.get('severity') == 'medium' %}{% set ns.medium = ns.medium + 1 %}{% endif %}
+            {% if a.get('severity') == 'low' %}{% set ns.low = ns.low + 1 %}{% endif %}
+            {% if a.get('severity') == 'info' %}{% set ns.info = ns.info + 1 %}{% endif %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      <div class="card">
+        <h2>Severity distribution</h2>
+        {% set denom = (ns.total if ns.total else 1) %}
+        <div class="muted" style="margin-bottom:10px;">Critical {{ ns.critical }}, High {{ ns.high }}, Medium {{ ns.medium }}, Low {{ ns.low }}, Info {{ ns.info }}</div>
+        {% set c_fill = ((ns.critical * 10 / denom) | round(0, 'ceil')) %}
+        {% set h_fill = ((ns.high * 10 / denom) | round(0, 'ceil')) %}
+        {% set m_fill = ((ns.medium * 10 / denom) | round(0, 'ceil')) %}
+        {% set l_fill = ((ns.low * 10 / denom) | round(0, 'ceil')) %}
+        {% set i_fill = ((ns.info * 10 / denom) | round(0, 'ceil')) %}
+        <div class="muted" style="margin-top:8px; margin-bottom:6px;">Critical</div>
+        <div class="segbar">
+          {% for i in range(10) %}<div class="seg {% if i < c_fill %}seg-critical{% endif %}"></div>{% endfor %}
+        </div>
+        <div class="muted" style="margin-top:10px; margin-bottom:6px;">High</div>
+        <div class="segbar">
+          {% for i in range(10) %}<div class="seg {% if i < h_fill %}seg-high{% endif %}"></div>{% endfor %}
+        </div>
+        <div class="muted" style="margin-top:10px; margin-bottom:6px;">Medium</div>
+        <div class="segbar">
+          {% for i in range(10) %}<div class="seg {% if i < m_fill %}seg-medium{% endif %}"></div>{% endfor %}
+        </div>
+        <div class="muted" style="margin-top:10px; margin-bottom:6px;">Low</div>
+        <div class="segbar">
+          {% for i in range(10) %}<div class="seg {% if i < l_fill %}seg-low{% endif %}"></div>{% endfor %}
+        </div>
+        <div class="muted" style="margin-top:10px; margin-bottom:6px;">Info</div>
+        <div class="segbar">
+          {% for i in range(10) %}<div class="seg {% if i < i_fill %}seg-info{% endif %}"></div>{% endfor %}
+        </div>
+      </div>
+
+      {% if highlights %}
+      <div class="card">
+        <h2>Highlights</h2>
+        <ul>
+          {% for item in highlights %}<li>{{ item }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if case_summary %}
+      <div class="card">
+        <h2>Case workspace summary</h2>
+        <table>
+          <tbody>
+            <tr><th>Total artifacts</th><td>{{ case_summary.get('total_artifact_count') }}</td><th>Selected artifacts</th><td>{{ case_summary.get('artifact_count') }}</td></tr>
+            <tr><th>Jobs</th><td>{{ case_summary.get('jobs', {}).get('total') }}</td><th>Runtime sessions</th><td>{{ case_summary.get('runtime_sessions', {}).get('total') }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if evidence_summary %}
+      <div class="card">
+        <h2>Evidence summary</h2>
+        <table>
+          <tbody>
+            <tr><th>Inventory count</th><td>{{ evidence_summary.get('artifact_count') }}</td><th>Payload rows</th><td>{{ evidence_summary.get('artifact_payload_rows') }}</td></tr>
+          </tbody>
+        </table>
+        {% if evidence_summary.get('top_categories') %}<div class="muted" style="margin-top:10px;">Top categories: {{ evidence_summary.get('top_categories') | tojson }}</div>{% endif %}
+      </div>
+      {% endif %}
+
+      {% if integrity %}
+      <div class="card">
+        <h2>Integrity verification</h2>
+        <div class="muted" style="margin-bottom:10px;">{{ integrity.get('advisory') }}</div>
+        <table>
+          <tbody>
+            <tr><th>Verified</th><td>{{ integrity.get('summary', {}).get('verified_count') }}</td><th>Modified</th><td>{{ integrity.get('summary', {}).get('modified_count') }}</td></tr>
+            <tr><th>Missing</th><td>{{ integrity.get('summary', {}).get('missing_count') }}</td><th>Unreadable</th><td>{{ integrity.get('summary', {}).get('unreadable_count') }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <h2>Findings / supplied rows (first 200 rows)</h2>
+        {% if artifacts is sequence and artifacts is not string %}
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 140px;">Severity</th>
+                <th style="width: 220px;">ID</th>
+                <th>Title</th>
+                <th style="width: 420px;">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in artifacts[:200] %}
+                {% if a is mapping %}
+                  {% set sev = a.get('severity') %}
+                  {% set cls = 'sev-info' %}
+                  {% if sev == 'critical' %}{% set cls = 'sev-critical' %}{% endif %}
+                  {% if sev == 'high' %}{% set cls = 'sev-high' %}{% endif %}
+                  {% if sev == 'medium' %}{% set cls = 'sev-medium' %}{% endif %}
+                  {% if sev == 'low' %}{% set cls = 'sev-low' %}{% endif %}
+                  <tr>
+                    <td><span class="badge {{ cls }}">{{ sev or 'unknown' }}</span></td>
+                    <td class="muted">{{ a.get('id', '') }}</td>
+                    <td>{{ a.get('title', '') }}</td>
+                    <td class="muted">{{ a.get('details', {}) | tojson }}</td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="muted">Artifacts are not a list of findings; see raw JSON below.</div>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h2>OWASP MASTG alignment</h2>
+        {% if mastg and mastg.get('mastg_ids') %}
+          <div class="muted">Mapped IDs: {{ mastg.get('mastg_ids') | tojson }}</div>
+          {% if mastg.get('mappings') %}
+            <table style="margin-top:12px;">
+              <thead>
+                <tr>
+                  <th style="width: 260px;">Finding ID</th>
+                  <th>MASTG IDs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for m in mastg.get('mappings') %}
+                  <tr>
+                    <td class="muted">{{ m.get('finding_id') }}</td>
+                    <td>{{ m.get('mastg') | tojson }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% endif %}
+        {% else %}
+          <div class="muted">No MASTG mappings available for the supplied artifacts.</div>
+        {% endif %}
+      </div>
+
+      {% if evidence_inventory %}
+      <div class="card">
+        <h2>Evidence inventory (first 100 artifacts)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Category</th><th>Status</th><th>Path</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in evidence_inventory[:100] %}
+            <tr>
+              <td class="muted">{{ item.get('artifact_id') }}</td>
+              <td>{{ item.get('category') }}</td>
+              <td>{{ item.get('status') }}</td>
+              <td class="muted">{{ item.get('path') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if report_sections %}
+      <div class="card">
+        <h2>Report readiness</h2>
+        <ul>
+          {% for item in report_sections %}<li><strong>{{ item.get('title') }}:</strong> {{ item.get('summary') }}</li>{% endfor %}
+        </ul>
+        {% if report_preview %}<div class="muted">PDF backend: {{ report_preview.get('pdf_backend_status', {}).get('preferred') or 'unavailable' }}</div>{% endif %}
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <h2>Artifacts JSON</h2>
+        <pre>{{ artifacts | tojson(indent=2) }}</pre>
+      </div>
+
+      {% if operator_guidance %}
+      <div class="card">
+        <h2>Operator guidance</h2>
+        <ul>
+          {% for item in operator_guidance %}<li>{{ item }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <div class="footer">
+        Generated by LockKnife. Preserve original files for verification and chain-of-custody.
+      </div>
+    </div>
+  </body>
+</html>

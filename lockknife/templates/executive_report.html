@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>{{ case_id }} executive report</title><style>{{ embedded_css }}</style></head>
+<body><div class="page"><section class="hero"><h1>{{ case_title or case_id }}</h1><p>Executive summary prepared {{ generated_at }}{% if examiner %} · {{ examiner }}{% endif %}</p>{% for item in highlights %}<div class="badge">{{ item }}</div>{% endfor %}</section><section class="grid">{% for metric, value in report_metrics.items() %}<div class="metric"><h3>{{ metric.replace('_', ' ').title() }}</h3><p>{{ value }}</p></div>{% endfor %}</section><section class="section"><h2>Key sections</h2><div class="grid">{% for section in report_sections %}<div class="panel"><div class="badge {{ section.status or 'low' }}">{{ section.status or 'info' }}</div><h3>{{ section.title }}</h3><p>{{ section.summary }}</p></div>{% endfor %}</div></section><section class="section"><h2>Operator guidance</h2><ul>{% for item in operator_guidance %}<li>{{ item }}</li>{% endfor %}</ul></section></div></body>
+</html>

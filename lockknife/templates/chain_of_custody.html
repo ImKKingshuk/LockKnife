@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ report_title or "Chain of Custody" }}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; color: #1f2937; }
+    h1, h2 { margin-bottom: 8px; }
+    .muted { color: #6b7280; }
+    .card { border: 1px solid #d1d5db; border-radius: 10px; padding: 16px; margin: 12px 0; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 6px; word-break: break-all; }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1>{{ report_title or "Chain of Custody" }}</h1>
+  <p class="muted">Case {{ case_id }} · Examiner {{ examiner }} · Generated {{ generated_at }}</p>
+  {% if notes %}<div class="card"><strong>Notes</strong><p>{{ notes }}</p></div>{% endif %}
+  <div class="card grid">
+    <div><strong>Entries</strong><br />{{ entry_count }}</div>
+    <div><strong>Chain head SHA256</strong><br /><code>{{ chain_head_sha256 or "n/a" }}</code></div>
+    <div><strong>Verification</strong><br />{{ verification.status if verification else "unknown" }}</div>
+    <div><strong>Verification detail</strong><br />{{ verification.reason if verification and verification.reason else "n/a" }}</div>
+  </div>
+  <h2>Evidence log</h2>
+  {% for entry in entries %}
+  <div class="card">
+    <strong>{{ loop.index }}. {{ entry.name }}</strong>
+    <ul>
+      <li>Path: <code>{{ entry.path }}</code></li>
+      {% if entry.category %}<li>Category: {{ entry.category }}</li>{% endif %}
+      {% if entry.source_command %}<li>Source command: {{ entry.source_command }}</li>{% endif %}
+      {% if entry.device_serial %}<li>Device serial: {{ entry.device_serial }}</li>{% endif %}
+      {% if entry.collected_at_utc %}<li>Collected: {{ entry.collected_at_utc }}</li>{% endif %}
+      {% if entry.size_bytes is not none %}<li>Size: {{ entry.size_bytes }} bytes</li>{% endif %}
+      {% if entry.integrity_status %}<li>Integrity status: {{ entry.integrity_status }}</li>{% endif %}
+      {% if entry.sha256 %}<li>SHA256: <code>{{ entry.sha256 }}</code></li>{% endif %}
+      <li>Previous hash: <code>{{ entry.previous_hash }}</code></li>
+      <li>Entry hash: <code>{{ entry.entry_hash }}</code></li>
+    </ul>
+  </div>
+  {% endfor %}
+</body>
+</html>
