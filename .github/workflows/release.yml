@@ -72,17 +72,55 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import shutil
+          import os
           import subprocess
+          import sys
+          import tempfile
+          import zipfile
 
-          wheel = next(Path("dist").glob("*.whl"))
-          subprocess.run(["uv", "pip", "install", "--system", str(wheel)], check=True)
+          wheels = sorted(Path("dist").glob("*.whl"))
+          if not wheels:
+              raise SystemExit("No wheel artifacts found in dist/")
 
-          exe = shutil.which("lockknife")
-          if not exe:
-              raise SystemExit("lockknife not found on PATH after wheel install")
+          extracted_dirs: list[Path] = []
+          for wheel in wheels:
+              extract_dir = Path(tempfile.mkdtemp(prefix=f"{wheel.stem}-"))
+              with zipfile.ZipFile(wheel) as archive:
+                  archive.extractall(extract_dir)
 
-          subprocess.run([exe, "--version"], check=True)
+              entry_points = next(extract_dir.glob("*.dist-info/entry_points.txt"), None)
+              if entry_points is None:
+                  raise SystemExit(f"{wheel.name} is missing entry_points.txt")
+
+              entry_text = entry_points.read_text(encoding="utf-8")
+              if "lockknife=lockknife_headless_cli.main:cli" not in entry_text:
+                  raise SystemExit(f"{wheel.name} is missing the lockknife console script entrypoint")
+
+              if not (extract_dir / "lockknife_headless_cli" / "main.py").exists():
+                  raise SystemExit(f"{wheel.name} is missing lockknife_headless_cli/main.py")
+
+              extracted_dirs.append(extract_dir)
+
+          subprocess.run(
+              [
+                  "uv",
+                  "pip",
+                  "install",
+                  "--system",
+                  "click>=8.1",
+                  "rich>=13.0",
+                  "jinja2>=3.1",
+                  "defusedxml>=0.7",
+                  "pydantic>=2.0",
+                  "pydantic-settings>=2.0",
+                  "structlog>=23.0",
+              ],
+              check=True,
+          )
+
+          env = os.environ.copy()
+          env["PYTHONPATH"] = str(extracted_dirs[0]) + os.pathsep + env.get("PYTHONPATH", "")
+          subprocess.run([sys.executable, "-m", "lockknife", "--version"], check=True, env=env)
           PY
 
       - uses: actions/upload-artifact@v4
