@@ -2,7 +2,7 @@
 
 All notable changes to `LockKnife : The Ultimate Android Security Research Tool` will be documented in this file.
 
-## [v1.0.0] - 2026-03-15
+## [v1.0.0] - 2026-03-18
 
 ### Full Rewrite: Python + Rust (New Era)
 
