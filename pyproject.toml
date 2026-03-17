@@ -116,4 +116,8 @@ lockknife = "lockknife_headless_cli.main:cli"
 manifest-path = "lockknife-core/Cargo.toml"
 module-name = "lockknife.lockknife_core"
 python-source = "."
+python-packages = ["lockknife", "lockknife_headless_cli"]
+include = [
+  { path = "lockknife_headless_cli/**/*.py", format = ["sdist", "wheel"] },
+]
 features = ["extension-module"]

@@ -37,13 +37,43 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: astral-sh/setup-uv@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: PyO3/maturin-action@v1
         with:
           command: build
           args: -m lockknife-core/Cargo.toml --release --out dist
+      - name: Smoke test built wheel
+        run: |
+          uv pip install --system dist/*.whl
+          lockknife --version
+          lockknife --cli --help
       - uses: actions/upload-artifact@v4
         with:
           name: check-wheels-${{ matrix.os }}
           path: dist/*
+          retention-days: 3
+
+  sdist-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: -m lockknife-core/Cargo.toml --out dist
+      - name: Smoke test built sdist
+        run: |
+          uv pip install --system dist/*.tar.gz
+          lockknife --version
+          lockknife --cli --help
+      - uses: actions/upload-artifact@v4
+        with:
+          name: check-sdist
+          path: dist/*.tar.gz
           retention-days: 3
