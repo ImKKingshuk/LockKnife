@@ -46,7 +46,19 @@ Connect your device and begin advanced Android security research.
 - Rust powers performance-critical primitives (hashing/crypto, bruteforce, bulk parsing).
 - The legacy Bash-only edition ended at **v0.4.x** (see [CHANGELOG.md]).
 
-## Install
+## Installation
+
+### Curl (macOS, Linux, Windows)
+
+```bash
+curl -fsSL https://lockknife.vercel.app/install | bash
+```
+
+### Homebrew (macOS)
+
+```bash
+brew install ImKKingshuk/tap/lockknife
+```
 
 ## Quick Start
 
