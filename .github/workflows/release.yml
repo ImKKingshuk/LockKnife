@@ -68,9 +68,22 @@ jobs:
           args: -m lockknife-core/Cargo.toml --release --out dist
 
       - name: Smoke test built wheel
+        shell: bash
         run: |
-          uv pip install --system dist/*.whl
-          lockknife --version
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          import subprocess
+
+          wheel = next(Path("dist").glob("*.whl"))
+          subprocess.run(["uv", "pip", "install", "--system", str(wheel)], check=True)
+
+          exe = shutil.which("lockknife")
+          if not exe:
+              raise SystemExit("lockknife not found on PATH after wheel install")
+
+          subprocess.run([exe, "--version"], check=True)
+          PY
 
       - uses: actions/upload-artifact@v4
         with:
@@ -97,9 +110,22 @@ jobs:
           args: -m lockknife-core/Cargo.toml --out dist
 
       - name: Smoke test built sdist
+        shell: bash
         run: |
-          uv pip install --system dist/*.tar.gz
-          lockknife --version
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          import subprocess
+
+          sdist = next(Path("dist").glob("*.tar.gz"))
+          subprocess.run(["uv", "pip", "install", "--system", str(sdist)], check=True)
+
+          exe = shutil.which("lockknife")
+          if not exe:
+              raise SystemExit("lockknife not found on PATH after sdist install")
+
+          subprocess.run([exe, "--version"], check=True)
+          PY
 
       - uses: actions/upload-artifact@v4
         with:
