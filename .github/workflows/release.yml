@@ -54,6 +54,8 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: astral-sh/setup-uv@v5
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -64,6 +66,11 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux }}
           args: -m lockknife-core/Cargo.toml --release --out dist
+
+      - name: Smoke test built wheel
+        run: |
+          uv pip install --system dist/*.whl
+          lockknife --version
 
       - uses: actions/upload-artifact@v4
         with:
@@ -80,10 +87,19 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+
       - uses: PyO3/maturin-action@v1
         with:
           command: sdist
           args: -m lockknife-core/Cargo.toml --out dist
+
+      - name: Smoke test built sdist
+        run: |
+          uv pip install --system dist/*.tar.gz
+          lockknife --version
 
       - uses: actions/upload-artifact@v4
         with:
