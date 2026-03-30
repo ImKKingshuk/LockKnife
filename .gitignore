@@ -59,6 +59,8 @@ docs/_build/
 
 # Node / frontend (if generated locally)
 node_modules/
+next-step-plan.md
+implementation_plan.md
 
 # Local environment and credentials
 .env
