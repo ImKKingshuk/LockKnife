@@ -1,5 +1,5 @@
 use super::super::ModuleEntry;
-use super::fields::{action, case_dir_field, module, number_field, text_field};
+use super::fields::{action, case_dir_field, choice_field, module, number_field, text_field};
 
 pub(super) fn build_module() -> ModuleEntry {
     module(

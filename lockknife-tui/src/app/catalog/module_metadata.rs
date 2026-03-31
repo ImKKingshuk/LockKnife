@@ -38,6 +38,12 @@ pub(super) fn module_description(module_id: &str) -> Option<&'static str> {
         "crypto" => Some(
             "Extract wallet artifacts and inspect blockchain transaction history from recovered data.",
         ),
+        "analyze" => Some(
+            "Run composite evidence analysis with ALEAPP-style parsing, IOC detection, and pattern scanning.",
+        ),
+        "plugins" => Some(
+            "Inspect and manage externally discovered LockKnife plugins.",
+        ),
         _ => None,
     }
 }
@@ -94,6 +100,14 @@ pub(super) fn module_help_lines(module_id: &str) -> Vec<&'static str> {
         "crypto" => vec![
             "Wallet extraction is case-aware and produces structured outputs that can feed later reporting.",
             "Transaction lookup is a follow-on enrichment step once you have candidate addresses.",
+        ],
+        "analyze" => vec![
+            "Use this for initial triage of extracted device data by combining artifact parsing and IOC detection.",
+            "Case directory keeps analysis results tied to the evidence they came from.",
+        ],
+        "plugins" => vec![
+            "Use Reload to re-discover plugins after installing new packages.",
+            "JSON format is useful for automated plugin inventory processing.",
         ],
         _ => Vec::new(),
     }
@@ -160,6 +174,16 @@ pub(super) fn module_capability_metadata(module_id: &str) -> Option<CapabilityMe
             status: "functional",
             requirements: "local wallet DB",
             notes: "Useful wallet parsing exists now, but coverage is narrower than specialized crypto-forensics suites.",
+        }),
+        "analyze" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "base install",
+            notes: "Composite analysis combines ALEAPP parsing, IOC detection, and pattern scanning in a single workflow.",
+        }),
+        "plugins" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "base install",
+            notes: "Plugin discovery works via entry points and environment module scanning.",
         }),
         _ => None,
     }
