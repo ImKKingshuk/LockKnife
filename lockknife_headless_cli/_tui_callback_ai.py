@@ -230,4 +230,59 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             return _ok(payload, f"Generated {len(predictions)} passwords to {output}")
         return _ok(payload, f"Generated {len(predictions)} passwords")
 
+    if action == "ai.train_malware":
+        input_path = pathlib.Path(_require(params, "input"))
+        feature_raw = _opt(params.get("features")) or ""
+        feature_keys = [k.strip() for k in feature_raw.split(",") if k.strip()]
+        label_key = _opt(params.get("label")) or "label"
+        model_path = _path_param(params.get("model"))
+        case_dir = _path_param(params.get("case_dir"))
+        if model_path is None:
+            if case_dir is None:
+                return _err("Either model path or case directory is required")
+            model_path = case_output_path(case_dir, area="derived", filename=f"ai_malware_model_{_safe_name(input_path.stem)}.joblib")
+        rows = json.loads(input_path.read_text(encoding="utf-8"))
+        from lockknife.modules.ai.malware_classifier import train_classifier
+        out = train_classifier(rows, feature_keys, label_key, model_path)
+        _register_case_output(
+            case_dir,
+            path=out,
+            category="ai-malware-model",
+            source_command="ai train_malware",
+            input_paths=[str(input_path)],
+            metadata={"feature_keys": feature_keys, "label_key": label_key, "row_count": len(rows)},
+        )
+        return _ok({"model_path": str(out), "row_count": len(rows), "feature_keys": feature_keys, "label_key": label_key}, f"Trained malware classifier: {out}")
+
+    if action == "ai.classify_malware":
+        input_path = pathlib.Path(_require(params, "input"))
+        model_path = pathlib.Path(_require(params, "model"))
+        case_dir = _path_param(params.get("case_dir"))
+        output, _derived = _resolve_case_output(
+            _path_param(params.get("output")),
+            case_dir,
+            area="derived",
+            filename=f"ai_classify_malware_{_safe_name(input_path.stem)}.json",
+        )
+        rows = json.loads(input_path.read_text(encoding="utf-8"))
+        from lockknife.modules.ai.malware_classifier import predict_classifier
+        out = predict_classifier(rows, model_path)
+        payload = {
+            "predictions": out,
+            "row_count": len(rows),
+            "model_path": str(model_path),
+        }
+        if output is not None:
+            write_json(output, payload)
+            _register_case_output(
+                case_dir,
+                path=output,
+                category="ai-malware-classification",
+                source_command="ai classify_malware",
+                input_paths=[str(input_path), str(model_path)],
+                metadata={"row_count": len(rows), "model_path": str(model_path)},
+            )
+            return _ok(payload, f"Classified {len(rows)} rows to {output}")
+        return _ok(payload, f"Classified {len(rows)} rows")
+
     return None

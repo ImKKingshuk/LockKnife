@@ -3,6 +3,7 @@ mod action_descriptions;
 mod action_help;
 mod action_recovery;
 mod ai;
+mod analyze;
 mod apk;
 mod case;
 mod core;
@@ -14,6 +15,7 @@ mod forensics;
 mod intelligence;
 mod module_metadata;
 mod network;
+mod plugins;
 mod runtime;
 mod security;
 
@@ -33,6 +35,8 @@ pub(crate) fn default_modules() -> Vec<ModuleEntry> {
         core::build_module(),
         ai::build_module(),
         crypto::build_module(),
+        analyze::build_module(),
+        plugins::build_module(),
     ]
 }
 

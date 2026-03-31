@@ -201,6 +201,18 @@ pub(super) fn action_description(action_id: &str) -> Option<&'static str> {
             Some(("apk", "dex")) => {
                 Some("Extract and parse DEX headers from APK files or standalone DEX files.")
             }
+            Some(("ai", "train_malware")) => {
+                Some("Train a malware classifier model on labeled feature data.")
+            }
+            Some(("ai", "classify_malware")) => {
+                Some("Classify samples using a trained malware classifier model.")
+            }
+            Some(("analyze", "evidence")) => {
+                Some("Analyze an evidence directory for artifacts, IOCs, and malware patterns.")
+            }
+            Some(("plugins", "list")) => {
+                Some("List discovered LockKnife plugins with their commands and health status.")
+            }
             Some(("credentials", _)) => {
                 Some("Run a focused credential or lock-screen recovery workflow.")
             }
