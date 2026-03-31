@@ -45,6 +45,26 @@ pub(super) fn action_help_lines(action_id: &str) -> Vec<&'static str> {
             "Case directory auto-registers manifests and exported source files; leave Output blank to let LockKnife derive a case-managed evidence folder.",
             "If root or device access looks uncertain, run Diagnostics → Core health or doctor before expensive recovery attempts.",
         ],
+        "credentials.offline_pin" => vec![
+            "Offline brute-force uses Rust-accelerated search and does not require device connectivity.",
+            "Provide the target password hash in hex format (e.g., SHA256 of the password).",
+            "Specify PIN length based on your target's expected PIN format (typically 4-6 digits).",
+        ],
+        "credentials.offline_password" => vec![
+            "Dictionary attack requires a wordlist file path. Use common wordlists like rockyou.txt.",
+            "Supports SHA1, SHA256, and SHA512 hash algorithms.",
+            "Does not require device connectivity - runs entirely offline.",
+        ],
+        "credentials.offline_password_rules" => vec![
+            "Rule-based attack applies suffix mutations (e.g., adding numbers 1-100) to wordlist entries.",
+            "Increase max_suffix for broader coverage (slower) or decrease for faster targeted search.",
+            "Useful when standard dictionary attack fails but the password may be a common word with simple mutations.",
+        ],
+        "extraction.all" => vec![
+            "Bulk extraction collects SMS, contacts, call logs, Chrome history, media with EXIF, and location artifacts in one operation.",
+            "Each category is saved separately in the output directory with consistent naming.",
+            "Individual category failures are captured but don't stop the overall extraction - check results for any errors.",
+        ],
         id if id.starts_with("extraction.") => vec![
             "Set Case directory to auto-register the extracted evidence in the manifest.",
             "Leave Output blank to let LockKnife derive a case-managed evidence path when supported.",

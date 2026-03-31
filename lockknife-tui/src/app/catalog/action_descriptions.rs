@@ -177,6 +177,18 @@ pub(super) fn action_description(action_id: &str) -> Option<&'static str> {
             "Extract wallet-related addresses from a SQLite database and optionally enrich them.",
         ),
         _ => match action_id.split_once('.') {
+            Some(("credentials", "offline_pin")) => {
+                Some("Brute-force numeric PIN offline using Rust-accelerated search against a password hash.")
+            }
+            Some(("credentials", "offline_password")) => {
+                Some("Dictionary attack against a password hash using a wordlist file.")
+            }
+            Some(("credentials", "offline_password_rules")) => {
+                Some("Rule-based password cracking with suffix mutations for broader coverage.")
+            }
+            Some(("extraction", "all")) => {
+                Some("Bulk extract all primary artifacts (SMS, contacts, call logs, browser, media, location) in a single operation.")
+            }
             Some(("credentials", _)) => {
                 Some("Run a focused credential or lock-screen recovery workflow.")
             }

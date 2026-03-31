@@ -58,6 +58,46 @@ pub(super) fn build_module() -> ModuleEntry {
                 true,
                 true,
             ),
+            action(
+                "credentials.offline_pin",
+                "Offline PIN brute-force",
+                vec![
+                    text_field("hash", "Target hash (hex)", ""),
+                    choice_field("algo", "Algorithm", "sha256", &["sha1", "sha256"]),
+                    number_field("length", "PIN length", "6"),
+                    text_field("output", "Output path (optional)", ""),
+                    case_dir_field(),
+                ],
+                false,
+                false,
+            ),
+            action(
+                "credentials.offline_password",
+                "Offline password crack",
+                vec![
+                    text_field("hash", "Target hash (hex)", ""),
+                    choice_field("algo", "Algorithm", "sha256", &["sha1", "sha256", "sha512"]),
+                    text_field("wordlist", "Wordlist path", ""),
+                    text_field("output", "Output path (optional)", ""),
+                    case_dir_field(),
+                ],
+                false,
+                false,
+            ),
+            action(
+                "credentials.offline_password_rules",
+                "Offline password with rules",
+                vec![
+                    text_field("hash", "Target hash (hex)", ""),
+                    choice_field("algo", "Algorithm", "sha256", &["sha1", "sha256", "sha512"]),
+                    text_field("wordlist", "Wordlist path", ""),
+                    number_field("max_suffix", "Max suffix", "100"),
+                    text_field("output", "Output path (optional)", ""),
+                    case_dir_field(),
+                ],
+                false,
+                false,
+            ),
         ],
     )
 }

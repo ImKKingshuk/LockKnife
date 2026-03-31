@@ -94,4 +94,76 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
             load_case_manifest=cb.load_case_manifest,
         )
         return _ok(payload, f"Exported {payload['artifact_count']} passkey artifacts from {payload['serial']}")
+
+    if action == "credentials.offline_pin":
+        target_hash = cb._require(params, "hash")
+        algo = cb._opt(params.get("algo")) or "sha256"
+        length = cb._int_param(cb._require(params, "length"))
+        case_dir = cb._path_param(params.get("case_dir"))
+        output = cb._path_param(params.get("output"))
+        import time
+        started = time.time()
+        pin = cb.lockknife_core.bruteforce_numeric_pin(target_hash, algo.lower(), int(length))
+        elapsed = time.time() - started
+        if pin is None:
+            return _ok({"found": False, "elapsed_s": elapsed}, f"No PIN found (elapsed={elapsed:.2f}s)")
+        result = {"found": True, "pin": pin, "elapsed_s": elapsed}
+        if output is not None:
+            cb.write_json(output, result)
+            artifact_id = cb._register_case_output(
+                case_dir,
+                path=output,
+                category="crack-pin-offline",
+                source_command="credentials.offline_pin",
+                metadata={"hash_prefix": target_hash[:16], "algo": algo, "length": length},
+            )
+            result["artifact_id"] = artifact_id
+        return _ok(result, f"PIN found: {pin} (elapsed={elapsed:.2f}s)")
+
+    if action == "credentials.offline_password":
+        target_hash = cb._require(params, "hash")
+        algo = cb._opt(params.get("algo")) or "sha256"
+        wordlist = cb._require(params, "wordlist")
+        case_dir = cb._path_param(params.get("case_dir"))
+        output = cb._path_param(params.get("output"))
+        found = cb.lockknife_core.dictionary_attack(target_hash, algo.lower(), wordlist)
+        if found is None:
+            return _ok({"found": False}, "No password found in wordlist")
+        result = {"found": True, "password": found}
+        if output is not None:
+            cb.write_json(output, result)
+            artifact_id = cb._register_case_output(
+                case_dir,
+                path=output,
+                category="crack-password-offline",
+                source_command="credentials.offline_password",
+                metadata={"hash_prefix": target_hash[:16], "algo": algo},
+            )
+            result["artifact_id"] = artifact_id
+        return _ok(result, f"Password found: {found}")
+
+    if action == "credentials.offline_password_rules":
+        target_hash = cb._require(params, "hash")
+        algo = cb._opt(params.get("algo")) or "sha256"
+        wordlist = cb._require(params, "wordlist")
+        max_suffix = cb._int_param(params.get("max_suffix")) or 100
+        case_dir = cb._path_param(params.get("case_dir"))
+        output = cb._path_param(params.get("output"))
+        from lockknife.modules.credentials.password import crack_password_with_rules
+        found = crack_password_with_rules(target_hash, algo, cb._path_param(wordlist), max_suffix=max_suffix)
+        if found is None:
+            return _ok({"found": False}, "No password found with rules")
+        result = {"found": True, "password": found}
+        if output is not None:
+            cb.write_json(output, result)
+            artifact_id = cb._register_case_output(
+                case_dir,
+                path=output,
+                category="crack-password-rules-offline",
+                source_command="credentials.offline_password_rules",
+                metadata={"hash_prefix": target_hash[:16], "algo": algo, "max_suffix": max_suffix},
+            )
+            result["artifact_id"] = artifact_id
+        return _ok(result, f"Password found with rules: {found}")
+
     return None
