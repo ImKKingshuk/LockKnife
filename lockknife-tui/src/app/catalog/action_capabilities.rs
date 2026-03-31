@@ -17,6 +17,11 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             requirements: "base install",
             notes: "Use the feature matrix to verify maturity claims before relying on a workflow in the TUI.",
         }),
+        "device.list" | "device.info" | "device.connect" | "device.shell" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "adb",
+            notes: "Device management requires adb binaries in PATH or lockknife[adb] extras. Connection and shell actions may require device authorization.",
+        }),
         "credentials.pin" | "credentials.gesture" | "credentials.wifi" | "credentials.keystore" => {
             Some(CapabilityMetadata {
                 status: "best-effort",
