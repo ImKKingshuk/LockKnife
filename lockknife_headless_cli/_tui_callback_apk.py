@@ -311,4 +311,28 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             return _ok(payload, f"YARA scan saved to {output}")
         return _ok(payload, "YARA scan complete")
 
+    if action == "apk.dex":
+        path = pathlib.Path(_require(params, "path"))
+        case_dir = _path_param(params.get("case_dir"))
+        output, _derived = _resolve_case_output(
+            _path_param(params.get("output")),
+            case_dir,
+            area="derived",
+            filename=f"apk_dex_{_safe_name(path.stem)}.json",
+        )
+        dex_headers = extract_dex_headers(path)
+        payload = {"apk": str(path), "dex_headers": dex_headers, "count": len(dex_headers)}
+        if output is not None:
+            write_json(output, payload)
+            _register_case_output(
+                case_dir,
+                path=output,
+                category="apk-dex",
+                source_command="apk dex",
+                input_paths=[str(path)],
+                metadata={"dex_header_count": len(dex_headers)},
+            )
+            return _ok(payload, f"DEX headers saved to {output}")
+        return _ok(payload, "DEX headers extraction complete")
+
     return None

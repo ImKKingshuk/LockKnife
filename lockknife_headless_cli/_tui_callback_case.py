@@ -287,4 +287,57 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         execution_params["retry_job_id"] = payload["job"]["job_id"]
         return callback(str(payload["action_id"]), execution_params)
 
+    if action == "case.runtime_sessions":
+        case_dir = pathlib.Path(_require(params, "case_dir"))
+        session_id = _opt(params.get("session_id"))
+        limit = _int_param(params.get("limit"))
+        # Using query_case_runtime_sessions
+        payload = {"sessions": query_case_runtime_sessions(case_dir, session_id=session_id) if session_id else query_case_runtime_sessions(case_dir)[:limit]}
+        return _ok(payload, f"Runtime sessions ready for {case_dir}")
+
+    if action == "case.chain_of_custody":
+        case_dir = pathlib.Path(_require(params, "case_dir"))
+        out_format = str(params.get("format") or "json").lower()
+        suffix = "txt" if out_format in ["txt", "md"] else "json"
+        output = _path_param(params.get("output"))
+        if not output:
+            output, _derived = _resolve_case_output(
+                None,
+                case_dir,
+                area="reports",
+                filename=f"chain_of_custody_report.{suffix}",
+            )
+        
+        payload = generate_case_chain_of_custody(case_dir)
+        if output is not None:
+            if suffix == "json":
+                write_json(output, payload)
+            else:
+                # Basic text formatting fallback
+                output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            return _ok(payload, f"Chain of custody saved to {output}")
+        return _ok(payload, "Chain of custody generated")
+
+    if action == "case.integrity":
+        case_dir = pathlib.Path(_require(params, "case_dir"))
+        out_format = str(params.get("format") or "json").lower()
+        suffix = "txt" if out_format in ["txt", "md"] else "json"
+        output = _path_param(params.get("output"))
+        if not output:
+            output, _derived = _resolve_case_output(
+                None,
+                case_dir,
+                area="reports",
+                filename=f"integrity_report.{suffix}",
+            )
+        
+        report_payload = case_integrity_report(case_dir)
+        if output is not None:
+            if suffix == "json":
+                write_json(output, report_payload)
+            else:
+                output.write_text(_render_integrity_text(report_payload), encoding="utf-8")
+            return _ok(report_payload, f"Integrity report saved to {output}")
+        return _ok(report_payload, "Integrity report generated")
+
     return None
