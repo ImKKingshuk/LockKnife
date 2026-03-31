@@ -161,6 +161,66 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             requirements: "local wallet DB or address input",
             notes: "Current support is practical, but not as deep as specialized crypto-investigation suites.",
         }),
+        "credentials.offline_pin" => Some(CapabilityMetadata {
+            status: "production-ready",
+            requirements: "Rust extension",
+            notes: "High-speed offline PIN brute-force powered by the Rust native core. No device needed.",
+        }),
+        "credentials.offline_password" => Some(CapabilityMetadata {
+            status: "production-ready",
+            requirements: "Rust extension + wordlist",
+            notes: "Rust-accelerated dictionary attack. Runs entirely offline against a password hash.",
+        }),
+        "credentials.offline_password_rules" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "base install + wordlist",
+            notes: "Rule-based password mutation with suffix generation. Broader coverage than plain dictionary.",
+        }),
+        "extraction.all" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "adb + device access",
+            notes: "Bulk extraction across all primary categories. Individual failures don't block the overall run.",
+        }),
+        "case.runtime_sessions" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "base install + case workspace",
+            notes: "Lists Frida/runtime sessions tracked within a case workspace.",
+        }),
+        "case.chain_of_custody" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "base install + case workspace",
+            notes: "Case-aware chain-of-custody derived from the managed artifact manifest.",
+        }),
+        "case.integrity" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "base install + case workspace",
+            notes: "Verifies artifact hashes against the case manifest to detect tampering or drift.",
+        }),
+        "apk.dex" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "Rust extension",
+            notes: "Rust-powered DEX header parsing works on both standalone DEX files and APK archives.",
+        }),
+        "ai.train_malware" => Some(CapabilityMetadata {
+            status: "dependency-gated",
+            requirements: "lockknife[ml]",
+            notes: "ML classifier training on labeled feature data. Requires scikit-learn via the ml extra.",
+        }),
+        "ai.classify_malware" => Some(CapabilityMetadata {
+            status: "dependency-gated",
+            requirements: "lockknife[ml]",
+            notes: "Classification using a previously trained model. Requires the same ml extras.",
+        }),
+        "analyze.evidence" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "base install",
+            notes: "Composite analysis combining artifact parsing, IOC detection, and DEX pattern scanning.",
+        }),
+        "plugins.list" => Some(CapabilityMetadata {
+            status: "functional",
+            requirements: "base install",
+            notes: "Discovers plugins from entry points and environment modules.",
+        }),
         _ => None,
     }
 }

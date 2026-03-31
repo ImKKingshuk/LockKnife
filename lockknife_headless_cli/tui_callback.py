@@ -63,7 +63,7 @@ from lockknife.modules.extraction.messaging import (
     extract_whatsapp_messages,
 )
 from lockknife.modules.extraction.sms import extract_sms
-from lockknife.modules.forensics.artifacts import parse_forensics_directory
+from lockknife.modules.forensics.artifacts import parse_directory_as_aleapp, parse_forensics_directory
 from lockknife.modules.forensics.aleapp_compat import looks_like_aleapp_output
 from lockknife.modules.forensics.carving import carve_deleted_files
 from lockknife.modules.forensics.correlation import correlate_artifacts_json_blobs
@@ -137,7 +137,14 @@ from lockknife.modules.apk._risk_summary import build_apk_risk_summary
 from lockknife.modules.apk.static_analysis import analyze_apk, findings_from_manifest
 from lockknife.modules.apk.vulnerability import vulnerability_report
 
+from lockknife.core.plugin_loader import plugin_inventory
+
 import sys
+
+try:
+    import lockknife.lockknife_core as lockknife_core  # noqa: F401 — Rust extension
+except ImportError:
+    lockknife_core = None  # type: ignore[assignment]
 
 
 
@@ -195,6 +202,8 @@ from lockknife_headless_cli._tui_callback_intelligence import handle as _handle_
 from lockknife_headless_cli._tui_callback_ai import handle as _handle_ai
 from lockknife_headless_cli._tui_callback_crypto import handle as _handle_crypto
 from lockknife_headless_cli._tui_callback_misc import handle as _handle_misc
+from lockknife_headless_cli._tui_callback_analyze import handle as _handle_analyze
+from lockknife_headless_cli._tui_callback_plugins import handle as _handle_plugins
 
 
 
@@ -212,6 +221,8 @@ _HANDLERS = (
     _handle_intelligence,
     _handle_ai,
     _handle_crypto,
+    _handle_analyze,
+    _handle_plugins,
     _handle_misc,
 )
 

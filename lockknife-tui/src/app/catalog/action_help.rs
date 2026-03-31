@@ -52,11 +52,6 @@ pub(super) fn action_help_lines(action_id: &str) -> Vec<&'static str> {
             "Verifies integrity of case artifacts by comparing current hashes with manifest records.",
             "Reports any tampering, corruption, or unauthorized modifications to evidence.",
         ],
-        id if id.starts_with("credentials.") => vec![
-            "Refresh Devices first and confirm the active target is the device you intend to interrogate before running lock-screen or credential workflows.",
-            "Case directory auto-registers manifests and exported source files; leave Output blank to let LockKnife derive a case-managed evidence folder.",
-            "If root or device access looks uncertain, run Diagnostics → Core health or doctor before expensive recovery attempts.",
-        ],
         "credentials.offline_pin" => vec![
             "Offline brute-force uses Rust-accelerated search and does not require device connectivity.",
             "Provide the target password hash in hex format (e.g., SHA256 of the password).",
@@ -71,6 +66,11 @@ pub(super) fn action_help_lines(action_id: &str) -> Vec<&'static str> {
             "Rule-based attack applies suffix mutations (e.g., adding numbers 1-100) to wordlist entries.",
             "Increase max_suffix for broader coverage (slower) or decrease for faster targeted search.",
             "Useful when standard dictionary attack fails but the password may be a common word with simple mutations.",
+        ],
+        id if id.starts_with("credentials.") => vec![
+            "Refresh Devices first and confirm the active target is the device you intend to interrogate before running lock-screen or credential workflows.",
+            "Case directory auto-registers manifests and exported source files; leave Output blank to let LockKnife derive a case-managed evidence folder.",
+            "If root or device access looks uncertain, run Diagnostics → Core health or doctor before expensive recovery attempts.",
         ],
         "extraction.all" => vec![
             "Bulk extraction collects SMS, contacts, call logs, Chrome history, media with EXIF, and location artifacts in one operation.",
@@ -163,16 +163,6 @@ pub(super) fn action_help_lines(action_id: &str) -> Vec<&'static str> {
             "Use Case directory to persist scan outputs as derived security artifacts.",
             "Structured JSON results are easier to feed into reports or later case review.",
         ],
-        id if id.starts_with("ai.") => vec![
-            "These helpers work best on structured JSON inputs that came from earlier extraction or analysis steps.",
-            "Case directory keeps the generated AI output tied to the investigation timeline.",
-            "Result view now keeps lightweight explainability context so reviewers can see why a row or candidate was surfaced.",
-            "Password prediction can mix Markov generation with personal/device data tokens when you provide a personalization JSON file.",
-        ],
-        "crypto.wallets" => vec![
-            "Disable enrichment when you only want extracted addresses without lookup metadata.",
-            "Case directory stores the wallet extraction output as a derived artifact.",
-        ],
         "ai.train_malware" => vec![
             "Train a machine learning classifier on labeled feature data for malware detection.",
             "Requires lockknife[ml] dependency. Provide training data as JSON with feature columns and a label column.",
@@ -182,6 +172,16 @@ pub(super) fn action_help_lines(action_id: &str) -> Vec<&'static str> {
             "Classify unknown samples using a previously trained malware classifier model.",
             "Requires lockknife[ml] dependency. Input must match the feature format used during training.",
             "Returns classification scores and predicted labels for each sample.",
+        ],
+        id if id.starts_with("ai.") => vec![
+            "These helpers work best on structured JSON inputs that came from earlier extraction or analysis steps.",
+            "Case directory keeps the generated AI output tied to the investigation timeline.",
+            "Result view now keeps lightweight explainability context so reviewers can see why a row or candidate was surfaced.",
+            "Password prediction can mix Markov generation with personal/device data tokens when you provide a personalization JSON file.",
+        ],
+        "crypto.wallets" => vec![
+            "Disable enrichment when you only want extracted addresses without lookup metadata.",
+            "Case directory stores the wallet extraction output as a derived artifact.",
         ],
         "analyze.evidence" => vec![
             "Composite analysis of an evidence directory using ALEAPP-style artifact parsing.",
