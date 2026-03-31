@@ -30,7 +30,7 @@ pub(super) fn module_description(module_id: &str) -> Option<&'static str> {
             "Create, inspect, search, and export case workspaces that track evidence lineage.",
         ),
         "core" => Some(
-            "Verify environment readiness, dependency health, and capability maturity before running deeper workflows.",
+            "Verify environment readiness, dependency health, device connectivity, and capability maturity before running deeper workflows.",
         ),
         "ai" => Some(
             "Apply lightweight anomaly scoring and password-prediction helpers to structured inputs.",
@@ -84,6 +84,7 @@ pub(super) fn module_help_lines(module_id: &str) -> Vec<&'static str> {
         ],
         "core" => vec![
             "Run Core health or Dependency doctor whenever a workstation or virtual environment changes.",
+            "Use List devices, Device info, and Connect to manage ADB connectivity before forensic work.",
             "Feature matrix keeps the TUI honest about which workflows are stable, gated, or environment-sensitive.",
         ],
         "ai" => vec![

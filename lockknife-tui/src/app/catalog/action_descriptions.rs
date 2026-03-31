@@ -9,6 +9,18 @@ pub(super) fn action_description(action_id: &str) -> Option<&'static str> {
         "core.features" => Some(
             "Review the current feature matrix so the TUI shows which workflows are stable, best-effort, or dependency-gated.",
         ),
+        "device.list" => Some(
+            "List all connected ADB devices with their serial numbers, states, and model information.",
+        ),
+        "device.info" => Some(
+            "Retrieve detailed device properties and getprop values for a specific device by serial.",
+        ),
+        "device.connect" => Some(
+            "Connect to a remote device via host:port (e.g., 127.0.0.1:5555) for wireless debugging.",
+        ),
+        "device.shell" => Some(
+            "Execute a shell command on the device and return the output. Useful for device inspection and debugging.",
+        ),
         "case.init" => Some("Create a structured case workspace and seed its manifest metadata."),
         "case.summary" => Some("Summarize the current case manifest, metadata, and artifact counts."),
         "case.artifacts" => Some("Search or filter artifacts already registered in a case workspace."),
