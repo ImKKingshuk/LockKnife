@@ -428,4 +428,158 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             return _ok(payload, f"Location artifacts saved to {output}")
         return _ok(payload, "Location artifacts extracted")
 
+    if action == "extraction.all":
+        serial = _require(params, "serial")
+        limit = int(params.get("limit") or 200)
+        out_format = str(params.get("format") or "json").lower()
+        case_dir = _path_param(params.get("case_dir"))
+        output_dir = _path_param(params.get("output_dir"))
+        ext = "csv" if out_format == "csv" else "json"
+        results: dict[str, Any] = {"serial": serial, "artifacts": {}}
+        artifact_ids: list[str] = []
+        
+        # Extract SMS
+        try:
+            sms_rows = [dataclasses.asdict(r) for r in extract_sms(app.devices, serial, limit=limit)]
+            results["artifacts"]["sms"] = {"count": len(sms_rows), "rows": sms_rows}
+            if output_dir is not None and case_dir is not None:
+                sms_path = output_dir / f"sms.{ext}"
+                if ext == "csv":
+                    write_csv(sms_path, sms_rows)
+                else:
+                    write_json(sms_path, sms_rows)
+                aid = _register_case_output(
+                    case_dir,
+                    path=sms_path,
+                    category="extract-sms",
+                    source_command="extract all",
+                    device_serial=serial,
+                    metadata={"format": ext, "limit": limit},
+                )
+                if aid:
+                    artifact_ids.append(aid)
+        except Exception as e:
+            results["artifacts"]["sms"] = {"error": str(e)}
+        
+        # Extract Contacts
+        try:
+            contact_rows = [dataclasses.asdict(r) for r in extract_contacts(app.devices, serial, limit=limit)]
+            results["artifacts"]["contacts"] = {"count": len(contact_rows), "rows": contact_rows}
+            if output_dir is not None and case_dir is not None:
+                contacts_path = output_dir / f"contacts.{ext}"
+                if ext == "csv":
+                    write_csv(contacts_path, contact_rows)
+                else:
+                    write_json(contacts_path, contact_rows)
+                aid = _register_case_output(
+                    case_dir,
+                    path=contacts_path,
+                    category="extract-contacts",
+                    source_command="extract all",
+                    device_serial=serial,
+                    metadata={"format": ext, "limit": limit},
+                )
+                if aid:
+                    artifact_ids.append(aid)
+        except Exception as e:
+            results["artifacts"]["contacts"] = {"error": str(e)}
+        
+        # Extract Call Logs
+        try:
+            call_log_rows = [dataclasses.asdict(r) for r in extract_call_logs(app.devices, serial, limit=limit)]
+            results["artifacts"]["call_logs"] = {"count": len(call_log_rows), "rows": call_log_rows}
+            if output_dir is not None and case_dir is not None:
+                calls_path = output_dir / f"call_logs.{ext}"
+                if ext == "csv":
+                    write_csv(calls_path, call_log_rows)
+                else:
+                    write_json(calls_path, call_log_rows)
+                aid = _register_case_output(
+                    case_dir,
+                    path=calls_path,
+                    category="extract-call-logs",
+                    source_command="extract all",
+                    device_serial=serial,
+                    metadata={"format": ext, "limit": limit},
+                )
+                if aid:
+                    artifact_ids.append(aid)
+        except Exception as e:
+            results["artifacts"]["call_logs"] = {"error": str(e)}
+        
+        # Extract Chrome History
+        try:
+            history_rows = [dataclasses.asdict(r) for r in extract_chrome_history(app.devices, serial, limit=limit)]
+            results["artifacts"]["chrome_history"] = {"count": len(history_rows), "rows": history_rows}
+            if output_dir is not None and case_dir is not None:
+                history_path = output_dir / f"chrome_history.{ext}"
+                if ext == "csv":
+                    write_csv(history_path, history_rows)
+                else:
+                    write_json(history_path, history_rows)
+                aid = _register_case_output(
+                    case_dir,
+                    path=history_path,
+                    category="extract-browser",
+                    source_command="extract all",
+                    device_serial=serial,
+                    metadata={"app": "chrome", "kind": "history", "format": ext, "limit": limit},
+                )
+                if aid:
+                    artifact_ids.append(aid)
+        except Exception as e:
+            results["artifacts"]["chrome_history"] = {"error": str(e)}
+        
+        # Extract Media
+        try:
+            media_rows = [dataclasses.asdict(r) for r in extract_media_with_exif(app.devices, serial, limit=limit)]
+            results["artifacts"]["media"] = {"count": len(media_rows), "rows": media_rows}
+            if output_dir is not None and case_dir is not None:
+                media_path = output_dir / f"media.{ext}"
+                if ext == "csv":
+                    write_csv(media_path, media_rows)
+                else:
+                    write_json(media_path, media_rows)
+                aid = _register_case_output(
+                    case_dir,
+                    path=media_path,
+                    category="extract-media",
+                    source_command="extract all",
+                    device_serial=serial,
+                    metadata={"format": ext, "limit": limit},
+                )
+                if aid:
+                    artifact_ids.append(aid)
+        except Exception as e:
+            results["artifacts"]["media"] = {"error": str(e)}
+        
+        # Extract Location
+        try:
+            location = dataclasses.asdict(extract_location_artifacts(app.devices, serial))
+            results["artifacts"]["location"] = location
+            if output_dir is not None and case_dir is not None:
+                location_path = output_dir / "location.json"
+                write_json(location_path, location)
+                aid = _register_case_output(
+                    case_dir,
+                    path=location_path,
+                    category="extract-location",
+                    source_command="extract all",
+                    device_serial=serial,
+                    metadata={"format": "json"},
+                )
+                if aid:
+                    artifact_ids.append(aid)
+        except Exception as e:
+            results["artifacts"]["location"] = {"error": str(e)}
+        
+        total_count = sum(
+            v.get("count", 0) for v in results["artifacts"].values() 
+            if isinstance(v, dict) and "count" in v
+        )
+        results["total_count"] = total_count
+        results["artifact_ids"] = artifact_ids
+        
+        return _ok(results, f"Extracted {total_count} total artifacts across {len(results['artifacts'])} categories")
+
     return None

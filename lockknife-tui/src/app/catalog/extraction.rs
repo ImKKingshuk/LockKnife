@@ -115,6 +115,18 @@ pub(super) fn build_module() -> ModuleEntry {
                 true,
                 false,
             ),
+            action(
+                "extraction.all",
+                "Extract all artifacts",
+                vec![
+                    number_field("limit", "Limit per category", "200"),
+                    choice_field("format", "Format", "json", &["json", "csv"]),
+                    text_field("output_dir", "Output directory", ""),
+                    case_dir_field(),
+                ],
+                true,
+                true,
+            ),
         ],
     )
 }
