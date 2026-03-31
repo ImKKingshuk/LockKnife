@@ -172,6 +172,13 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         out = app.devices.connect(host)
         return _ok({"host": host, "output": out}, f"Connected to {host}")
 
+    if action == "device.shell":
+        serial = _require(params, "serial")
+        command = _require(params, "command")
+        timeout = float(params.get("timeout") or 30.0)
+        out = app.devices.shell(serial, command, timeout_s=timeout)
+        return _ok({"serial": serial, "command": command, "output": out}, f"Shell command executed on {serial}")
+
     if action == "core.health":
         return _ok(health_status(), "Core health checks ready")
 

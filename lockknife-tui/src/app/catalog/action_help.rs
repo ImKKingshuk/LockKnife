@@ -12,6 +12,23 @@ pub(super) fn action_help_lines(action_id: &str) -> Vec<&'static str> {
             "Read this before promising replacement-level coverage to an operator or stakeholder.",
             "Use the matrix to separate production-ready workflows from best-effort or dependency-gated ones.",
         ],
+        "device.list" => vec![
+            "Run this before any device-specific workflow to confirm the target is visible and authorized.",
+            "The serial shown here is used in most other device actions that require a serial parameter.",
+        ],
+        "device.info" => vec![
+            "Provide the device serial from the list output to get detailed properties.",
+            "Useful for verifying Android version, build fingerprint, and device capabilities before forensic work.",
+        ],
+        "device.connect" => vec![
+            "Connect to a device over the network using host:port format (e.g., 192.168.1.100:5555).",
+            "The device must have ADB over WiFi enabled (usually via USB debugging + 'adb tcpip 5555').",
+        ],
+        "device.shell" => vec![
+            "Execute arbitrary shell commands on the device for inspection or debugging.",
+            "Requires an authorized device serial. Commands run with shell user privileges (not root unless su is available).",
+            "Output is truncated after large responses; use specific grep patterns for large file listings.",
+        ],
         "case.init" => vec![
             "Use a stable case path so later actions can register into the same manifest.",
             "Set examiner and description early to make later bundles and reports clearer.",
