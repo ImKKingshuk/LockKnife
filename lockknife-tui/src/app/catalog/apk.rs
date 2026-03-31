@@ -7,6 +7,17 @@ pub(super) fn build_module() -> ModuleEntry {
         "APK Analysis",
         vec![
             action(
+                "apk.dex",
+                "DEX headers",
+                vec![
+                    text_field("path", "APK or DEX path", ""),
+                    text_field("output", "Output path (optional)", ""),
+                    case_dir_field(),
+                ],
+                false,
+                false,
+            ),
+            action(
                 "apk.permissions",
                 "Permissions",
                 vec![
