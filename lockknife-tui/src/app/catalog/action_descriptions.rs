@@ -189,6 +189,18 @@ pub(super) fn action_description(action_id: &str) -> Option<&'static str> {
             Some(("extraction", "all")) => {
                 Some("Bulk extract all primary artifacts (SMS, contacts, call logs, browser, media, location) in a single operation.")
             }
+            Some(("case", "runtime_sessions")) => {
+                Some("List runtime sessions associated with a case, including Frida/ART hook sessions.")
+            }
+            Some(("case", "chain_of_custody")) => {
+                Some("Generate a chain-of-custody report documenting evidence handling and transfers.")
+            }
+            Some(("case", "integrity")) => {
+                Some("Generate an integrity verification report with hashes for case artifacts.")
+            }
+            Some(("apk", "dex")) => {
+                Some("Extract and parse DEX headers from APK files or standalone DEX files.")
+            }
             Some(("credentials", _)) => {
                 Some("Run a focused credential or lock-screen recovery workflow.")
             }

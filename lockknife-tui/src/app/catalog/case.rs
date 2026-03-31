@@ -21,6 +21,9 @@ pub(super) fn build_module() -> ModuleEntry {
             job_action(),
             resume_job_action(),
             retry_job_action(),
+            runtime_sessions_action(),
+            chain_of_custody_action(),
+            integrity_action(),
         ],
     )
 }
@@ -233,5 +236,47 @@ fn retry_job_action() -> ModuleAction {
         vec![case_dir_field(), text_field("job_id", "Job ID", "")],
         false,
         true,
+    )
+}
+
+fn runtime_sessions_action() -> ModuleAction {
+    action(
+        "case.runtime_sessions",
+        "Runtime sessions",
+        vec![
+            case_dir_field(),
+            text_field("session_id", "Session ID (optional)", ""),
+            number_field("limit", "Limit", "50"),
+        ],
+        false,
+        false,
+    )
+}
+
+fn chain_of_custody_action() -> ModuleAction {
+    action(
+        "case.chain_of_custody",
+        "Chain of custody",
+        vec![
+            case_dir_field(),
+            text_field("output", "Output path (optional)", ""),
+            choice_field("format", "Format", "json", &["json", "txt", "md"]),
+        ],
+        false,
+        false,
+    )
+}
+
+fn integrity_action() -> ModuleAction {
+    action(
+        "case.integrity",
+        "Integrity report",
+        vec![
+            case_dir_field(),
+            text_field("output", "Output path (optional)", ""),
+            choice_field("format", "Format", "json", &["json", "txt", "md"]),
+        ],
+        false,
+        false,
     )
 }

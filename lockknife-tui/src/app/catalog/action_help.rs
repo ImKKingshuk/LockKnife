@@ -40,6 +40,18 @@ pub(super) fn action_help_lines(action_id: &str) -> Vec<&'static str> {
             "Use a seed artifact ID to scope enrichment to one registered item or leave it blank to sweep matching artifacts.",
             "The bundle records provider attribution, credential visibility, and explainability hints alongside saved outputs.",
         ],
+        "case.runtime_sessions" => vec![
+            "Runtime sessions track Frida/ART hook sessions associated with the case.",
+            "Shows session ID, target app, start time, and current status for each session.",
+        ],
+        "case.chain_of_custody" => vec![
+            "Generates a formal chain-of-custody report documenting all evidence handling.",
+            "Use JSON for machine processing or text/markdown for human review.",
+        ],
+        "case.integrity" => vec![
+            "Verifies integrity of case artifacts by comparing current hashes with manifest records.",
+            "Reports any tampering, corruption, or unauthorized modifications to evidence.",
+        ],
         id if id.starts_with("credentials.") => vec![
             "Refresh Devices first and confirm the active target is the device you intend to interrogate before running lock-screen or credential workflows.",
             "Case directory auto-registers manifests and exported source files; leave Output blank to let LockKnife derive a case-managed evidence folder.",
@@ -100,6 +112,11 @@ pub(super) fn action_help_lines(action_id: &str) -> Vec<&'static str> {
             "APK analysis outputs are saved as derived artifacts when Case directory is set.",
             "Analyze and Vulnerability now surface exported components, deep links, signing hints, string intel, and combined risk summaries.",
             "Decompile keeps a directory output and records whether the result is raw unpacking, apktool-decoded resources, jadx Java-like source, or hybrid source-recovery output.",
+        ],
+        "apk.dex" => vec![
+            "Extracts DEX header information including magic number, version, checksum, and section sizes.",
+            "Works on both APK files (extracts all embedded DEX files) and standalone .dex files.",
+            "Useful for verifying DEX integrity and detecting multi-dex APKs.",
         ],
         "runtime.hook" | "runtime.bypass_ssl" | "runtime.bypass_root" | "runtime.trace" => {
             vec![
