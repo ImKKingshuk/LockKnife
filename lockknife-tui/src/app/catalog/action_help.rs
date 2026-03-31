@@ -173,6 +173,26 @@ pub(super) fn action_help_lines(action_id: &str) -> Vec<&'static str> {
             "Disable enrichment when you only want extracted addresses without lookup metadata.",
             "Case directory stores the wallet extraction output as a derived artifact.",
         ],
+        "ai.train_malware" => vec![
+            "Train a machine learning classifier on labeled feature data for malware detection.",
+            "Requires lockknife[ml] dependency. Provide training data as JSON with feature columns and a label column.",
+            "The trained model is saved to the specified path or auto-derived in the case directory.",
+        ],
+        "ai.classify_malware" => vec![
+            "Classify unknown samples using a previously trained malware classifier model.",
+            "Requires lockknife[ml] dependency. Input must match the feature format used during training.",
+            "Returns classification scores and predicted labels for each sample.",
+        ],
+        "analyze.evidence" => vec![
+            "Composite analysis of an evidence directory using ALEAPP-style artifact parsing.",
+            "Detects IOCs across all parsed records and scans DEX files for malware patterns.",
+            "Useful for initial triage of extracted device data or forensic images.",
+        ],
+        "plugins.list" => vec![
+            "Lists all discovered LockKnife plugins from entry points and environment modules.",
+            "Shows plugin name, version, source, available commands, and health check status.",
+            "Use JSON format for programmatic processing or text format for human review.",
+        ],
         _ => Vec::new(),
     }
 }
