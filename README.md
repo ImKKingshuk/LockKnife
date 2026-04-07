@@ -252,6 +252,17 @@ Use LockKnife when you want one operator surface for the broader investigation l
 - 🔧 Malware scanning (Rust pattern engine)
 - 🔧 OWASP MASTG mapping helpers (`lockknife security owasp`)
 
+### Exploitation Framework (NEW)
+
+- 🔑 **Wireless Device Exploitation** (`lockknife exploit ...`) (requires `lockknife[exploitation]`)
+  - **ADB over TCP**: Network scanning, connection, shell access
+  - **Bluetooth**: Classic + BLE discovery, BlueBorne/KNOB PoCs
+  - **WiFi**: Network scanning, WPS attacks (Pixie Dust, brute force)
+  - **Zero-Click**: CVE-based vulnerability fingerprinting
+  - **USB Debugging**: Lock screen bypass, backup extraction
+- 🔑 **Authorization Framework**: Lab mode, case tracking, audit trails
+- 🔑 **Auto-Exploitation**: Automatic vector selection and exploitation
+
 ---
 
 ## Integrations (Optional Extras)
