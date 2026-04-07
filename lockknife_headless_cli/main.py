@@ -27,6 +27,7 @@ from lockknife_headless_cli.plugins import plugins_group
 from lockknife_headless_cli.report import report
 from lockknife_headless_cli.runtime import runtime
 from lockknife_headless_cli.security import security
+from lockknife_headless_cli.exploit import exploit
 from lockknife.core.adb import AdbClient
 from lockknife.core.config import LoadedConfig, load_config
 from lockknife.core.cli_instrumentation import LockKnifeGroup
@@ -123,3 +124,4 @@ cli.add_command(health_cmd)
 cli.add_command(doctor_cmd)
 cli.add_command(features_cmd)
 cli.add_command(plugins_group)
+cli.add_command(exploit)
