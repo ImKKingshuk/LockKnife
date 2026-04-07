@@ -42,7 +42,20 @@ ml = ["scikit-learn>=1.3", "numpy>=1.24", "joblib>=1.3"]
 yara = ["yara-python>=4.3"]
 threat-intel = ["vt-py>=0.18", "OTXv2>=1.5"]
 network = ["scapy>=2.5"]
-full = ["lockknife[apk,frida,ml,yara,threat-intel,network]"]
+
+# Exploitation framework dependencies (hybrid approach)
+exploitation-core = [
+  "bleak>=0.21.0",           # BLE operations
+  "impacket>=0.11.0",        # Network protocols
+]
+exploitation-bluetooth = [
+  "lockknife[exploitation-core]",
+  "pybluez>=0.23; sys_platform == 'linux'",  # Bluetooth Classic (Linux only)
+]
+exploitation = [
+  "lockknife[exploitation-core,exploitation-bluetooth]",
+]
+full = ["lockknife[apk,frida,ml,yara,threat-intel,network,exploitation]"]
 dev = [
     "pytest>=8.0",
     "pytest-mock>=3.12",
@@ -106,6 +119,7 @@ module = [
   "lockknife_headless_cli.forensics",
   "lockknife_headless_cli.security",
   "lockknife_headless_cli.crack",
+  "lockknife_headless_cli.exploit",
 ]
 disable_error_code = ["untyped-decorator"]
 
