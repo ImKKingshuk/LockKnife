@@ -58,20 +58,20 @@ def test_kernel_version_mapping() -> None:
 def test_ioc_parsing_and_stix(monkeypatch) -> None:
     from lockknife.modules.intelligence import ioc as ioc_mod
 
-    hits = ioc_mod.detect_iocs({"indicator_hash": "a" * 64, "remote_ip": "1.2.3.4", "domain": "example.com"})
+    hits = ioc_mod.detect_iocs({"indicator_hash": "a" * 64, "remote_ip": "192.0.2.2", "domain": "example.com"})
     kinds = {h.kind for h in hits}
     assert "sha256" in kinds
     assert "ipv4" in kinds
     assert "domain" in kinds
     assert all(h.confidence > 0 for h in hits)
 
-    pat_hits = ioc_mod.parse_stix_pattern("[domain-name:value = 'example.com' AND ipv4-addr:value = '8.8.8.8']", location="x")
+    pat_hits = ioc_mod.parse_stix_pattern("[domain-name:value = 'example.com' AND ipv4-addr:value = '192.0.2.5']", location="x")
     assert pat_hits[0].ioc == "example.com"
     assert any(hit.kind == "composite_and" for hit in pat_hits)
 
-    bundle = {"objects": [{"type": "indicator", "pattern": "[ipv4-addr:value = '8.8.8.8']"}]}
+    bundle = {"objects": [{"type": "indicator", "pattern": "[ipv4-addr:value = '192.0.2.5']"}]}
     b_hits = ioc_mod.parse_stix_bundle_for_iocs(bundle, location="b")
-    assert b_hits[0].ioc == "8.8.8.8"
+    assert b_hits[0].ioc == "192.0.2.5"
 
     monkeypatch.setattr(ioc_mod, "http_get", lambda url, **kwargs: b'{"objects":[]}')
     assert ioc_mod.load_stix_indicators_from_url("https://x") == []
@@ -80,19 +80,19 @@ def test_ioc_parsing_and_stix(monkeypatch) -> None:
 def test_ioc_helpers_and_composites(monkeypatch) -> None:
     from lockknife.modules.intelligence import ioc as ioc_mod
 
-    fragments = ioc_mod._iter_text_fragments({"outer": [None, {"value": "https://example.test 8.8.8.8"}]}, location="root")
-    assert fragments == [("root.outer[1].value", "https://example.test 8.8.8.8")]
+    fragments = ioc_mod._iter_text_fragments({"outer": [None, {"value": "https://example.test 192.0.2.5"}]}, location="root")
+    assert fragments == [("root.outer[1].value", "https://example.test 192.0.2.5")]
 
-    match = ioc_mod.IocMatch(ioc="8.8.8.8", kind="ipv4", location="remote_ip", confidence=0.8)
+    match = ioc_mod.IocMatch(ioc="192.0.2.5", kind="ipv4", location="remote_ip", confidence=0.8)
     assert ioc_mod._condition_matches(match, {"kind": "ipv4", "pattern": r"8\.8", "min_confidence": 0.7}) is True
-    assert ioc_mod._condition_matches(match, {"ioc": "1.1.1.1"}) is False
+    assert ioc_mod._condition_matches(match, {"ioc": "192.0.2.4"}) is False
     assert ioc_mod._is_valid_ipv4("999.1.1.1") is False
     assert ioc_mod._stix_boolean_operator("[a OR b]") == "OR"
     assert ioc_mod._stix_boolean_operator("[a]") is None
 
     matches = [
         ioc_mod.IocMatch(ioc="evil.example", kind="domain", location="host", confidence=0.7),
-        ioc_mod.IocMatch(ioc="8.8.8.8", kind="ipv4", location="remote_ip", confidence=0.8),
+        ioc_mod.IocMatch(ioc="192.0.2.5", kind="ipv4", location="remote_ip", confidence=0.8),
     ]
     rules = [
         {"name": "combo-and", "operator": "and", "confidence_boost": 0.1, "conditions": [{"kind": "domain"}, {"kind": "ipv4"}]},
@@ -102,13 +102,13 @@ def test_ioc_helpers_and_composites(monkeypatch) -> None:
     ]
     out = ioc_mod.evaluate_composite_iocs(matches, rules)
     assert {item.kind for item in out} == {"composite_and", "composite_or"}
-    assert any(item.ioc == "combo-and" and "8.8.8.8" in item.evidence for item in out)
+    assert any(item.ioc == "combo-and" and "192.0.2.5" in item.evidence for item in out)
 
 
 def test_ioc_stix_and_taxii_fallback_paths(monkeypatch) -> None:
     from lockknife.modules.intelligence import ioc as ioc_mod
 
-    monkeypatch.setattr(ioc_mod, "http_get", lambda _url, **_kwargs: b"raw indicator 1.2.3.4 https://fallback.example")
+    monkeypatch.setattr(ioc_mod, "http_get", lambda _url, **_kwargs: b"raw indicator 192.0.2.2 https://fallback.example")
     fallback_hits = ioc_mod.load_stix_indicators_from_url("https://fallback.test")
     assert {hit.kind for hit in fallback_hits} >= {"ipv4", "url", "domain"}
 
@@ -120,7 +120,7 @@ def test_ioc_stix_and_taxii_fallback_paths(monkeypatch) -> None:
                 "type": "indicator",
                 "pattern": "[domain-name:value = 'example.com']",
                 "name": "Indicator https://named.example",
-                "description": "Contact 9.9.9.9",
+                "description": "Contact 192.0.2.6",
             }
         ]
     }
@@ -147,7 +147,7 @@ def test_ioc_stix_and_taxii_fallback_paths(monkeypatch) -> None:
     def _get(url, headers, **_kwargs):
         requests["objects_url"] = url
         requests["object_headers"] = headers
-        return b"url https://taxii.example/ioc 5.5.5.5"
+        return b"url https://taxii.example/ioc 192.0.2.8"
 
     monkeypatch.setattr(ioc_mod, "http_get_json", _get_json)
     monkeypatch.setattr(ioc_mod, "http_get", _get)
@@ -206,8 +206,8 @@ def test_virustotal_file_report_uses_client(monkeypatch) -> None:
     domain_out = vt_mod.domain_report("example.com")
     assert domain_out["path"].endswith("/domains/example.com")
 
-    ip_out = vt_mod.ip_report("8.8.8.8")
-    assert ip_out["path"].endswith("/ip_addresses/8.8.8.8")
+    ip_out = vt_mod.ip_report("192.0.2.5")
+    assert ip_out["path"].endswith("/ip_addresses/192.0.2.5")
 
     submit_out = vt_mod.submit_url_for_analysis("https://submit.example")
     assert submitted["url"] == "https://submit.example"

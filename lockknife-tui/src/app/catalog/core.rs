@@ -20,7 +20,7 @@ pub(super) fn build_module() -> ModuleEntry {
             action(
                 "device.connect",
                 "Connect to device",
-                vec![text_field("host", "Host:port", "127.0.0.1:5555")],
+                vec![text_field("host", "Host:port", "192.0.2.1:5555")],
                 false,
                 false,
             ),

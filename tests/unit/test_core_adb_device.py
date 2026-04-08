@@ -157,9 +157,9 @@ def test_device_manager_map_devices_collects_exceptions() -> None:
     assert mgr.get_state("a").name == "authorized"
     assert mgr.get_state("missing").name == "disconnected"
 
-    out = mgr.connect_device("1.2.3.4:5555")
+    out = mgr.connect_device("192.0.2.2:5555")
     assert "connected" in out
-    assert mgr.get_state("1.2.3.4:5555").name == "connected"
+    assert mgr.get_state("192.0.2.2:5555").name == "connected"
 
 
 def test_adb_connect_disconnect_pull_success(monkeypatch, tmp_path) -> None:
@@ -180,6 +180,6 @@ def test_adb_connect_disconnect_pull_success(monkeypatch, tmp_path) -> None:
 
     monkeypatch.setattr("subprocess.run", fake_run)
     adb = AdbClient()
-    assert "connected" in adb.connect("127.0.0.1:5555")
+    assert "connected" in adb.connect("192.0.2.1:5555")
     lp = tmp_path / "x.bin"
     adb.pull("SER", "/sdcard/x", lp)

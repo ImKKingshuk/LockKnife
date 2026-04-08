@@ -46,7 +46,7 @@ def test_device_cli_commands(monkeypatch) -> None:
     for args in [
         ["list"],
         ["list", "--format", "json"],
-        ["connect", "127.0.0.1:5555"],
+        ["connect", "192.0.2.1:5555"],
         ["info", "-s", "S1"],
         ["info", "-s", "S1", "--format", "json"],
         ["info", "-s", "S1", "--all"],

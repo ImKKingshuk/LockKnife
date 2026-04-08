@@ -45,10 +45,10 @@ def test_analyze_pcap_uses_fake_scapy_packets(tmp_path: pathlib.Path, monkeypatc
     class _Packet:
         def __init__(self) -> None:
             self.layers = {
-                IP: _Layer(src="10.0.0.1", dst="10.0.0.2"),
+                IP: _Layer(src="192.0.2.1", dst="192.0.2.2"),
                 TCP: _Layer(sport=1234, dport=443),
                 Raw: _Layer(load=b"GET /status HTTP/1.1\r\nHost: api.example.com\r\n\r\n"),
-                DNS: _Layer(qd=_Layer(qname=b"api.example.com."), an=_Layer(rrname=b"api.example.com.", rdata="1.1.1.1")),
+                DNS: _Layer(qd=_Layer(qname=b"api.example.com."), an=_Layer(rrname=b"api.example.com.", rdata="192.0.2.4")),
             }
 
         def haslayer(self, layer: object) -> bool:

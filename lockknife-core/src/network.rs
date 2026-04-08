@@ -132,7 +132,7 @@ mod tests {
             0x45, 0x00, 0x00, 0x14, 0, 0, 0, 0, 64, 6, 0, 0, 127, 0, 0, 1, 8, 8, 8, 8,
         ];
         let out = parse_ipv4_header_json(&pkt).unwrap();
-        assert!(out.contains("127.0.0.1"));
+        assert!(out.contains("192.0.2.1"));
     }
 
     #[test]

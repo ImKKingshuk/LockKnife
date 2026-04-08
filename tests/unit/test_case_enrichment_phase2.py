@@ -45,7 +45,7 @@ def test_case_enrichment_common_and_helper_functions(monkeypatch, tmp_path: path
     assert _looks_like_sha256("a" * 64) is True
     assert _safe_package("com/example app") == "com_example_app"
     summary = _summarize_matches([
-        {"ioc": "1.1.1.1", "kind": "ipv4", "confidence": 0.9},
+        {"ioc": "192.0.2.4", "kind": "ipv4", "confidence": 0.9},
         {"ioc": "rule", "kind": "composite_and", "confidence": 0.5},
     ])
     assert summary["composite_count"] == 1

@@ -90,7 +90,7 @@ def test_parse_ipv4_header_json() -> None:
     lockknife_core = pytest.importorskip("lockknife.lockknife_core")
     pkt = bytes.fromhex("4500001400000000400600007f00000108080808")
     out = lockknife_core.parse_ipv4_header_json(pkt)
-    assert "127.0.0.1" in out
+    assert "192.0.2.1" in out
 
 
 def test_parse_elf_header_json_rejects_invalid() -> None:

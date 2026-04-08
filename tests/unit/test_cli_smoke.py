@@ -102,7 +102,7 @@ def test_cli_device_commands(monkeypatch) -> None:
     _invoke(dev_cli.device, ["list", "--format", "json"], obj=app)
     _invoke(dev_cli.device, ["info", "-s", "S", "--format", "json"], obj=app)
     _invoke(dev_cli.device, ["info", "-s", "S", "--all", "--format", "json"], obj=app)
-    _invoke(dev_cli.device, ["connect", "127.0.0.1:5555"], obj=app)
+    _invoke(dev_cli.device, ["connect", "192.0.2.1:5555"], obj=app)
     _invoke(dev_cli.device, ["shell", "-s", "S", "echo", "hi"], obj=app)
     _invoke(dev_cli.device, ["shell", "-s", "S", "--all", "echo", "hi"], obj=app)
 

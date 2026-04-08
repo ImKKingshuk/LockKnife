@@ -89,7 +89,7 @@ def test_location_artifacts_parsing() -> None:
 def test_otx_indicator_classify_and_errors(monkeypatch) -> None:
     from lockknife.modules.intelligence import otx as otx_mod
 
-    assert otx_mod.classify_indicator("8.8.8.8") == "ipv4"
+    assert otx_mod.classify_indicator("192.0.2.5") == "ipv4"
     assert otx_mod.classify_indicator("a" * 64) == "sha256"
     assert otx_mod.classify_indicator("example.com") == "domain"
     assert otx_mod.classify_indicator("x") == "unknown"
@@ -116,7 +116,7 @@ def test_otx_indicator_reputation_success(monkeypatch) -> None:
 
     monkeypatch.setenv("OTX_API_KEY", "k")
     monkeypatch.setitem(__import__("sys").modules, "OTXv2", types.SimpleNamespace(OTXv2=_OTX, IndicatorTypes=_Types))
-    out = otx_mod.indicator_reputation("8.8.8.8")
+    out = otx_mod.indicator_reputation("192.0.2.5")
     assert out["typ"] == "ipv4"
 
 

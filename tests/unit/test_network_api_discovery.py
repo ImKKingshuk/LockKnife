@@ -17,7 +17,7 @@ def test_pcap_summary_includes_http_dns_tls_hints(tmp_path: pathlib.Path) -> Non
         "GET /v1/users/42?limit=10 HTTP/1.1\r\n"
         "Host: api.example.com\r\n\r\n"
         "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n"
-        "dns query auth.example.com answer 1.1.1.1\n"
+        "dns query auth.example.com answer 192.0.2.4\n"
         "server_name secure.example.com\n",
         encoding="utf-8",
     )

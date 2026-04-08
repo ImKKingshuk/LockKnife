@@ -6,7 +6,7 @@ from lockknife.modules.network.parser import analyze_pcap, parse_ipv4_header
 def test_parse_ipv4_header() -> None:
     pkt = bytes.fromhex("4500001400000000400600007f00000108080808")
     out = parse_ipv4_header(pkt)
-    assert out["src"] == "127.0.0.1"
+    assert out["src"] == "192.0.2.1"
 
 
 def test_analyze_pcap_extracts_structured_text_protocols(tmp_path: pathlib.Path) -> None:
@@ -15,7 +15,7 @@ def test_analyze_pcap_extracts_structured_text_protocols(tmp_path: pathlib.Path)
         "GET /v1/users/42?limit=10 HTTP/1.1\r\n"
         "Host: api.example.com\r\n\r\n"
         "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n"
-        "dns query auth.example.com answer 1.1.1.1\n"
+        "dns query auth.example.com answer 192.0.2.4\n"
         "server_name secure.example.com\n",
         encoding="utf-8",
     )

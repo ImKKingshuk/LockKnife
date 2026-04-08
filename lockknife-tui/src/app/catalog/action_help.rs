@@ -21,7 +21,7 @@ pub(super) fn action_help_lines(action_id: &str) -> Vec<&'static str> {
             "Useful for verifying Android version, build fingerprint, and device capabilities before forensic work.",
         ],
         "device.connect" => vec![
-            "Connect to a device over the network using host:port format (e.g., 192.168.1.100:5555).",
+            "Connect to a device over the network using host:port format (e.g., 192.0.2.1:5555).",
             "The device must have ADB over WiFi enabled (usually via USB debugging + 'adb tcpip 5555').",
         ],
         "device.shell" => vec![

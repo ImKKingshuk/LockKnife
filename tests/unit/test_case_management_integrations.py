@@ -281,7 +281,7 @@ def test_runtime_and_security_case_registration(monkeypatch, tmp_path: pathlib.P
     monkeypatch.setattr(sec_cli, "run_device_audit", lambda *_a, **_k: [_Finding("issue")])
     monkeypatch.setattr(sec_cli, "get_selinux_status", lambda *_a, **_k: _Selinux("enforcing"))
     monkeypatch.setattr(sec_cli, "scan_with_yara", lambda *_a, **_k: [_Finding("malware")])
-    monkeypatch.setattr(sec_cli, "scan_network", lambda *_a, **_k: SimpleNamespace(dns=["1.1.1.1"], dns_cache=[], listening=[_Listener("tcp")], raw="ok"))
+    monkeypatch.setattr(sec_cli, "scan_network", lambda *_a, **_k: SimpleNamespace(dns=["192.0.2.4"], dns_cache=[], listening=[_Listener("tcp")], raw="ok"))
     monkeypatch.setattr(sec_cli, "analyze_bootloader", lambda *_a, **_k: _Boot(False))
     monkeypatch.setattr(sec_cli, "analyze_hardware_security", lambda *_a, **_k: _Hardware(True))
     monkeypatch.setattr(sec_cli, "mastg_summary", lambda *_a, **_k: {"items": [{"id": "x"}]})
