@@ -47,6 +47,11 @@ impl App {
             case: case_area,
             output: output_area,
             status: status_area,
+            // Initialize exploit panels with empty rects (shown conditionally)
+            exploit: Rect::default(),
+            exploit_status: Rect::default(),
+            evidence: Rect::default(),
+            scan_results: Rect::default(),
         };
     }
 
@@ -101,7 +106,11 @@ impl App {
             Panel::Devices => Panel::Modules,
             Panel::Modules => Panel::Case,
             Panel::Case => Panel::Output,
-            Panel::Output => Panel::Devices,
+            Panel::Output => Panel::Exploit,
+            Panel::Exploit => Panel::ExploitStatus,
+            Panel::ExploitStatus => Panel::Evidence,
+            Panel::Evidence => Panel::ScanResults,
+            Panel::ScanResults => Panel::Devices,
         };
     }
 
