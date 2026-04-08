@@ -9,6 +9,7 @@ mod case;
 mod core;
 mod credentials;
 mod crypto;
+mod exploitation;
 mod extraction;
 mod fields;
 mod forensics;
@@ -37,6 +38,7 @@ pub(crate) fn default_modules() -> Vec<ModuleEntry> {
         crypto::build_module(),
         analyze::build_module(),
         plugins::build_module(),
+        exploitation::build_module(),
     ]
 }
 
