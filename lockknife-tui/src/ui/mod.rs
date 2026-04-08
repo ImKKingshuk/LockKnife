@@ -8,6 +8,7 @@ use crate::app::{App, Overlay, Theme};
 
 mod overlays;
 mod panels;
+mod exploit;
 #[cfg(test)]
 mod tests;
 
@@ -26,6 +27,7 @@ use self::overlays::{
     running_status_label, status_badge, status_spans,
 };
 use self::panels::{render_case, render_devices, render_modules, render_output, render_status};
+use self::exploit::{render_exploit_panel, render_exploit_status_panel, render_evidence_viewer_panel, render_scan_results_panel};
 
 #[derive(Clone)]
 #[allow(dead_code)]
