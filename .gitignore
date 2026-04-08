@@ -61,6 +61,7 @@ docs/_build/
 node_modules/
 next-step-plan.md
 implementation_plan.md
+AGENTS.md
 
 # Local environment and credentials
 .env
