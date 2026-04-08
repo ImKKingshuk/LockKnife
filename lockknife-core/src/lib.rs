@@ -11,6 +11,7 @@ mod network;
 mod pattern;
 mod sqlite_bulk;
 mod yara_scan;
+mod exploit;
 
 #[pymodule]
 fn lockknife_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
