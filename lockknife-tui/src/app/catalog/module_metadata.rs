@@ -5,6 +5,9 @@ pub(super) fn module_description(module_id: &str) -> Option<&'static str> {
         "credentials" => Some(
             "Recover or inspect lock-screen, Wi-Fi, and keystore secrets from the device.",
         ),
+        "exploit" => Some(
+            "Assess and exercise offensive research workflows across ADB-TCP, Wi-Fi, Bluetooth, hotspot, USB, and zero-click vectors.",
+        ),
         "extraction" => Some(
             "Collect primary device evidence like messages, media, browser, and location artifacts.",
         ),
@@ -53,6 +56,10 @@ pub(super) fn module_help_lines(module_id: &str) -> Vec<&'static str> {
         "credentials" => vec![
             "These actions are device-backed and are best run with the correct device already selected.",
             "Use them early when credential recovery may unlock richer later extraction steps.",
+        ],
+        "exploit" => vec![
+            "These workflows are research-oriented and may target live services, so confirm scope before execution.",
+            "Use dry-run or validation-style actions first when you need to understand reachability before attempting deeper exploitation steps.",
         ],
         "extraction" => vec![
             "Populate Case directory to auto-register evidence files in the case manifest.",

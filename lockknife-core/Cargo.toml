@@ -2,16 +2,11 @@
 name = "lockknife-core"
 version = "1.0.0"
 edition = "2021"
-build = "build.rs"
 description = "Native Rust extension and analysis engine for LockKnife"
 license = "GPL-3.0-only"
 repository = "https://github.com/ImKKingshuk/LockKnife"
 homepage = "https://github.com/ImKKingshuk/LockKnife"
 documentation = "https://lockknife.vercel.app"
-
-[features]
-default = []
-extension-module = ["pyo3/extension-module"]
 
 [lib]
 name = "lockknife_core"
@@ -19,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 lockknife-tui = { path = "../lockknife-tui" }
-pyo3 = { version = "0.22", features = ["abi3", "abi3-py39"] }
+pyo3 = { version = "0.22", features = ["abi3", "abi3-py312"] }
 ring = "0.17"
 rayon = "1.10"
 serde = { version = "1", features = ["derive"] }
@@ -34,6 +29,3 @@ aho-corasick = "1.1"
 yara-x = "0.11"
 socket2 = "0.5"
 crc32fast = "1.4"
-
-[build-dependencies]
-pyo3-build-config = "0.22"
