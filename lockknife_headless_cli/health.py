@@ -30,7 +30,7 @@ def _detail(data: dict[str, Any]) -> str | None:
 
 
 def _render_text(payload: dict[str, Any]) -> str:
-    lines = [f"Overall: {'OK' if payload.get('ok') else 'FAIL'}"]
+    lines: list[str] = [f"Overall: {'OK' if payload.get('ok') else 'FAIL'}"]
     if "full_ok" in payload:
         lines.append(f"Full profile: {'OK' if payload.get('full_ok') else 'INCOMPLETE'}")
     for section_name in ("checks", "optional"):
@@ -58,8 +58,15 @@ def _emit(payload: dict[str, Any], out_format: str) -> None:
 
 
 @click.command("health", cls=LockKnifeCommand, help="Run core environment health checks.")
-@click.option("--format", "out_format", type=click.Choice(["text", "json"], case_sensitive=False), default="text")
-@click.option("--strict", is_flag=True, default=False, help="Exit non-zero when core health checks fail.")
+@click.option(
+    "--format",
+    "out_format",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+    default="text",
+)
+@click.option(
+    "--strict", is_flag=True, default=False, help="Exit non-zero when core health checks fail."
+)
 def health_cmd(out_format: str, strict: bool) -> None:
     payload = health_status()
     _emit(payload, out_format.lower())
@@ -67,9 +74,18 @@ def health_cmd(out_format: str, strict: bool) -> None:
         click.get_current_context().exit(1)
 
 
-@click.command("doctor", cls=LockKnifeCommand, help="Run extended dependency and configuration diagnostics.")
-@click.option("--format", "out_format", type=click.Choice(["text", "json"], case_sensitive=False), default="text")
-@click.option("--strict", is_flag=True, default=False, help="Exit non-zero when core health checks fail.")
+@click.command(
+    "doctor", cls=LockKnifeCommand, help="Run extended dependency and configuration diagnostics."
+)
+@click.option(
+    "--format",
+    "out_format",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+    default="text",
+)
+@click.option(
+    "--strict", is_flag=True, default=False, help="Exit non-zero when core health checks fail."
+)
 def doctor_cmd(out_format: str, strict: bool) -> None:
     payload = doctor_status()
     _emit(payload, out_format.lower())

@@ -6,9 +6,10 @@ from typing import Any
 
 import click
 
-
 _RE_HEX = re.compile(r"^[a-fA-F0-9]+$")
-_RE_DOMAIN = re.compile(r"^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$")
+_RE_DOMAIN = re.compile(
+    r"^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$"
+)
 _RE_ANDROID_PKG = re.compile(r"^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$")
 
 
@@ -66,7 +67,9 @@ class AndroidPackageType(click.ParamType):
 class ReadableFileType(click.ParamType):
     name = "readablefile"
 
-    def convert(self, value: Any, param: click.Parameter | None, ctx: click.Context | None) -> pathlib.Path:
+    def convert(
+        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
+    ) -> pathlib.Path:
         p = pathlib.Path(str(value))
         if not p.exists() or not p.is_file():
             self.fail("file does not exist", param, ctx)

@@ -11,7 +11,13 @@ def test_mastg_summary_from_findings_list() -> None:
 
 def test_mastg_summary_includes_apk_phase5_findings() -> None:
     artifacts = {
-        "findings": [{"id": "weak_exported_provider", "severity": "high", "evidence": ["content://com.example.provider/users"]}],
+        "findings": [
+            {
+                "id": "weak_exported_provider",
+                "severity": "high",
+                "evidence": ["content://com.example.provider/users"],
+            }
+        ],
         "risk_summary": {"score": 80},
     }
     out = mastg_summary(artifacts)
@@ -24,7 +30,11 @@ def test_mastg_summary_builds_area_scorecard() -> None:
     out = mastg_summary(
         {
             "findings": [
-                {"id": "component_permission_gap", "severity": "high", "evidence": ["DeepLinkActivity"]},
+                {
+                    "id": "component_permission_gap",
+                    "severity": "high",
+                    "evidence": ["DeepLinkActivity"],
+                },
                 {"id": "crypto_ecb_mode", "severity": "high"},
             ]
         }

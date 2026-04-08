@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -188,7 +189,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="evidence",
             filename=f"contacts.{ext}",
         )
-        contact_rows = [dataclasses.asdict(r) for r in extract_contacts(app.devices, serial, limit=limit)]
+        contact_rows = [
+            dataclasses.asdict(r) for r in extract_contacts(app.devices, serial, limit=limit)
+        ]
         if output is not None:
             if ext == "csv":
                 write_csv(output, contact_rows)
@@ -217,7 +220,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="evidence",
             filename=f"call_logs.{ext}",
         )
-        call_log_rows = [dataclasses.asdict(r) for r in extract_call_logs(app.devices, serial, limit=limit)]
+        call_log_rows = [
+            dataclasses.asdict(r) for r in extract_call_logs(app.devices, serial, limit=limit)
+        ]
         if output is not None:
             if ext == "csv":
                 write_csv(output, call_log_rows)
@@ -244,7 +249,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         if kind == "all" and ext != "json":
             raise ValueError("CSV is not supported when browser kind is 'all'")
         case_dir = _path_param(params.get("case_dir"))
-        browser_filename = f"browser_{app_name}.{ext}" if kind == "all" else f"browser_{app_name}_{kind}.{ext}"
+        browser_filename = (
+            f"browser_{app_name}.{ext}" if kind == "all" else f"browser_{app_name}_{kind}.{ext}"
+        )
         output, _derived = _resolve_case_output(
             _path_param(params.get("output")),
             case_dir,
@@ -255,18 +262,52 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             if app_name == "firefox":
                 payload = {
                     "app": "firefox",
-                    "history": [dataclasses.asdict(r) for r in extract_firefox_history(app.devices, serial, limit=limit)],
-                    "bookmarks": [dataclasses.asdict(r) for r in extract_firefox_bookmarks(app.devices, serial, limit=limit)],
-                    "passwords": [dataclasses.asdict(r) for r in extract_firefox_saved_logins(app.devices, serial, limit=limit)],
+                    "history": [
+                        dataclasses.asdict(r)
+                        for r in extract_firefox_history(app.devices, serial, limit=limit)
+                    ],
+                    "bookmarks": [
+                        dataclasses.asdict(r)
+                        for r in extract_firefox_bookmarks(app.devices, serial, limit=limit)
+                    ],
+                    "passwords": [
+                        dataclasses.asdict(r)
+                        for r in extract_firefox_saved_logins(app.devices, serial, limit=limit)
+                    ],
                 }
             else:
                 payload = {
                     "app": app_name,
-                    "history": [dataclasses.asdict(r) for r in extract_chrome_history(app.devices, serial, limit=limit, browser=app_name)],
-                    "bookmarks": [dataclasses.asdict(r) for r in extract_chrome_bookmarks(app.devices, serial, limit=limit, browser=app_name)],
-                    "downloads": [dataclasses.asdict(r) for r in extract_chrome_downloads(app.devices, serial, limit=limit, browser=app_name)],
-                    "cookies": [dataclasses.asdict(r) for r in extract_chrome_cookies(app.devices, serial, limit=limit, browser=app_name)],
-                    "passwords": [dataclasses.asdict(r) for r in extract_chrome_saved_logins(app.devices, serial, limit=limit, browser=app_name)],
+                    "history": [
+                        dataclasses.asdict(r)
+                        for r in extract_chrome_history(
+                            app.devices, serial, limit=limit, browser=app_name
+                        )
+                    ],
+                    "bookmarks": [
+                        dataclasses.asdict(r)
+                        for r in extract_chrome_bookmarks(
+                            app.devices, serial, limit=limit, browser=app_name
+                        )
+                    ],
+                    "downloads": [
+                        dataclasses.asdict(r)
+                        for r in extract_chrome_downloads(
+                            app.devices, serial, limit=limit, browser=app_name
+                        )
+                    ],
+                    "cookies": [
+                        dataclasses.asdict(r)
+                        for r in extract_chrome_cookies(
+                            app.devices, serial, limit=limit, browser=app_name
+                        )
+                    ],
+                    "passwords": [
+                        dataclasses.asdict(r)
+                        for r in extract_chrome_saved_logins(
+                            app.devices, serial, limit=limit, browser=app_name
+                        )
+                    ],
                 }
             if output is not None:
                 write_json(output, payload)
@@ -283,22 +324,56 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         rows: list[Any] = []
         if app_name == "firefox":
             if kind in {"bookmarks", "all"}:
-                rows.extend(dataclasses.asdict(r) for r in extract_firefox_bookmarks(app.devices, serial, limit=limit))
+                rows.extend(
+                    dataclasses.asdict(r)
+                    for r in extract_firefox_bookmarks(app.devices, serial, limit=limit)
+                )
             if kind in {"passwords", "all"}:
-                rows.extend(dataclasses.asdict(r) for r in extract_firefox_saved_logins(app.devices, serial, limit=limit))
+                rows.extend(
+                    dataclasses.asdict(r)
+                    for r in extract_firefox_saved_logins(app.devices, serial, limit=limit)
+                )
             if kind in {"history", "all"}:
-                rows.extend(dataclasses.asdict(r) for r in extract_firefox_history(app.devices, serial, limit=limit))
+                rows.extend(
+                    dataclasses.asdict(r)
+                    for r in extract_firefox_history(app.devices, serial, limit=limit)
+                )
         else:
             if kind in {"bookmarks", "all"}:
-                rows.extend(dataclasses.asdict(r) for r in extract_chrome_bookmarks(app.devices, serial, limit=limit, browser=app_name))
+                rows.extend(
+                    dataclasses.asdict(r)
+                    for r in extract_chrome_bookmarks(
+                        app.devices, serial, limit=limit, browser=app_name
+                    )
+                )
             if kind in {"downloads", "all"}:
-                rows.extend(dataclasses.asdict(r) for r in extract_chrome_downloads(app.devices, serial, limit=limit, browser=app_name))
+                rows.extend(
+                    dataclasses.asdict(r)
+                    for r in extract_chrome_downloads(
+                        app.devices, serial, limit=limit, browser=app_name
+                    )
+                )
             if kind in {"cookies", "all"}:
-                rows.extend(dataclasses.asdict(r) for r in extract_chrome_cookies(app.devices, serial, limit=limit, browser=app_name))
+                rows.extend(
+                    dataclasses.asdict(r)
+                    for r in extract_chrome_cookies(
+                        app.devices, serial, limit=limit, browser=app_name
+                    )
+                )
             if kind in {"passwords", "all"}:
-                rows.extend(dataclasses.asdict(r) for r in extract_chrome_saved_logins(app.devices, serial, limit=limit, browser=app_name))
+                rows.extend(
+                    dataclasses.asdict(r)
+                    for r in extract_chrome_saved_logins(
+                        app.devices, serial, limit=limit, browser=app_name
+                    )
+                )
             if kind in {"history", "all"}:
-                rows.extend(dataclasses.asdict(r) for r in extract_chrome_history(app.devices, serial, limit=limit, browser=app_name))
+                rows.extend(
+                    dataclasses.asdict(r)
+                    for r in extract_chrome_history(
+                        app.devices, serial, limit=limit, browser=app_name
+                    )
+                )
         if output is not None:
             if ext == "csv":
                 write_csv(output, rows)
@@ -351,11 +426,20 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 return _ok(payload, f"Extracted messaging artifacts to {output}")
             return _ok(payload, "Extracted messaging artifacts")
         if app_name == "telegram":
-            rows = [dataclasses.asdict(r) for r in extract_telegram_messages(app.devices, serial, limit=limit)]
+            rows = [
+                dataclasses.asdict(r)
+                for r in extract_telegram_messages(app.devices, serial, limit=limit)
+            ]
         elif app_name == "signal":
-            rows = [dataclasses.asdict(r) for r in extract_signal_messages(app.devices, serial, limit=limit)]
+            rows = [
+                dataclasses.asdict(r)
+                for r in extract_signal_messages(app.devices, serial, limit=limit)
+            ]
         else:
-            rows = [dataclasses.asdict(r) for r in extract_whatsapp_messages(app.devices, serial, limit=limit)]
+            rows = [
+                dataclasses.asdict(r)
+                for r in extract_whatsapp_messages(app.devices, serial, limit=limit)
+            ]
         if output is not None:
             if ext == "csv":
                 write_csv(output, rows)
@@ -384,7 +468,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="evidence",
             filename=f"media.{ext}",
         )
-        rows = [dataclasses.asdict(r) for r in extract_media_with_exif(app.devices, serial, limit=limit)]
+        rows = [
+            dataclasses.asdict(r) for r in extract_media_with_exif(app.devices, serial, limit=limit)
+        ]
         if output is not None:
             if ext == "csv":
                 write_csv(output, rows)
@@ -437,10 +523,12 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         ext = "csv" if out_format == "csv" else "json"
         results: dict[str, Any] = {"serial": serial, "artifacts": {}}
         artifact_ids: list[str] = []
-        
+
         # Extract SMS
         try:
-            sms_rows = [dataclasses.asdict(r) for r in extract_sms(app.devices, serial, limit=limit)]
+            sms_rows = [
+                dataclasses.asdict(r) for r in extract_sms(app.devices, serial, limit=limit)
+            ]
             results["artifacts"]["sms"] = {"count": len(sms_rows), "rows": sms_rows}
             if output_dir is not None and case_dir is not None:
                 sms_path = output_dir / f"sms.{ext}"
@@ -460,10 +548,12 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                     artifact_ids.append(aid)
         except Exception as e:
             results["artifacts"]["sms"] = {"error": str(e)}
-        
+
         # Extract Contacts
         try:
-            contact_rows = [dataclasses.asdict(r) for r in extract_contacts(app.devices, serial, limit=limit)]
+            contact_rows = [
+                dataclasses.asdict(r) for r in extract_contacts(app.devices, serial, limit=limit)
+            ]
             results["artifacts"]["contacts"] = {"count": len(contact_rows), "rows": contact_rows}
             if output_dir is not None and case_dir is not None:
                 contacts_path = output_dir / f"contacts.{ext}"
@@ -483,10 +573,12 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                     artifact_ids.append(aid)
         except Exception as e:
             results["artifacts"]["contacts"] = {"error": str(e)}
-        
+
         # Extract Call Logs
         try:
-            call_log_rows = [dataclasses.asdict(r) for r in extract_call_logs(app.devices, serial, limit=limit)]
+            call_log_rows = [
+                dataclasses.asdict(r) for r in extract_call_logs(app.devices, serial, limit=limit)
+            ]
             results["artifacts"]["call_logs"] = {"count": len(call_log_rows), "rows": call_log_rows}
             if output_dir is not None and case_dir is not None:
                 calls_path = output_dir / f"call_logs.{ext}"
@@ -506,11 +598,17 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                     artifact_ids.append(aid)
         except Exception as e:
             results["artifacts"]["call_logs"] = {"error": str(e)}
-        
+
         # Extract Chrome History
         try:
-            history_rows = [dataclasses.asdict(r) for r in extract_chrome_history(app.devices, serial, limit=limit)]
-            results["artifacts"]["chrome_history"] = {"count": len(history_rows), "rows": history_rows}
+            history_rows = [
+                dataclasses.asdict(r)
+                for r in extract_chrome_history(app.devices, serial, limit=limit)
+            ]
+            results["artifacts"]["chrome_history"] = {
+                "count": len(history_rows),
+                "rows": history_rows,
+            }
             if output_dir is not None and case_dir is not None:
                 history_path = output_dir / f"chrome_history.{ext}"
                 if ext == "csv":
@@ -529,10 +627,13 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                     artifact_ids.append(aid)
         except Exception as e:
             results["artifacts"]["chrome_history"] = {"error": str(e)}
-        
+
         # Extract Media
         try:
-            media_rows = [dataclasses.asdict(r) for r in extract_media_with_exif(app.devices, serial, limit=limit)]
+            media_rows = [
+                dataclasses.asdict(r)
+                for r in extract_media_with_exif(app.devices, serial, limit=limit)
+            ]
             results["artifacts"]["media"] = {"count": len(media_rows), "rows": media_rows}
             if output_dir is not None and case_dir is not None:
                 media_path = output_dir / f"media.{ext}"
@@ -552,7 +653,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                     artifact_ids.append(aid)
         except Exception as e:
             results["artifacts"]["media"] = {"error": str(e)}
-        
+
         # Extract Location
         try:
             location = dataclasses.asdict(extract_location_artifacts(app.devices, serial))
@@ -572,14 +673,18 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                     artifact_ids.append(aid)
         except Exception as e:
             results["artifacts"]["location"] = {"error": str(e)}
-        
+
         total_count = sum(
-            v.get("count", 0) for v in results["artifacts"].values() 
+            v.get("count", 0)
+            for v in results["artifacts"].values()
             if isinstance(v, dict) and "count" in v
         )
         results["total_count"] = total_count
         results["artifact_ids"] = artifact_ids
-        
-        return _ok(results, f"Extracted {total_count} total artifacts across {len(results['artifacts'])} categories")
+
+        return _ok(
+            results,
+            f"Extracted {total_count} total artifacts across {len(results['artifacts'])} categories",
+        )
 
     return None

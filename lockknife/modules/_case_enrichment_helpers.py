@@ -1,25 +1,18 @@
 from __future__ import annotations
 
-
-
 import csv
-
 import json
-
 import pathlib
-
 from collections import Counter
-
 from typing import Any
 
-
-
 from lockknife.core.case import case_artifact_details, query_case_artifacts
-
+from lockknife.modules._case_enrichment_common import (
+    _MAX_TEXT_BYTES,
+    _TEXT_SUFFIXES,
+    _float_or_none,
+)
 from lockknife.modules.ai._explanations import anomaly_explainability, password_explainability
-
-from lockknife.modules._case_enrichment_common import _MAX_TEXT_BYTES, _TEXT_SUFFIXES, _float_or_none
-
 
 
 def _selected_artifacts(
@@ -36,19 +29,22 @@ def _selected_artifacts(
         detail = case_artifact_details(case_dir, artifact_id=artifact_id)
         return [detail["artifact"]] if detail else []
     return list(
-        (query_case_artifacts(
+        query_case_artifacts(
             case_dir,
             categories=categories,
             exclude_categories=exclude_categories,
             source_commands=source_commands,
             device_serials=device_serials,
             limit=limit,
-        ).get("artifacts") or [])
+        ).get("artifacts")
+        or []
     )
+
 
 def _artifact_path(case_dir: pathlib.Path, stored_path: str) -> pathlib.Path:
     path = pathlib.Path(stored_path)
     return path if path.is_absolute() else case_dir / stored_path
+
 
 def _load_artifact_data(path: pathlib.Path) -> Any | None:
     suffix = path.suffix.lower()
@@ -60,6 +56,7 @@ def _load_artifact_data(path: pathlib.Path) -> Any | None:
         with path.open("r", encoding="utf-8", newline="") as handle:
             return list(csv.DictReader(handle))
     return path.read_text(encoding="utf-8", errors="ignore")
+
 
 def _extract_package(data: Any) -> str | None:
     if isinstance(data, dict):
@@ -73,10 +70,12 @@ def _extract_package(data: Any) -> str | None:
                 return package.strip()
     return None
 
+
 def _structured_rows(data: Any) -> list[dict[str, Any]]:
     if isinstance(data, list) and all(isinstance(item, dict) for item in data):
         return [dict(item) for item in data]
     return []
+
 
 def _infer_numeric_feature_keys(rows: list[dict[str, Any]]) -> list[str]:
     if len(rows) < 3:
@@ -89,13 +88,16 @@ def _infer_numeric_feature_keys(rows: list[dict[str, Any]]) -> list[str]:
     threshold = max(2, min(len(rows), 3))
     return [key for key, count in counts.items() if count >= threshold][:6]
 
+
 def _anomaly_explainability(
     rows: list[dict[str, Any]], results: list[dict[str, Any]], feature_keys: list[str]
 ) -> dict[str, Any]:
     return anomaly_explainability(rows, results, feature_keys)
 
+
 def _password_explainability(source_words: list[str], predictions: list[str]) -> dict[str, Any]:
     return password_explainability(source_words, predictions)
+
 
 def _unique_provider_status(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[str] = set()

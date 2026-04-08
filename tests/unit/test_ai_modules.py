@@ -7,7 +7,13 @@ def test_password_predictor_generates(tmp_path) -> None:
     wl = tmp_path / "w.txt"
     wl.write_text("alpha\nbeta\n", encoding="utf-8")
     model = PasswordPredictor.train_from_wordlist(wl, max_words=10, order=2)
-    out = model.generate(count=5, min_len=3, max_len=8, seed=1, personal_data={"owner": "Alice", "email": "alice@example.com"})
+    out = model.generate(
+        count=5,
+        min_len=3,
+        max_len=8,
+        seed=1,
+        personal_data={"owner": "Alice", "email": "alice@example.com"},
+    )
     assert all(3 <= len(x) <= 8 for x in out)
     assert any("Alice" in value or "alice" in value for value in out)
 
@@ -98,7 +104,11 @@ def test_malware_classifier_with_fake_sklearn(monkeypatch, tmp_path) -> None:
     monkeypatch.setitem(__import__("sys").modules, "sklearn.ensemble", fake_sklearn.ensemble)
 
     rows = [
-        {"label": 1, "permissions": ["READ_SMS", "INTERNET"], "api_calls": ["Runtime.exec", "loadLibrary"]},
+        {
+            "label": 1,
+            "permissions": ["READ_SMS", "INTERNET"],
+            "api_calls": ["Runtime.exec", "loadLibrary"],
+        },
         {"label": 0, "permissions": ["INTERNET"], "api_calls": ["Log.d"]},
     ]
     model_path = tmp_path / "model.pkl"

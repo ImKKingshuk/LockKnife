@@ -3,10 +3,8 @@ from __future__ import annotations
 import dataclasses
 import pathlib
 import struct
-from typing import Any
 
 from lockknife.core.device import DeviceManager
-from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
 from lockknife.core.security import secure_temp_dir
 
@@ -101,7 +99,9 @@ def _parse_exif_gps(jpeg_bytes: bytes) -> tuple[float | None, float | None]:
                 val = _read_u32(exif, ent + 8, endian)
                 if tag == 1 and typ == 2:
                     off = val if cnt > 4 else ent + 8
-                    gps_lat_ref = exif[off : off + cnt].split(b"\x00")[0].decode("ascii", errors="ignore")
+                    gps_lat_ref = (
+                        exif[off : off + cnt].split(b"\x00")[0].decode("ascii", errors="ignore")
+                    )
                 if tag == 2 and typ == 5 and cnt == 3:
                     off = val
                     if off + 24 <= len(exif):
@@ -112,7 +112,9 @@ def _parse_exif_gps(jpeg_bytes: bytes) -> tuple[float | None, float | None]:
                             gps_lat = deg + minu / 60.0 + sec / 3600.0
                 if tag == 3 and typ == 2:
                     off = val if cnt > 4 else ent + 8
-                    gps_lon_ref = exif[off : off + cnt].split(b"\x00")[0].decode("ascii", errors="ignore")
+                    gps_lon_ref = (
+                        exif[off : off + cnt].split(b"\x00")[0].decode("ascii", errors="ignore")
+                    )
                 if tag == 4 and typ == 5 and cnt == 3:
                     off = val
                     if off + 24 <= len(exif):
@@ -130,7 +132,9 @@ def _parse_exif_gps(jpeg_bytes: bytes) -> tuple[float | None, float | None]:
     return None, None
 
 
-def extract_media_with_exif(devices: DeviceManager, serial: str, limit: int = 50) -> list[MediaFile]:
+def extract_media_with_exif(
+    devices: DeviceManager, serial: str, limit: int = 50
+) -> list[MediaFile]:
     if limit <= 0:
         raise ValueError("limit must be > 0")
     has_root = devices.has_root(serial)
@@ -145,7 +149,7 @@ def extract_media_with_exif(devices: DeviceManager, serial: str, limit: int = 50
         ]
         files: list[str] = []
         for base in candidates:
-            cmd = f'ls -1t {_escape_path_for_sh(base)} 2>/dev/null | head -n {int(limit)}'
+            cmd = f"ls -1t {_escape_path_for_sh(base)} 2>/dev/null | head -n {int(limit)}"
             if has_root:
                 cmd = f'su -c "{cmd}"'
             try:
@@ -184,7 +188,9 @@ def extract_media_with_exif(devices: DeviceManager, serial: str, limit: int = 50
             if local.suffix.lower() in {".jpg", ".jpeg"}:
                 gps_lat, gps_lon = _parse_exif_gps(local.read_bytes())
             kind = local.suffix.lower().lstrip(".") or None
-            out.append(MediaFile(path=remote, size=size, kind=kind, gps_lat=gps_lat, gps_lon=gps_lon))
+            out.append(
+                MediaFile(path=remote, size=size, kind=kind, gps_lat=gps_lat, gps_lon=gps_lon)
+            )
         return out
 
 

@@ -9,16 +9,26 @@ from lockknife.core.serialize import write_json
 from lockknife.modules.apk._code_signals import scan_archive_code_signals
 from lockknife.modules.apk._decompile_archive import archive_inventory
 from lockknife.modules.apk._decompile_dex import extract_dex_headers_impl
-from lockknife.modules.apk._decompile_inspection import _android_attr, _apk_method, _clean_strings, _coerce_manifest_bool, _normalize_component_name
-from lockknife.modules.apk._decompile_shared import ANDROID_ATTR, ANDROID_NS, ApkError, SUPPORTED_DECOMPILE_MODES, TEXT_FILE_SUFFIXES, _require_androguard
+from lockknife.modules.apk._decompile_inspection import (
+    _android_attr,
+    _apk_method,
+    _clean_strings,
+    _coerce_manifest_bool,
+    _normalize_component_name,
+)
+from lockknife.modules.apk._decompile_shared import (
+    ANDROID_ATTR,
+    ANDROID_NS,
+    SUPPORTED_DECOMPILE_MODES,
+    TEXT_FILE_SUFFIXES,
+    ApkError,
+    _require_androguard,
+)
 from lockknife.modules.apk._decompile_tools import available_decompile_tools, run_decompile_pipeline
 from lockknife.modules.apk._manifest_components import component_details
 from lockknife.modules.apk._signing import signing_summary
 
-
-
 lockknife_core = None
-
 
 
 def parse_apk_manifest(apk_path: pathlib.Path) -> dict[str, Any]:
@@ -42,7 +52,9 @@ def parse_apk_manifest(apk_path: pathlib.Path) -> dict[str, Any]:
     info = {
         "package": package,
         "app_name": _apk_method(apk_obj, "get_app_name"),
-        "main_activity": _normalize_component_name(package, _apk_method(apk_obj, "get_main_activity")),
+        "main_activity": _normalize_component_name(
+            package, _apk_method(apk_obj, "get_main_activity")
+        ),
         "version_name": _apk_method(apk_obj, "get_androidversion_name"),
         "version_code": _apk_method(apk_obj, "get_androidversion_code"),
         "sdk": {
@@ -83,7 +95,9 @@ def parse_apk_manifest(apk_path: pathlib.Path) -> dict[str, Any]:
             root = fromstring(manifest_xml)
             app_node = root.find("application")
             info["allow_backup"] = _coerce_manifest_bool(_android_attr(app_node, "allowBackup"))
-            info["uses_cleartext_traffic"] = _coerce_manifest_bool(_android_attr(app_node, "usesCleartextTraffic"))
+            info["uses_cleartext_traffic"] = _coerce_manifest_bool(
+                _android_attr(app_node, "usesCleartextTraffic")
+            )
             info["network_security_config"] = _android_attr(app_node, "networkSecurityConfig")
             info["backup_agent"] = _android_attr(app_node, "backupAgent")
             info["manifest_flags"] = {
@@ -99,8 +113,9 @@ def parse_apk_manifest(apk_path: pathlib.Path) -> dict[str, Any]:
     return info
 
 
-
-def decompile_apk_report(apk_path: pathlib.Path, output_dir: pathlib.Path, *, mode: str = "auto") -> dict[str, Any]:
+def decompile_apk_report(
+    apk_path: pathlib.Path, output_dir: pathlib.Path, *, mode: str = "auto"
+) -> dict[str, Any]:
     if not apk_path.exists():
         raise ApkError(f"APK not found: {apk_path}")
 
@@ -128,11 +143,11 @@ def decompile_apk_report(apk_path: pathlib.Path, output_dir: pathlib.Path, *, mo
     return report
 
 
-
-def decompile_apk(apk_path: pathlib.Path, output_dir: pathlib.Path, *, mode: str = "auto") -> pathlib.Path:
+def decompile_apk(
+    apk_path: pathlib.Path, output_dir: pathlib.Path, *, mode: str = "auto"
+) -> pathlib.Path:
     decompile_apk_report(apk_path, output_dir, mode=mode)
     return output_dir
-
 
 
 def extract_dex_headers(apk_path: pathlib.Path) -> list[dict[str, Any]]:
@@ -146,27 +161,15 @@ def extract_dex_headers(apk_path: pathlib.Path) -> list[dict[str, Any]]:
     return extract_dex_headers_impl(apk_path, lockknife_core_module=core)
 
 
-
 __all__ = [
-
     "ANDROID_NS",
-
     "ANDROID_ATTR",
-
     "SUPPORTED_DECOMPILE_MODES",
-
     "TEXT_FILE_SUFFIXES",
-
     "ApkError",
-
     "parse_apk_manifest",
-
     "available_decompile_tools",
-
     "decompile_apk_report",
-
     "decompile_apk",
-
     "extract_dex_headers",
-
 ]

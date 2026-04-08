@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from functools import lru_cache
 import pathlib
 import re
+from dataclasses import asdict, dataclass
+from functools import cache
 from typing import Any
 
 
@@ -91,7 +91,7 @@ def _descriptor(name: str) -> RuntimeScriptDescriptor:
     return descriptor
 
 
-@lru_cache(maxsize=None)
+@cache
 def _script_source(name: str) -> str:
     descriptor = _descriptor(name)
     return (builtin_runtime_scripts_dir() / descriptor.file_name).read_text(encoding="utf-8")
@@ -126,12 +126,10 @@ def get_builtin_runtime_script(name: str) -> dict[str, Any]:
     }
 
 
-def suggest_builtin_runtime_scripts(app_id: str, *, session_kind: str | None = None) -> list[dict[str, Any]]:
-    app_tokens = {
-        token
-        for token in re.split(r"[^a-z0-9]+", app_id.lower())
-        if token
-    }
+def suggest_builtin_runtime_scripts(
+    app_id: str, *, session_kind: str | None = None
+) -> list[dict[str, Any]]:
+    app_tokens = {token for token in re.split(r"[^a-z0-9]+", app_id.lower()) if token}
     weighted_tags = {
         "ssl_bypass": {"bank", "wallet", "secure", "auth", "login", "vpn", "pay"},
         "root_bypass": {"bank", "wallet", "secure", "guard", "device", "work", "mdm", "pay"},
@@ -159,7 +157,12 @@ def suggest_builtin_runtime_scripts(app_id: str, *, session_kind: str | None = N
         if score <= 0:
             continue
         suggestions.append({**item, "score": score, "reason": "; ".join(reasons)})
-    suggestions.sort(key=lambda item: (-int(item.get("score") or 0), str(item.get("title") or item.get("name") or "")))
+    suggestions.sort(
+        key=lambda item: (
+            -int(item.get("score") or 0),
+            str(item.get("title") or item.get("name") or ""),
+        )
+    )
     return suggestions[:4]
 
 
@@ -177,4 +180,3 @@ def debug_bypass_script() -> str:
 
 def crypto_intercept_script() -> str:
     return str(get_builtin_runtime_script("crypto_intercept")["source"])
-

@@ -5,8 +5,12 @@ from collections import Counter
 from typing import Any
 
 
-def decode_protobuf_file(path: pathlib.Path, *, max_fields: int = 200, max_depth: int = 2) -> dict[str, Any] | None:
-    return decode_protobuf_blob(path.read_bytes(), source_file=str(path), max_fields=max_fields, max_depth=max_depth)
+def decode_protobuf_file(
+    path: pathlib.Path, *, max_fields: int = 200, max_depth: int = 2
+) -> dict[str, Any] | None:
+    return decode_protobuf_blob(
+        path.read_bytes(), source_file=str(path), max_fields=max_fields, max_depth=max_depth
+    )
 
 
 def decode_protobuf_blob(
@@ -96,7 +100,13 @@ def _decode_message(
                 entry["text"] = decoded_text
                 string_field_count += 1
             elif depth < max_depth and _looks_like_nested_message(payload):
-                nested = _decode_message(payload, offset=0, depth=depth + 1, max_fields=min(80, max_fields), max_depth=max_depth)
+                nested = _decode_message(
+                    payload,
+                    offset=0,
+                    depth=depth + 1,
+                    max_fields=min(80, max_fields),
+                    max_depth=max_depth,
+                )
                 if nested["fields"]:
                     nested_message_count += 1 + int(nested["nested_message_count"])
                     string_field_count += int(nested["string_field_count"])

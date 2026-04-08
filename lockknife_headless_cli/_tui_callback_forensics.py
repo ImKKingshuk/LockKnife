@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -176,7 +177,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             input_paths=input_paths,
             metadata={"full": full, "encrypt": encrypt},
         )
-        snapshot_artifact = find_case_artifact(case_dir, path=output) if case_dir is not None else None
+        snapshot_artifact = (
+            find_case_artifact(case_dir, path=output) if case_dir is not None else None
+        )
         parent_ids = [snapshot_artifact.artifact_id] if snapshot_artifact is not None else None
         meta_path = output.with_suffix(output.suffix + ".meta.json")
         if meta_path.exists():
@@ -235,7 +238,10 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 source_command="forensics sqlite",
                 input_paths=input_paths,
                 parent_artifact_ids=_parent_artifact_ids(case_dir, input_paths),
-                metadata={"table_count": len(analysis.tables), "object_count": len(getattr(analysis, "objects", []))},
+                metadata={
+                    "table_count": len(analysis.tables),
+                    "object_count": len(getattr(analysis, "objects", [])),
+                },
             )
             return _ok(payload, f"SQLite analysis saved to {output}")
         return _ok(payload, f"SQLite tables: {len(analysis.tables)}")
@@ -267,7 +273,11 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         )
         if output is not None:
             write_json(output, payload)
-            input_paths = [item["path"] for item in payload.get("sources", []) if isinstance(item, dict) and item.get("path")]
+            input_paths = [
+                item["path"]
+                for item in payload.get("sources", [])
+                if isinstance(item, dict) and item.get("path")
+            ]
             _register_case_output(
                 case_dir,
                 path=output,
@@ -275,13 +285,20 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 source_command="forensics timeline",
                 input_paths=input_paths,
                 parent_artifact_ids=_parent_artifact_ids(case_dir, input_paths),
-                metadata={"event_count": payload.get("event_count", 0), "source_count": len(payload.get("sources", []))},
+                metadata={
+                    "event_count": payload.get("event_count", 0),
+                    "source_count": len(payload.get("sources", [])),
+                },
             )
             return _ok(payload, f"Wrote {payload.get('event_count', 0)} events to {output}")
         return _ok(payload, f"Built {payload.get('event_count', 0)} timeline events")
 
     if action == "forensics.parse":
-        source_dir = _path_param(params.get("path")) or _path_param(params.get("input_dir")) or _path_param(params.get("aleapp"))
+        source_dir = (
+            _path_param(params.get("path"))
+            or _path_param(params.get("input_dir"))
+            or _path_param(params.get("aleapp"))
+        )
         if source_dir is None:
             raise ValueError("path, input_dir, or aleapp is required")
         case_dir = _path_param(params.get("case_dir"))
@@ -295,7 +312,11 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         payload = dataclasses.asdict(report)
         if output is not None:
             write_json(output, payload)
-            input_paths = [str(source_dir)] + [item["source_file"] for item in payload.get("artifacts", []) if isinstance(item, dict)]
+            input_paths = [str(source_dir)] + [
+                item["source_file"]
+                for item in payload.get("artifacts", [])
+                if isinstance(item, dict)
+            ]
             _register_case_output(
                 case_dir,
                 path=output,
@@ -303,10 +324,15 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 source_command="forensics parse",
                 input_paths=input_paths,
                 parent_artifact_ids=_parent_artifact_ids(case_dir, input_paths),
-                metadata={"artifact_count": payload.get("summary", {}).get("artifact_count", 0), "protobuf_count": payload.get("summary", {}).get("protobuf_count", 0)},
+                metadata={
+                    "artifact_count": payload.get("summary", {}).get("artifact_count", 0),
+                    "protobuf_count": payload.get("summary", {}).get("protobuf_count", 0),
+                },
             )
             return _ok(payload, f"Parsed forensic artifacts saved to {output}")
-        return _ok(payload, f"Parsed {payload.get('summary', {}).get('artifact_count', 0)} artifact groups")
+        return _ok(
+            payload, f"Parsed {payload.get('summary', {}).get('artifact_count', 0)} artifact groups"
+        )
 
     if action == "forensics.import_aleapp":
         source_dir = _path_param(params.get("input_dir")) or _path_param(params.get("path"))
@@ -333,10 +359,18 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 source_command="forensics import-aleapp",
                 input_paths=input_paths,
                 parent_artifact_ids=_parent_artifact_ids(case_dir, input_paths),
-                metadata={"artifact_count": payload.get("summary", {}).get("artifact_count", 0), "aleapp_imported_count": payload.get("summary", {}).get("aleapp_imported_count", 0)},
+                metadata={
+                    "artifact_count": payload.get("summary", {}).get("artifact_count", 0),
+                    "aleapp_imported_count": payload.get("summary", {}).get(
+                        "aleapp_imported_count", 0
+                    ),
+                },
             )
             return _ok(payload, f"ALEAPP artifacts saved to {output}")
-        return _ok(payload, f"Imported {payload.get('summary', {}).get('aleapp_imported_count', 0)} ALEAPP artifacts")
+        return _ok(
+            payload,
+            f"Imported {payload.get('summary', {}).get('aleapp_imported_count', 0)} ALEAPP artifacts",
+        )
 
     if action == "forensics.decode_protobuf":
         path = pathlib.Path(_require(params, "path"))
@@ -360,7 +394,11 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 source_command="forensics decode-protobuf",
                 input_paths=input_paths,
                 parent_artifact_ids=_parent_artifact_ids(case_dir, input_paths),
-                metadata={"message_count": payload.get("message_count", 0), "field_count": payload.get("field_count", 0), "nested_message_count": payload.get("nested_message_count", 0)},
+                metadata={
+                    "message_count": payload.get("message_count", 0),
+                    "field_count": payload.get("field_count", 0),
+                    "nested_message_count": payload.get("nested_message_count", 0),
+                },
             )
             return _ok(payload, f"Decoded protobuf saved to {output}")
         return _ok(payload, f"Decoded {payload.get('message_count', 0)} protobuf fields")
@@ -412,7 +450,12 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 source_command="forensics recover",
                 input_paths=input_paths,
                 parent_artifact_ids=_parent_artifact_ids(case_dir, input_paths),
-                metadata={"fragment_count": len(payload.get("fragments", [])), "high_confidence_count": payload.get("summary", {}).get("high_confidence_count", 0)},
+                metadata={
+                    "fragment_count": len(payload.get("fragments", [])),
+                    "high_confidence_count": payload.get("summary", {}).get(
+                        "high_confidence_count", 0
+                    ),
+                },
             )
             return _ok(payload, f"Recovery saved to {output}")
         return _ok(payload, "Recovery complete")

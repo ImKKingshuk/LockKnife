@@ -6,7 +6,6 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-
 EMBEDDED_REPORT_CSS = """
 body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; margin: 0; color: #e5e7eb; background: #0f172a; }
 .page { max-width: 1120px; margin: 0 auto; padding: 32px; }
@@ -40,7 +39,9 @@ def render_html_report(template_path: pathlib.Path, context: dict[str, Any]) -> 
     return tmpl.render(**_prepare_context(context))
 
 
-def write_html_report(template_path: pathlib.Path, context: dict[str, Any], output_path: pathlib.Path) -> None:
+def write_html_report(
+    template_path: pathlib.Path, context: dict[str, Any], output_path: pathlib.Path
+) -> None:
     html = render_html_report(template_path, context)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
@@ -69,4 +70,3 @@ def _artifact_preview_rows(artifacts: Any) -> list[dict[str, Any]]:
     if isinstance(artifacts, dict):
         return [artifacts]
     return [{"value": artifacts}] if artifacts is not None else []
-

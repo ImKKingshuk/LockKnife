@@ -4,8 +4,18 @@ import zipfile
 import pytest
 
 from lockknife.core.case import case_output_path
-from lockknife.core.path_safety import ensure_child_path, safe_extract_zip, validate_archive_member, validate_relative_component, validate_user_path_text
-from lockknife.modules.apk._decompile_archive import archive_inventory, output_directory_overview, unpack_archive
+from lockknife.core.path_safety import (
+    ensure_child_path,
+    safe_extract_zip,
+    validate_archive_member,
+    validate_relative_component,
+    validate_user_path_text,
+)
+from lockknife.modules.apk._decompile_archive import (
+    archive_inventory,
+    output_directory_overview,
+    unpack_archive,
+)
 
 
 def test_case_output_path_rejects_traversal_components(tmp_path: pathlib.Path) -> None:
@@ -32,7 +42,9 @@ def test_path_safety_helpers_cover_error_branches(tmp_path: pathlib.Path) -> Non
         validate_archive_member("C:/windows.txt")
 
 
-def test_safe_extract_zip_blocks_traversal_and_unpack_archive_extracts_expected_files(tmp_path: pathlib.Path) -> None:
+def test_safe_extract_zip_blocks_traversal_and_unpack_archive_extracts_expected_files(
+    tmp_path: pathlib.Path,
+) -> None:
     apk_path = tmp_path / "sample.apk"
     with zipfile.ZipFile(apk_path, "w") as archive:
         archive.writestr("classes.dex", b"dex")

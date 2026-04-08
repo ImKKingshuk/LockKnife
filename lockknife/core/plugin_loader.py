@@ -10,13 +10,17 @@ from typing import Any, cast
 import click
 
 from lockknife import __version__
-from lockknife.core.plugin_contract import LOCKKNIFE_PLUGIN_API_VERSION, LOCKKNIFE_PLUGIN_ENTRY_POINT_GROUP, LockKnifePlugin, PluginRegistrationContext
+from lockknife.core.plugin_contract import (
+    LOCKKNIFE_PLUGIN_API_VERSION,
+    LOCKKNIFE_PLUGIN_ENTRY_POINT_GROUP,
+    LockKnifePlugin,
+    PluginRegistrationContext,
+)
 from lockknife.core.plugin_models import LoadedPlugin, PluginFailure, PluginMetadata
-
 
 PLUGIN_MODULES_ENV = "LOCKKNIFE_PLUGIN_MODULES"
 PLUGIN_DISABLE_ENV = "LOCKKNIFE_DISABLE_PLUGINS"
-_PLUGIN_MANAGER: "PluginManager | None" = None
+_PLUGIN_MANAGER: PluginManager | None = None
 
 
 class PluginLoadError(RuntimeError):
@@ -89,18 +93,18 @@ def _load_module_spec(spec: str) -> Any:
         return getattr(module, attr_name)
     module = importlib.import_module(spec)
     if hasattr(module, "get_plugin"):
-        return getattr(module, "get_plugin")
+        return module.get_plugin
     if hasattr(module, "PLUGIN"):
-        return getattr(module, "PLUGIN")
+        return module.PLUGIN
     return module
 
 
 def _coerce_plugin(value: Any) -> LockKnifePlugin:
     if isinstance(value, ModuleType):
         if hasattr(value, "get_plugin"):
-            return _coerce_plugin(getattr(value, "get_plugin"))
+            return _coerce_plugin(value.get_plugin)
         if hasattr(value, "PLUGIN"):
-            return _coerce_plugin(getattr(value, "PLUGIN"))
+            return _coerce_plugin(value.PLUGIN)
         raise PluginLoadError("module does not expose get_plugin() or PLUGIN")
     if isinstance(value, LockKnifePlugin):
         return value
@@ -132,7 +136,8 @@ class PluginManager:
                 continue
             seen_sources.add(source)
             try:
-                loaded = record.load() if hasattr(record, "load") else _load_module_spec(record)
+                loader = getattr(record, "load", None)
+                loaded = loader() if callable(loader) else _load_module_spec(record)
                 plugin = _coerce_plugin(loaded)
                 self._register_plugin(plugin, source)
             except Exception as exc:
@@ -185,7 +190,10 @@ class PluginManager:
             existing = group.commands.get(name)
             if existing is not None and existing is not command:
                 self.failures.append(
-                    PluginFailure(source=f"command:{name}", error=f"cannot attach plugin command because '{name}' already exists")
+                    PluginFailure(
+                        source=f"command:{name}",
+                        error=f"cannot attach plugin command because '{name}' already exists",
+                    )
                 )
                 continue
             if existing is None:
@@ -226,7 +234,9 @@ class PluginManager:
             "plugin_checks": plugin_checks,
         }
         if self.failures:
-            summary["hint"] = "Inspect `lockknife --cli plugins list --format json` for discovery or compatibility errors."
+            summary["hint"] = (
+                "Inspect `lockknife --cli plugins list --format json` for discovery or compatibility errors."
+            )
             summary["failures"] = [item.to_dict() for item in self.failures]
         return summary
 

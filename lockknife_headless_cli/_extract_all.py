@@ -11,8 +11,15 @@ from lockknife.core.exceptions import DeviceError
 from lockknife.core.progress import ProgressCallback, emit_progress
 from lockknife.core.serialize import write_csv, write_json
 
-
-_RECOVERABLE_EXTRACT_ERRORS = (AttributeError, DeviceError, LookupError, OSError, RuntimeError, TypeError, ValueError)
+_RECOVERABLE_EXTRACT_ERRORS = (
+    AttributeError,
+    DeviceError,
+    LookupError,
+    OSError,
+    RuntimeError,
+    TypeError,
+    ValueError,
+)
 
 
 def _extract_rows(
@@ -45,7 +52,9 @@ def _extract_rows(
         return [dataclasses.asdict(row) for row in rows]
     except _RECOVERABLE_EXTRACT_ERRORS as exc:
         errors.append({"dataset": dataset, "serial": serial})
-        cli.log.warning("extract_dataset_failed", exc_info=True, serial=serial, dataset=dataset, error=str(exc))
+        cli.log.warning(
+            "extract_dataset_failed", exc_info=True, serial=serial, dataset=dataset, error=str(exc)
+        )
         return []
 
 
@@ -120,25 +129,206 @@ def run_extract_all(
         written_paths.append(path)
 
     total_steps = 10
-    sms = _extract_rows("sms", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=1, total=total_steps, extractor=cli.extract_sms, limit=limit, errors=errors)
-    contacts = _extract_rows("contacts", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=2, total=total_steps, extractor=cli.extract_contacts, limit=limit, errors=errors)
-    calls = _extract_rows("call_logs", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=3, total=total_steps, extractor=cli.extract_call_logs, limit=limit, errors=errors)
-    chrome_history = _extract_rows("chrome_history", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=4, total=total_steps, extractor=cli.extract_chrome_history, limit=limit, errors=errors)
-    chrome_bookmarks = _extract_rows("chrome_bookmarks", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=4, total=total_steps, extractor=cli.extract_chrome_bookmarks, limit=limit, errors=errors)
-    chrome_downloads = _extract_rows("chrome_downloads", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=4, total=total_steps, extractor=cli.extract_chrome_downloads, limit=limit, errors=errors)
-    chrome_cookies = _extract_rows("chrome_cookies", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=4, total=total_steps, extractor=cli.extract_chrome_cookies, limit=limit, errors=errors)
-    chrome_passwords = _extract_rows("chrome_passwords", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=4, total=total_steps, extractor=cli.extract_chrome_saved_logins, limit=limit, errors=errors)
-    firefox_history = _extract_rows("firefox_history", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=5, total=total_steps, extractor=cli.extract_firefox_history, limit=limit, errors=errors)
-    firefox_bookmarks = _extract_rows("firefox_bookmarks", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=5, total=total_steps, extractor=cli.extract_firefox_bookmarks, limit=limit, errors=errors)
-    firefox_passwords = _extract_rows("firefox_passwords", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=5, total=total_steps, extractor=cli.extract_firefox_saved_logins, limit=limit, errors=errors)
-    whatsapp_msgs = _extract_rows("whatsapp_messages", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=6, total=total_steps, extractor=cli.extract_whatsapp_messages, limit=limit, errors=errors)
-    telegram_msgs = _extract_rows("telegram_messages", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=6, total=total_steps, extractor=cli.extract_telegram_messages, limit=limit, errors=errors)
-    signal_msgs = _extract_rows("signal_messages", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=6, total=total_steps, extractor=cli.extract_signal_messages, limit=limit, errors=errors)
-    media = _extract_rows("media", cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=7, total=total_steps, extractor=cli.extract_media_with_exif, limit=min(limit, 200), errors=errors)
-    location = _extract_location_bundle(cli=cli, app=app, serial=serial, progress_callback=progress_callback, current=8, total=total_steps, errors=errors)
+    sms = _extract_rows(
+        "sms",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=1,
+        total=total_steps,
+        extractor=cli.extract_sms,
+        limit=limit,
+        errors=errors,
+    )
+    contacts = _extract_rows(
+        "contacts",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=2,
+        total=total_steps,
+        extractor=cli.extract_contacts,
+        limit=limit,
+        errors=errors,
+    )
+    calls = _extract_rows(
+        "call_logs",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=3,
+        total=total_steps,
+        extractor=cli.extract_call_logs,
+        limit=limit,
+        errors=errors,
+    )
+    chrome_history = _extract_rows(
+        "chrome_history",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=4,
+        total=total_steps,
+        extractor=cli.extract_chrome_history,
+        limit=limit,
+        errors=errors,
+    )
+    chrome_bookmarks = _extract_rows(
+        "chrome_bookmarks",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=4,
+        total=total_steps,
+        extractor=cli.extract_chrome_bookmarks,
+        limit=limit,
+        errors=errors,
+    )
+    chrome_downloads = _extract_rows(
+        "chrome_downloads",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=4,
+        total=total_steps,
+        extractor=cli.extract_chrome_downloads,
+        limit=limit,
+        errors=errors,
+    )
+    chrome_cookies = _extract_rows(
+        "chrome_cookies",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=4,
+        total=total_steps,
+        extractor=cli.extract_chrome_cookies,
+        limit=limit,
+        errors=errors,
+    )
+    chrome_passwords = _extract_rows(
+        "chrome_passwords",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=4,
+        total=total_steps,
+        extractor=cli.extract_chrome_saved_logins,
+        limit=limit,
+        errors=errors,
+    )
+    firefox_history = _extract_rows(
+        "firefox_history",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=5,
+        total=total_steps,
+        extractor=cli.extract_firefox_history,
+        limit=limit,
+        errors=errors,
+    )
+    firefox_bookmarks = _extract_rows(
+        "firefox_bookmarks",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=5,
+        total=total_steps,
+        extractor=cli.extract_firefox_bookmarks,
+        limit=limit,
+        errors=errors,
+    )
+    firefox_passwords = _extract_rows(
+        "firefox_passwords",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=5,
+        total=total_steps,
+        extractor=cli.extract_firefox_saved_logins,
+        limit=limit,
+        errors=errors,
+    )
+    whatsapp_msgs = _extract_rows(
+        "whatsapp_messages",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=6,
+        total=total_steps,
+        extractor=cli.extract_whatsapp_messages,
+        limit=limit,
+        errors=errors,
+    )
+    telegram_msgs = _extract_rows(
+        "telegram_messages",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=6,
+        total=total_steps,
+        extractor=cli.extract_telegram_messages,
+        limit=limit,
+        errors=errors,
+    )
+    signal_msgs = _extract_rows(
+        "signal_messages",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=6,
+        total=total_steps,
+        extractor=cli.extract_signal_messages,
+        limit=limit,
+        errors=errors,
+    )
+    media = _extract_rows(
+        "media",
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=7,
+        total=total_steps,
+        extractor=cli.extract_media_with_exif,
+        limit=min(limit, 200),
+        errors=errors,
+    )
+    location = _extract_location_bundle(
+        cli=cli,
+        app=app,
+        serial=serial,
+        progress_callback=progress_callback,
+        current=8,
+        total=total_steps,
+        errors=errors,
+    )
 
     ext = "csv" if out_format.lower() == "csv" else "json"
-    emit_progress(progress_callback, operation="extract.all", step="write", message="Writing extracted datasets", current=9, total=total_steps, metadata={"format": ext, "output_dir": str(output_dir)})
+    emit_progress(
+        progress_callback,
+        operation="extract.all",
+        step="write",
+        message="Writing extracted datasets",
+        current=9,
+        total=total_steps,
+        metadata={"format": ext, "output_dir": str(output_dir)},
+    )
     if ext == "csv":
         _write_csv_tracked(output_dir / "sms.csv", sms)
         _write_csv_tracked(output_dir / "contacts.csv", contacts)
@@ -178,7 +368,9 @@ def run_extract_all(
         if location["wifi_raw"]:
             _write_text_tracked(output_dir / "dumpsys_wifi.txt", str(location["wifi_raw"]))
         if location["telephony_raw"]:
-            _write_text_tracked(output_dir / "dumpsys_telephony_registry.txt", str(location["telephony_raw"]))
+            _write_text_tracked(
+                output_dir / "dumpsys_telephony_registry.txt", str(location["telephony_raw"])
+            )
         if errors:
             _write_csv_tracked(output_dir / "errors.csv", errors)
     else:
@@ -198,7 +390,12 @@ def run_extract_all(
         )
         _write_json_tracked(
             output_dir / "browser_firefox.json",
-            {"app": "firefox", "history": firefox_history, "bookmarks": firefox_bookmarks, "passwords": firefox_passwords},
+            {
+                "app": "firefox",
+                "history": firefox_history,
+                "bookmarks": firefox_bookmarks,
+                "passwords": firefox_passwords,
+            },
         )
         _write_json_tracked(output_dir / "whatsapp_messages.json", whatsapp_msgs)
         _write_json_tracked(output_dir / "telegram_messages.json", telegram_msgs)
@@ -209,7 +406,15 @@ def run_extract_all(
             _write_json_tracked(output_dir / "errors.json", errors)
 
     if case_dir is not None:
-        emit_progress(progress_callback, operation="extract.all", step="register", message="Registering extracted outputs in case manifest", current=10, total=total_steps, metadata={"path_count": len(written_paths)})
+        emit_progress(
+            progress_callback,
+            operation="extract.all",
+            step="register",
+            message="Registering extracted outputs in case manifest",
+            current=10,
+            total=total_steps,
+            metadata={"path_count": len(written_paths)},
+        )
         for written_path in written_paths:
             cli.register_case_artifact(
                 case_dir=case_dir,
@@ -217,10 +422,22 @@ def run_extract_all(
                 category="extract-all-output",
                 source_command="extract all",
                 device_serial=serial,
-                metadata={"dataset": written_path.stem, "format": written_path.suffix.lstrip("."), "limit": limit},
+                metadata={
+                    "dataset": written_path.stem,
+                    "format": written_path.suffix.lstrip("."),
+                    "limit": limit,
+                },
             )
     else:
-        emit_progress(progress_callback, operation="extract.all", step="complete", message="Extraction completed", current=10, total=total_steps, metadata={"path_count": len(written_paths)})
+        emit_progress(
+            progress_callback,
+            operation="extract.all",
+            step="complete",
+            message="Extraction completed",
+            current=10,
+            total=total_steps,
+            metadata={"path_count": len(written_paths)},
+        )
     return written_paths
 
 
@@ -228,22 +445,40 @@ def register(extract: Any, cli: Any) -> None:
     @extract.command("all")
     @click.option("-s", "--serial", required=True)
     @click.option("--limit", type=int, default=200)
-    @click.option("--format", "out_format", type=click.Choice(["json", "csv"], case_sensitive=False), default="json")
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["json", "csv"], case_sensitive=False),
+        default="json",
+    )
     @click.option("--output-dir", type=click.Path(file_okay=False, path_type=pathlib.Path))
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
+    @click.option(
+        "--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path)
+    )
     @click.pass_obj
-    def extract_all_cmd(app: Any, serial: str, limit: int, out_format: str, output_dir: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+    def extract_all_cmd(
+        app: Any,
+        serial: str,
+        limit: int,
+        out_format: str,
+        output_dir: pathlib.Path | None,
+        case_dir: pathlib.Path | None,
+    ) -> None:
         derived = False
         if output_dir is None:
             if case_dir is None:
                 raise click.ClickException("Either --output-dir or --case-dir is required")
             output_dir = case_dir / "evidence" / f"extract_all_{serial}"
             derived = True
-        with Progress(SpinnerColumn(), BarColumn(), TextColumn("{task.description}"), transient=True) as progress:
+        with Progress(
+            SpinnerColumn(), BarColumn(), TextColumn("{task.description}"), transient=True
+        ) as progress:
             task = progress.add_task(description="Extracting datasets", total=None)
 
             def _on_progress(event: dict[str, Any]) -> None:
-                progress.update(task, description=str(event.get("message") or "Extracting datasets"))
+                progress.update(
+                    task, description=str(event.get("message") or "Extracting datasets")
+                )
 
             run_extract_all(
                 app=app,

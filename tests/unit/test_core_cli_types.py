@@ -1,3 +1,4 @@
+import click
 import pytest
 
 
@@ -11,7 +12,7 @@ def test_hash_hex_type_accepts_sha256() -> None:
 def test_hash_hex_type_rejects_non_hex() -> None:
     from lockknife.core.cli_types import HASH_HEX
 
-    with pytest.raises(Exception):
+    with pytest.raises(click.BadParameter):
         HASH_HEX.convert("zz", None, None)
 
 
@@ -24,7 +25,7 @@ def test_ipv4_type_normalizes() -> None:
 def test_domain_type_rejects_invalid() -> None:
     from lockknife.core.cli_types import DOMAIN
 
-    with pytest.raises(Exception):
+    with pytest.raises(click.BadParameter):
         DOMAIN.convert("-bad.example", None, None)
 
 

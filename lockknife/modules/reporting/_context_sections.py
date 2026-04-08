@@ -25,7 +25,9 @@ def build_highlights(
             f"Evidence inventory contributes {evidence_summary['artifact_count']} item(s) with {len(evidence_summary.get('top_categories') or [])} visible category buckets."
         )
     if mastg.get("mastg_ids"):
-        highlights.append(f"OWASP MASTG alignment present for {len(mastg.get('mastg_ids', []))} reference(s).")
+        highlights.append(
+            f"OWASP MASTG alignment present for {len(mastg.get('mastg_ids', []))} reference(s)."
+        )
     if not highlights:
         highlights.append("Automated extraction and analysis completed.")
     return highlights[:5]
@@ -51,11 +53,15 @@ def build_report_sections(
             "title": "OWASP / MASTG",
             "summary": f"{len(mastg.get('mastg_ids') or [])} MASTG IDs and {len(mastg.get('owasp_categories') or [])} OWASP Mobile categories mapped.",
             "status": "low" if mastg.get("mastg_ids") else "medium",
-            "details": [f"OWASP categories: {', '.join(mastg.get('owasp_categories') or []) or 'n/a'}"],
+            "details": [
+                f"OWASP categories: {', '.join(mastg.get('owasp_categories') or []) or 'n/a'}"
+            ],
         },
         {
             "title": "PDF readiness",
-            "summary": "PDF backend ready." if pdf_backend_status.get("available") else "PDF backend unavailable; HTML fallback may be required.",
+            "summary": "PDF backend ready."
+            if pdf_backend_status.get("available")
+            else "PDF backend unavailable; HTML fallback may be required.",
             "status": "low" if pdf_backend_status.get("available") else "medium",
             "details": [str(pdf_backend_status.get("message") or "")],
         },
@@ -66,7 +72,9 @@ def build_report_sections(
             {
                 "title": "Integrity",
                 "summary": f"Verified {summary.get('verified_count', 0)} / {summary.get('artifact_count', 0)} tracked artifact(s).",
-                "status": "critical" if summary.get("modified_count", 0) or summary.get("missing_count", 0) else "low",
+                "status": "critical"
+                if summary.get("modified_count", 0) or summary.get("missing_count", 0)
+                else "low",
                 "details": [
                     f"Modified: {summary.get('modified_count', 0)}",
                     f"Missing: {summary.get('missing_count', 0)}",

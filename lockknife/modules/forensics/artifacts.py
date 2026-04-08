@@ -4,8 +4,14 @@ import dataclasses
 import pathlib
 from typing import Any
 
-from lockknife.modules.forensics.aleapp_compat import import_aleapp_artifacts, looks_like_aleapp_output
-from lockknife.modules.forensics._artifact_registry import iter_registered_artifacts, parse_app_data_artifacts
+from lockknife.modules.forensics._artifact_registry import (
+    iter_registered_artifacts,
+    parse_app_data_artifacts,
+)
+from lockknife.modules.forensics.aleapp_compat import (
+    import_aleapp_artifacts,
+    looks_like_aleapp_output,
+)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -53,7 +59,11 @@ class ForensicsParseReport:
 
 
 def parse_directory_as_aleapp(input_dir: pathlib.Path) -> list[AleappArtifact]:
-    imported = import_aleapp_artifacts(input_dir) if looks_like_aleapp_output(input_dir) else {"artifacts": []}
+    imported = (
+        import_aleapp_artifacts(input_dir)
+        if looks_like_aleapp_output(input_dir)
+        else {"artifacts": []}
+    )
     rows = imported.get("artifacts") or iter_registered_artifacts(input_dir)
     return [
         AleappArtifact(
@@ -70,7 +80,9 @@ def parse_directory_as_aleapp(input_dir: pathlib.Path) -> list[AleappArtifact]:
 
 
 def parse_forensics_directory(input_dir: pathlib.Path) -> ForensicsParseReport:
-    aleapp_import = import_aleapp_artifacts(input_dir) if looks_like_aleapp_output(input_dir) else {}
+    aleapp_import = (
+        import_aleapp_artifacts(input_dir) if looks_like_aleapp_output(input_dir) else {}
+    )
     artifacts = parse_directory_as_aleapp(input_dir)
     app_data_raw, protobuf_raw = parse_app_data_artifacts(input_dir)
     app_data = [AppDataArtifact(**item) for item in app_data_raw]
@@ -85,7 +97,9 @@ def parse_forensics_directory(input_dir: pathlib.Path) -> ForensicsParseReport:
         "protobuf_count": len(protobuf_files),
         "input_dir": str(input_dir),
         "aleapp_compatible": bool(aleapp_import),
-        "aleapp_imported_count": int((aleapp_import.get("summary") or {}).get("artifact_count") or 0),
+        "aleapp_imported_count": int(
+            (aleapp_import.get("summary") or {}).get("artifact_count") or 0
+        ),
     }
     return ForensicsParseReport(
         input_dir=str(input_dir),

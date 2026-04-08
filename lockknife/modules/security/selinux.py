@@ -6,7 +6,6 @@ from typing import Any
 
 from lockknife.core.device import DeviceManager
 
-
 _AVC_RE = re.compile(
     r"scontext=u:r:(?P<source>[^:]+):s0.*tcontext=u:object_r:(?P<target>[^:]+):s0.*tclass=(?P<tclass>[^\s]+)(?:.*permissive=(?P<permissive>[01]))?"
 )
@@ -150,8 +149,21 @@ def _top_counts(values: dict[str, int]) -> list[dict[str, int | str]]:
 
 
 def _analyze_policy(policy_text: str | None, denials: list[str]) -> dict[str, Any]:
-    policy_domains = sorted({match.group(1) for match in re.finditer(r"\b([a-z][a-z0-9_]{2,})\b", policy_text or "") if match.group(1).endswith(("_app", "_server", "_service", "zygote", "init", "vold", "installd"))})
-    permissive_domains = sorted({match.group(1) for match in re.finditer(r"permissive\s+([a-zA-Z0-9_]+)", policy_text or "")})
+    policy_domains = sorted(
+        {
+            match.group(1)
+            for match in re.finditer(r"\b([a-z][a-z0-9_]{2,})\b", policy_text or "")
+            if match.group(1).endswith(
+                ("_app", "_server", "_service", "zygote", "init", "vold", "installd")
+            )
+        }
+    )
+    permissive_domains = sorted(
+        {
+            match.group(1)
+            for match in re.finditer(r"permissive\s+([a-zA-Z0-9_]+)", policy_text or "")
+        }
+    )
     for line in denials:
         match = _AVC_RE.search(line)
         if match and match.group("permissive") == "1":
@@ -165,12 +177,19 @@ def _analyze_policy(policy_text: str | None, denials: list[str]) -> dict[str, An
     }
 
 
-def _posture(mode: str, domain_summary: dict[str, Any], denial_summary: dict[str, Any], permissive_domains: list[str]) -> dict[str, Any]:
+def _posture(
+    mode: str,
+    domain_summary: dict[str, Any],
+    denial_summary: dict[str, Any],
+    permissive_domains: list[str],
+) -> dict[str, Any]:
     enforcing = mode.lower() == "enforcing"
     if not enforcing or permissive_domains:
         risk_level = "high"
         if not enforcing:
-            assessment = "SELinux is not enforcing, which materially weakens platform isolation guarantees."
+            assessment = (
+                "SELinux is not enforcing, which materially weakens platform isolation guarantees."
+            )
         else:
             assessment = "SELinux is enforcing overall, but one or more permissive domains weaken policy enforcement for targeted processes."
     elif int(denial_summary.get("count") or 0) >= 10:
@@ -189,16 +208,28 @@ def _posture(mode: str, domain_summary: dict[str, Any], denial_summary: dict[str
     }
 
 
-def _remediation_hints(mode: str, denial_summary: dict[str, Any], permissive_domains: list[str]) -> list[str]:
+def _remediation_hints(
+    mode: str, denial_summary: dict[str, Any], permissive_domains: list[str]
+) -> list[str]:
     hints: list[str] = []
     if mode.lower() != "enforcing":
-        hints.append("Return the device to Enforcing mode before trusting any isolation-sensitive security conclusions.")
+        hints.append(
+            "Return the device to Enforcing mode before trusting any isolation-sensitive security conclusions."
+        )
     if permissive_domains:
-        hints.append(f"Review permissive domains {', '.join(permissive_domains[:4])} because they bypass SELinux enforcement for targeted process classes.")
+        hints.append(
+            f"Review permissive domains {', '.join(permissive_domains[:4])} because they bypass SELinux enforcement for targeted process classes."
+        )
     if int(denial_summary.get("count") or 0):
-        hints.append("Review recent AVC denials by source domain and object class to identify policy regressions or privilege assumptions.")
+        hints.append(
+            "Review recent AVC denials by source domain and object class to identify policy regressions or privilege assumptions."
+        )
     if any(item.get("name") == "untrusted_app" for item in denial_summary.get("top_sources") or []):
-        hints.append("Prioritize untrusted_app AVC denials because they often highlight app-visible filesystem or binder boundaries.")
+        hints.append(
+            "Prioritize untrusted_app AVC denials because they often highlight app-visible filesystem or binder boundaries."
+        )
     if not hints:
-        hints.append("Capture a fuller audit trail during the target workflow if you need stronger SELinux evidence for reporting.")
+        hints.append(
+            "Capture a fuller audit trail during the target workflow if you need stronger SELinux evidence for reporting."
+        )
     return hints[:4]

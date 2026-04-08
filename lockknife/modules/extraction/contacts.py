@@ -40,11 +40,18 @@ LIMIT ?
                 (limit,),
             )
             rows = cur.fetchall()
-            return [Contact(contact_id=int(cid), display_name=name, number=num) for cid, name, num in rows]
+            return [
+                Contact(contact_id=int(cid), display_name=name, number=num)
+                for cid, name, num in rows
+            ]
         except sqlite3.Error:
-            cur.execute("SELECT _id, display_name FROM contacts ORDER BY display_name LIMIT ?", (limit,))
+            cur.execute(
+                "SELECT _id, display_name FROM contacts ORDER BY display_name LIMIT ?", (limit,)
+            )
             rows = cur.fetchall()
-            return [Contact(contact_id=int(cid), display_name=name, number=None) for cid, name in rows]
+            return [
+                Contact(contact_id=int(cid), display_name=name, number=None) for cid, name in rows
+            ]
     finally:
         con.close()
 
@@ -75,14 +82,18 @@ def extract_contacts(devices: DeviceManager, serial: str, limit: int = 200) -> l
             try:
                 devices.pull(serial, remote, local, timeout_s=90.0)
             except Exception:
-                log.debug("contacts_db_pull_failed", exc_info=True, serial=serial, remote_path=remote)
+                log.debug(
+                    "contacts_db_pull_failed", exc_info=True, serial=serial, remote_path=remote
+                )
                 continue
             if not local.exists() or local.stat().st_size == 0:
                 continue
             try:
                 return _parse_contacts2_db(local, limit)
             except sqlite3.Error:
-                log.debug("contacts_db_parse_failed", exc_info=True, serial=serial, local_path=str(local))
+                log.debug(
+                    "contacts_db_parse_failed", exc_info=True, serial=serial, local_path=str(local)
+                )
                 continue
 
     raise DeviceError("Unable to extract contacts database")

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Sequence
+from collections.abc import Sequence
 
 from lockknife.core.device import DeviceHandle, DeviceManager, DeviceState
 
@@ -123,7 +123,9 @@ def _guidance(
             f"Selected device {selected} does not expose root access; this workflow depends on privileged file access."
         )
     if requires_root and selected and root_available is True:
-        lines.append(f"Root access is available on {selected}; deeper credential artifacts should be readable.")
+        lines.append(
+            f"Root access is available on {selected}; deeper credential artifacts should be readable."
+        )
     if requested and not selected and authorized:
         lines.append(
             "Requested target preference did not resolve to an authorized device. Available authorized serials: "

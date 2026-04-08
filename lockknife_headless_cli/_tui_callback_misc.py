@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -179,8 +180,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         return _ok({"path": path_str}, "Config saved")
 
     if action == "config.metrics":
-        from lockknife.core.metrics import snapshot as _snap
         from lockknife.core.custody import dump_log as _dump
+        from lockknife.core.metrics import snapshot as _snap
+
         return _ok({"metrics": _snap(), "custody_log": _dump()}, "Metrics snapshot")
     return _err(f"Unsupported action: {action}")
 

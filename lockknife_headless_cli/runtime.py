@@ -18,7 +18,6 @@ from lockknife.modules.runtime.frida_manager import FridaManager
 from lockknife.modules.runtime.hooks import (
     builtin_runtime_script_choices,
     get_builtin_runtime_script,
-    ssl_pinning_bypass_script,
 )
 from lockknife.modules.runtime.memory import heap_dump, memory_search
 from lockknife.modules.runtime.tracer import method_tracer_script
@@ -34,10 +33,12 @@ def _safe_name(value: str) -> str:
 
 
 def _runtime_now() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat()
+    return dt.datetime.now(dt.UTC).isoformat()
 
 
-def _resolve_case_output(output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str) -> tuple[pathlib.Path | None, bool]:
+def _resolve_case_output(
+    output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str
+) -> tuple[pathlib.Path | None, bool]:
     if output is not None:
         return output, False
     if case_dir is None:
@@ -102,7 +103,9 @@ def _run_runtime_session(
         session_payload.update(metadata)
 
     if case_dir is not None:
-        script_snapshot_path = case_output_path(case_dir, area="derived", filename=f"runtime_{safe_kind}_{safe_app_id}_script.js")
+        script_snapshot_path = case_output_path(
+            case_dir, area="derived", filename=f"runtime_{safe_kind}_{safe_app_id}_script.js"
+        )
         script_snapshot_path.write_text(script_source, encoding="utf-8")
         script_artifact_id = _register_runtime_output(
             case_dir=case_dir,
@@ -113,13 +116,19 @@ def _run_runtime_session(
             input_paths=input_paths,
             metadata={"app_id": app_id, "session_kind": session_kind},
         )
-        log_path = case_output_path(case_dir, area="logs", filename=f"runtime_{safe_kind}_{safe_app_id}.jsonl")
+        log_path = case_output_path(
+            case_dir, area="logs", filename=f"runtime_{safe_kind}_{safe_app_id}.jsonl"
+        )
         log_path.write_text("", encoding="utf-8")
-        session_path = case_output_path(case_dir, area="derived", filename=f"runtime_{safe_kind}_{safe_app_id}_session.json")
-        session_payload.update({
-            "log_path": str(log_path),
-            "script_snapshot_path": str(script_snapshot_path),
-        })
+        session_path = case_output_path(
+            case_dir, area="derived", filename=f"runtime_{safe_kind}_{safe_app_id}_session.json"
+        )
+        session_payload.update(
+            {
+                "log_path": str(log_path),
+                "script_snapshot_path": str(script_snapshot_path),
+            }
+        )
 
     script = mgr.load_script(session, script_source)
 
@@ -127,7 +136,10 @@ def _run_runtime_session(
         console.print(str(message))
         if log_path is not None:
             with log_path.open("a", encoding="utf-8") as fh:
-                fh.write(json.dumps({"received_at_utc": _runtime_now(), "message": message}, default=str) + "\n")
+                fh.write(
+                    json.dumps({"received_at_utc": _runtime_now(), "message": message}, default=str)
+                    + "\n"
+                )
 
     script.on("message", on_message)
     console.print("Running. Press Ctrl+C to stop.")
@@ -153,7 +165,11 @@ def _run_runtime_session(
                 parent_artifact_ids=[script_artifact_id] if script_artifact_id else None,
                 metadata={"app_id": app_id, "session_kind": session_kind},
             )
-            parent_ids = [artifact_id for artifact_id in (script_artifact_id, log_artifact_id) if artifact_id is not None]
+            parent_ids = [
+                artifact_id
+                for artifact_id in (script_artifact_id, log_artifact_id)
+                if artifact_id is not None
+            ]
             _register_runtime_output(
                 case_dir=case_dir,
                 path=session_path,
@@ -170,7 +186,9 @@ def _run_runtime_session(
 @click.option("--script", "script_path", type=READABLE_FILE, required=True)
 @click.option("--device-id")
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def hook_cmd(app_id: str, script_path: pathlib.Path, device_id: str | None, case_dir: pathlib.Path | None) -> None:
+def hook_cmd(
+    app_id: str, script_path: pathlib.Path, device_id: str | None, case_dir: pathlib.Path | None
+) -> None:
     source = script_path.read_text(encoding="utf-8")
     _run_runtime_session(
         app_id=app_id,
@@ -226,7 +244,13 @@ def bypass_root_cmd(app_id: str, device_id: str | None, case_dir: pathlib.Path |
 @click.option("--method")
 @click.option("--device-id")
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def trace_cmd(app_id: str, class_name: str, method: str | None, device_id: str | None, case_dir: pathlib.Path | None) -> None:
+def trace_cmd(
+    app_id: str,
+    class_name: str,
+    method: str | None,
+    device_id: str | None,
+    case_dir: pathlib.Path | None,
+) -> None:
     _run_runtime_session(
         app_id=app_id,
         session_kind="trace",
@@ -240,10 +264,17 @@ def trace_cmd(app_id: str, class_name: str, method: str | None, device_id: str |
 
 @runtime.command("builtin-script")
 @click.argument("app_id")
-@click.option("--name", "builtin_script", type=click.Choice(builtin_runtime_script_choices(), case_sensitive=False), required=True)
+@click.option(
+    "--name",
+    "builtin_script",
+    type=click.Choice(builtin_runtime_script_choices(), case_sensitive=False),
+    required=True,
+)
 @click.option("--device-id")
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def builtin_script_cmd(app_id: str, builtin_script: str, device_id: str | None, case_dir: pathlib.Path | None) -> None:
+def builtin_script_cmd(
+    app_id: str, builtin_script: str, device_id: str | None, case_dir: pathlib.Path | None
+) -> None:
     script = get_builtin_runtime_script(builtin_script)
     _run_runtime_session(
         app_id=app_id,
@@ -277,8 +308,12 @@ def memory_search_cmd(
     case_dir: pathlib.Path | None,
 ) -> None:
     pat = f"hex:{pattern}" if is_hex else pattern
-    raw = memory_search(app_id, pat, device_id=device_id, protection=protection, timeout_s=timeout_s)
-    output, derived = _resolve_case_output(output, case_dir, filename=f"runtime_memory_search_{_safe_name(app_id)}.json")
+    raw = memory_search(
+        app_id, pat, device_id=device_id, protection=protection, timeout_s=timeout_s
+    )
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"runtime_memory_search_{_safe_name(app_id)}.json"
+    )
     if output is not None:
         payload = json.loads(raw)
         write_json(output, payload)
@@ -288,7 +323,12 @@ def memory_search_cmd(
             category="runtime-memory-search",
             source_command="runtime memory-search",
             device_id=device_id,
-            metadata={"app_id": app_id, "pattern": pat, "protection": protection, "timeout_s": timeout_s},
+            metadata={
+                "app_id": app_id,
+                "pattern": pat,
+                "protection": protection,
+                "timeout_s": timeout_s,
+            },
         )
         if derived:
             console.print(str(output))
@@ -312,7 +352,9 @@ def heap_dump_cmd(
     case_dir: pathlib.Path | None,
 ) -> None:
     raw = heap_dump(app_id, output_path, device_id=device_id, timeout_s=timeout_s)
-    output, derived = _resolve_case_output(output, case_dir, filename=f"runtime_heap_dump_{_safe_name(app_id)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"runtime_heap_dump_{_safe_name(app_id)}.json"
+    )
     if output is not None:
         payload = json.loads(raw)
         write_json(output, payload)

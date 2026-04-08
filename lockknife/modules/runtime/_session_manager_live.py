@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-
-
 import pathlib
-
 import time
-
-from typing import Any, Callable
-
-
+from collections.abc import Callable
+from typing import Any
 
 from lockknife.core.case import (
     add_case_runtime_session_script,
@@ -17,15 +12,15 @@ from lockknife.core.case import (
     start_case_runtime_session,
     update_case_runtime_session,
 )
-
-from lockknife.modules.runtime.frida_manager import FridaManager
-
+from lockknife.modules.runtime._session_manager_inventory import (
+    enrich_runtime_inventory_payload,
+    enrich_runtime_session_payload,
+)
 from lockknife.modules.runtime._session_manager_preflight import runtime_preflight
-
 from lockknife.modules.runtime._session_manager_shared import (
-    LiveRuntimeSession,
     _LIVE_SESSIONS,
     _LIVE_SESSIONS_LOCK,
+    LiveRuntimeSession,
     _close_live_session,
     _read_session_payload,
     _recovery_hint,
@@ -34,11 +29,7 @@ from lockknife.modules.runtime._session_manager_shared import (
     _snapshot_script,
     _write_event,
 )
-from lockknife.modules.runtime._session_manager_inventory import (
-    enrich_runtime_inventory_payload,
-    enrich_runtime_session_payload,
-)
-
+from lockknife.modules.runtime.frida_manager import FridaManager
 
 
 def _connect_live_runtime_session(
@@ -65,7 +56,13 @@ def _connect_live_runtime_session(
             session_id=session_id,
             event_type="message",
             level=str(payload.get("type") or "info"),
-            message=str(payload.get("description") or payload.get("payload") or payload.get("type") or payload.get("value") or "Runtime message"),
+            message=str(
+                payload.get("description")
+                or payload.get("payload")
+                or payload.get("type")
+                or payload.get("value")
+                or "Runtime message"
+            ),
             payload={"message": payload, "data_present": data is not None},
         )
 
@@ -86,7 +83,12 @@ def _connect_live_runtime_session(
             event_type="detached",
             level="warn",
             message=message,
-            payload={"reason": reason, "crash": crash if isinstance(crash, dict) else (str(crash) if crash is not None else None)},
+            payload={
+                "reason": reason,
+                "crash": crash
+                if isinstance(crash, dict)
+                else (str(crash) if crash is not None else None),
+            },
         )
         with _LIVE_SESSIONS_LOCK:
             _LIVE_SESSIONS.pop(session_id, None)
@@ -112,6 +114,7 @@ def _connect_live_runtime_session(
         script=script,
     )
 
+
 def start_managed_runtime_session(
     *,
     case_dir: pathlib.Path | str,
@@ -130,11 +133,13 @@ def start_managed_runtime_session(
     manager_factory: Callable[[str | None], FridaManager] | None = None,
 ) -> dict[str, Any]:
     case_path = pathlib.Path(case_dir)
-    resolved_source, resolved_label, resolved_source_path, source_kind, builtin_metadata = _resolve_script_source(
-        {},
-        script_path=None,
-        script_source=script_source,
-        builtin_script=builtin_script,
+    resolved_source, resolved_label, resolved_source_path, source_kind, builtin_metadata = (
+        _resolve_script_source(
+            {},
+            script_path=None,
+            script_source=script_source,
+            builtin_script=builtin_script,
+        )
     )
     preflight = runtime_preflight(
         app_id=app_id,
@@ -173,7 +178,11 @@ def start_managed_runtime_session(
         path=str(script_snapshot),
         source_command=source_command,
         source_kind=source_kind,
-        source_path=(str(resolved_source_path) if resolved_source_path is not None else (input_paths[0] if input_paths else None)),
+        source_path=(
+            str(resolved_source_path)
+            if resolved_source_path is not None
+            else (input_paths[0] if input_paths else None)
+        ),
         metadata={**(metadata or {}), **builtin_metadata},
     )
     script_artifact_id = _register_runtime_artifact(
@@ -182,8 +191,14 @@ def start_managed_runtime_session(
         category="runtime-script",
         source_command=source_command,
         device_id=device_id,
-        input_paths=input_paths or ([str(resolved_source_path)] if resolved_source_path is not None else None),
-        metadata={"app_id": app_id, "session_id": session.session_id, "session_kind": session_kind, **builtin_metadata},
+        input_paths=input_paths
+        or ([str(resolved_source_path)] if resolved_source_path is not None else None),
+        metadata={
+            "app_id": app_id,
+            "session_id": session.session_id,
+            "session_kind": session_kind,
+            **builtin_metadata,
+        },
     )
     log_artifact_id = _register_runtime_artifact(
         case_dir=case_path,
@@ -200,7 +215,9 @@ def start_managed_runtime_session(
         category="runtime-session",
         source_command=source_command,
         device_id=device_id,
-        parent_artifact_ids=[artifact_id for artifact_id in [script_artifact_id, log_artifact_id] if artifact_id],
+        parent_artifact_ids=[
+            artifact_id for artifact_id in [script_artifact_id, log_artifact_id] if artifact_id
+        ],
         metadata={"app_id": app_id, "session_id": session.session_id, "session_kind": session_kind},
     )
     session = update_case_runtime_session(
@@ -265,7 +282,10 @@ def start_managed_runtime_session(
     if initial_wait_s > 0:
         time.sleep(initial_wait_s)
 
-    detail = case_runtime_session_details(case_path, session_id=session.session_id, event_limit=100) or {}
+    detail = (
+        case_runtime_session_details(case_path, session_id=session.session_id, event_limit=100)
+        or {}
+    )
     detail["preflight"] = preflight
     detail["live"] = True
     detail["script_snapshot_path"] = str(script_snapshot)
@@ -276,7 +296,10 @@ def start_managed_runtime_session(
     }
     return enrich_runtime_session_payload(detail, live=True)
 
-def list_managed_runtime_sessions(*, case_dir: pathlib.Path | str, **filters: Any) -> dict[str, Any]:
+
+def list_managed_runtime_sessions(
+    *, case_dir: pathlib.Path | str, **filters: Any
+) -> dict[str, Any]:
     payload = query_case_runtime_sessions(pathlib.Path(case_dir), **filters)
     with _LIVE_SESSIONS_LOCK:
         live_ids = set(_LIVE_SESSIONS)
@@ -284,6 +307,7 @@ def list_managed_runtime_sessions(*, case_dir: pathlib.Path | str, **filters: An
     for session in payload.get("sessions", []):
         session["live"] = str(session.get("session_id")) in live_ids
     return enrich_runtime_inventory_payload(payload)
+
 
 def get_managed_runtime_session(
     *,
@@ -309,6 +333,7 @@ def get_managed_runtime_session(
         "status": "attached" if live else "snapshot-only",
     }
     return enrich_runtime_session_payload(payload, live=live)
+
 
 def reconnect_managed_runtime_session(
     *,
@@ -379,7 +404,7 @@ def reconnect_managed_runtime_session(
             session_id=session_id,
             event_type="connected",
             message="Runtime session reconnected.",
-                payload={"pid": pid, "attach_mode": mode, "preflight": preflight},
+            payload={"pid": pid, "attach_mode": mode, "preflight": preflight},
         )
     except Exception as exc:
         update_case_runtime_session(
@@ -398,12 +423,18 @@ def reconnect_managed_runtime_session(
             event_type="error",
             level="error",
             message="Runtime session reconnect failed.",
-                payload={"error": str(exc), "recovery_hint": _recovery_hint(exc), "preflight": preflight},
+            payload={
+                "error": str(exc),
+                "recovery_hint": _recovery_hint(exc),
+                "preflight": preflight,
+            },
         )
         raise RuntimeError(f"{exc} ({_recovery_hint(exc)})") from exc
     if initial_wait_s > 0:
         time.sleep(initial_wait_s)
-    payload = get_managed_runtime_session(case_dir=case_path, session_id=session_id, event_limit=100)
+    payload = get_managed_runtime_session(
+        case_dir=case_path, session_id=session_id, event_limit=100
+    )
     payload["preflight"] = preflight
     payload["lifecycle"] = {
         "action": "reconnect",
@@ -411,6 +442,7 @@ def reconnect_managed_runtime_session(
         "message": "Managed runtime session reconnected.",
     }
     return enrich_runtime_session_payload(payload, live=bool(payload.get("live")))
+
 
 def reload_managed_runtime_session(
     *,
@@ -434,7 +466,9 @@ def reload_managed_runtime_session(
         builtin_script=builtin_script,
     )
     label = script_label or default_label
-    snapshot = _snapshot_script(case_dir=case_path, session_id=session_id, label=label, source=source)
+    snapshot = _snapshot_script(
+        case_dir=case_path, session_id=session_id, label=label, source=source
+    )
     session = add_case_runtime_session_script(
         case_path,
         session_id=session_id,
@@ -451,21 +485,32 @@ def reload_managed_runtime_session(
         category="runtime-script",
         source_command=source_command,
         device_id=session.device_id,
-        input_paths=[str(source_path)] if source_path is not None and source_kind in {"file", "builtin"} else None,
-        metadata={"app_id": session.app_id, "session_id": session_id, "session_kind": session.session_kind, **script_metadata},
+        input_paths=[str(source_path)]
+        if source_path is not None and source_kind in {"file", "builtin"}
+        else None,
+        metadata={
+            "app_id": session.app_id,
+            "session_id": session_id,
+            "session_kind": session.session_kind,
+            **script_metadata,
+        },
     )
     update_case_runtime_session(
         case_path,
         session_id=session_id,
         latest_message="Reloading runtime script",
         reload_increment=1,
-        result_artifact_ids_append=[artifact_id for artifact_id in [script_artifact_id] if artifact_id],
+        result_artifact_ids_append=[
+            artifact_id for artifact_id in [script_artifact_id] if artifact_id
+        ],
     )
 
     with _LIVE_SESSIONS_LOCK:
         live = _LIVE_SESSIONS.get(session_id)
     if live is None:
-        reconnect_managed_runtime_session(case_dir=case_path, session_id=session_id, manager_factory=manager_factory)
+        reconnect_managed_runtime_session(
+            case_dir=case_path, session_id=session_id, manager_factory=manager_factory
+        )
         with _LIVE_SESSIONS_LOCK:
             live = _LIVE_SESSIONS.get(session_id)
     if live is None:
@@ -504,7 +549,9 @@ def reload_managed_runtime_session(
     )
     if initial_wait_s > 0:
         time.sleep(initial_wait_s)
-    payload = get_managed_runtime_session(case_dir=case_path, session_id=session_id, event_limit=100)
+    payload = get_managed_runtime_session(
+        case_dir=case_path, session_id=session_id, event_limit=100
+    )
     payload["script_snapshot_path"] = str(snapshot)
     payload["lifecycle"] = {
         "action": "reload",
@@ -513,7 +560,10 @@ def reload_managed_runtime_session(
     }
     return enrich_runtime_session_payload(payload, live=bool(payload.get("live")))
 
-def stop_managed_runtime_session(*, case_dir: pathlib.Path | str, session_id: str) -> dict[str, Any]:
+
+def stop_managed_runtime_session(
+    *, case_dir: pathlib.Path | str, session_id: str
+) -> dict[str, Any]:
     case_path = pathlib.Path(case_dir)
     with _LIVE_SESSIONS_LOCK:
         live = _LIVE_SESSIONS.pop(session_id, None)
@@ -532,7 +582,9 @@ def stop_managed_runtime_session(*, case_dir: pathlib.Path | str, session_id: st
         event_type="stopped",
         message="Stopped runtime session and detached Frida handles.",
     )
-    payload = get_managed_runtime_session(case_dir=case_path, session_id=session_id, event_limit=100)
+    payload = get_managed_runtime_session(
+        case_dir=case_path, session_id=session_id, event_limit=100
+    )
     payload["lifecycle"] = {
         "action": "stop",
         "status": "stopped",

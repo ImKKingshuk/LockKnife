@@ -13,7 +13,11 @@ def parse_wifi_history_artifacts(path: pathlib.Path) -> list[dict[str, Any]]:
         payload = json.loads(text)
         if isinstance(payload, dict):
             return [item for item in payload.get("networks") or [] if isinstance(item, dict)]
-        return [item for item in payload if isinstance(item, dict)] if isinstance(payload, list) else []
+        return (
+            [item for item in payload if isinstance(item, dict)]
+            if isinstance(payload, list)
+            else []
+        )
     if path.suffix.lower() == ".xml":
         root = fromstring(text)
         rows: list[dict[str, Any]] = []

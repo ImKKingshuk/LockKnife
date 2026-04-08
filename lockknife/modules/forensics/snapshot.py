@@ -134,5 +134,7 @@ def create_snapshot(
             total=5,
             metadata={"output_path": str(output_path)},
         )
-        encrypted_path = encrypt_file(local_tar, key, out_path=output_path.with_suffix(output_path.suffix + ".lkenc"))
+        encrypted_path = encrypt_file(
+            local_tar, key, out_path=output_path.with_suffix(output_path.suffix + ".lkenc")
+        )
         return encrypted_path

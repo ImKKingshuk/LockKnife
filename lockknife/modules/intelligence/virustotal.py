@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import ipaddress
+from typing import Any, cast
 from urllib.parse import quote_plus
-
-from typing import Any
-from typing import cast
 
 from lockknife.core.exceptions import LockKnifeError
 from lockknife.core.secrets import load_secrets
@@ -45,7 +43,9 @@ def ip_report(address: str, api_key: str | None = None) -> dict[str, Any]:
     return lookup_indicator_report(address, indicator_type="ip", api_key=api_key)
 
 
-def lookup_indicator_report(indicator: str, *, indicator_type: str, api_key: str | None = None) -> dict[str, Any]:
+def lookup_indicator_report(
+    indicator: str, *, indicator_type: str, api_key: str | None = None
+) -> dict[str, Any]:
     vt = _require_vt()
     key = api_key or get_api_key()
     path = _vt_path(indicator, indicator_type=indicator_type, vt=vt)
@@ -66,7 +66,9 @@ def submit_url_for_analysis(url: str, api_key: str | None = None) -> dict[str, A
         payload.setdefault("submitted", True)
         payload.setdefault("target", url)
         payload.setdefault("indicator_type", "url")
-        payload.setdefault("submission_id", str((payload.get("data") or {}).get("id") or payload.get("id") or ""))
+        payload.setdefault(
+            "submission_id", str((payload.get("data") or {}).get("id") or payload.get("id") or "")
+        )
         return payload
 
 
@@ -100,7 +102,9 @@ def _to_dict(obj: Any) -> dict[str, Any]:
     return {"raw": obj}
 
 
-def _augment_report(indicator: str, *, indicator_type: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _augment_report(
+    indicator: str, *, indicator_type: str, payload: dict[str, Any]
+) -> dict[str, Any]:
     attrs = payload.get("attributes") if isinstance(payload, dict) else None
     stats = attrs.get("last_analysis_stats") if isinstance(attrs, dict) else None
     if isinstance(stats, dict):
@@ -130,7 +134,9 @@ def _augment_report(indicator: str, *, indicator_type: str, payload: dict[str, A
             "detection_hits": detection_hits,
             "detection_ratio": detection_ratio,
             "detection_ratio_text": f"{detection_hits}/{total}" if total else "0/0",
-            "confidence_score": min(100, int(round(detection_ratio * 100)) + (25 if detection_hits else 5)),
+            "confidence_score": min(
+                100, int(round(detection_ratio * 100)) + (25 if detection_hits else 5)
+            ),
         },
     )
     return payload

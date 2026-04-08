@@ -10,7 +10,7 @@ def test_pin_recovery_happy_path(tmp_path) -> None:
 
     salt = 1234
     pin = "0420"
-    sha1_hex = lockknife_core.sha1_hex(f"{salt}{pin}".encode("utf-8"))
+    sha1_hex = lockknife_core.sha1_hex(f"{salt}{pin}".encode())
 
     db = tmp_path / "locksettings.db"
     import sqlite3
@@ -27,7 +27,9 @@ def test_pin_recovery_happy_path(tmp_path) -> None:
     key.write_bytes(bytes.fromhex(sha1_hex) + b"\x00" * 4)
 
     class _Adb:
-        def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0) -> None:
+        def pull(
+            self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0
+        ) -> None:
             local_path.parent.mkdir(parents=True, exist_ok=True)
             if remote_path.endswith("locksettings.db"):
                 local_path.write_bytes(db.read_bytes())
@@ -37,7 +39,9 @@ def test_pin_recovery_happy_path(tmp_path) -> None:
     class _Dev:
         _adb = _Adb()
 
-        def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0) -> None:
+        def pull(
+            self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0
+        ) -> None:
             return self._adb.pull(serial, remote_path, local_path, timeout_s=timeout_s)
 
         def has_root(self, serial: str) -> bool:
@@ -47,11 +51,14 @@ def test_pin_recovery_happy_path(tmp_path) -> None:
 
 
 def test_parse_directory_as_aleapp(tmp_path) -> None:
-    from lockknife.modules.forensics.artifacts import parse_directory_as_aleapp, parse_forensics_directory
+    from lockknife.modules.forensics.artifacts import (
+        parse_directory_as_aleapp,
+        parse_forensics_directory,
+    )
 
     (tmp_path / "sms.json").write_text(json.dumps([{"a": 1}]), encoding="utf-8")
     prefs = tmp_path / "shared_prefs.xml"
-    prefs.write_text("<map><string name=\"theme\">dark</string></map>", encoding="utf-8")
+    prefs.write_text('<map><string name="theme">dark</string></map>', encoding="utf-8")
     out = parse_directory_as_aleapp(tmp_path)
     assert out[0].artifact_name == "Android SMS"
     report = parse_forensics_directory(tmp_path)
@@ -65,12 +72,15 @@ def test_pdf_report_errors_without_engines(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(pdf_mod, "render_html_report", lambda *args, **kwargs: "<html></html>")
     monkeypatch.setitem(__import__("sys").modules, "weasyprint", None)
     monkeypatch.setitem(__import__("sys").modules, "xhtml2pdf", None)
-    with pytest.raises(Exception):
+    with pytest.raises(pdf_mod.PdfReportError):
         pdf_mod.render_pdf_report(tmp_path / "t.html", {})
 
 
 def test_api_discovery_from_text(tmp_path) -> None:
-    from lockknife.modules.network.api_discovery import discover_api_endpoints_from_text, extract_api_endpoints_from_pcap
+    from lockknife.modules.network.api_discovery import (
+        discover_api_endpoints_from_text,
+        extract_api_endpoints_from_pcap,
+    )
 
     text = "GET /api/v1 HTTP/1.1\r\nHost: example.com\r\n\r\nhttps://x.test/a"
     eps = discover_api_endpoints_from_text(text, source="t")
@@ -96,7 +106,12 @@ def test_summarize_pcap_with_fake_scapy(tmp_path, monkeypatch) -> None:
 
         def haslayer(self, layer) -> bool:
             name = getattr(layer, "__name__", "")
-            return (name == "Raw") or (name == "TCP" and self._proto == "tcp") or (name == "UDP" and self._proto == "udp") or (name == "IP")
+            return (
+                (name == "Raw")
+                or (name == "TCP" and self._proto == "tcp")
+                or (name == "UDP" and self._proto == "udp")
+                or (name == "IP")
+            )
 
         def __getitem__(self, layer):
             return _Raw(self._raw)
@@ -138,7 +153,7 @@ def test_adb_validations(tmp_path) -> None:
 
 
 def test_http_rejects_non_https() -> None:
-    from lockknife.core.http import http_get
+    from lockknife.core.http import HttpError, http_get
 
-    with pytest.raises(Exception):
+    with pytest.raises(HttpError):
         http_get("http://example.com")

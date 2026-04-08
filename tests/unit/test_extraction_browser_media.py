@@ -2,15 +2,17 @@ import json
 import pathlib
 import sqlite3
 
-import pytest
-
 
 class _Adb:
-    def __init__(self, fixtures: dict[str, pathlib.Path], *, firefox_profile: str | None = None) -> None:
+    def __init__(
+        self, fixtures: dict[str, pathlib.Path], *, firefox_profile: str | None = None
+    ) -> None:
         self._fixtures = fixtures
         self._firefox_profile = firefox_profile
 
-    def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0) -> None:
+    def pull(
+        self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0
+    ) -> None:
         local_path.parent.mkdir(parents=True, exist_ok=True)
         name = pathlib.PurePosixPath(remote_path).name
         src = self._fixtures.get(name)
@@ -19,9 +21,12 @@ class _Adb:
         local_path.write_bytes(src.read_bytes())
 
     def shell(self, serial: str, command: str, timeout_s: float = 0.0) -> str:
-        if "ls -1d /data/data/org.mozilla.firefox/files/mozilla/" in command and self._firefox_profile:
+        if (
+            "ls -1d /data/data/org.mozilla.firefox/files/mozilla/" in command
+            and self._firefox_profile
+        ):
             return self._firefox_profile + "\n"
-        if command.startswith("su -c \"ls -1t"):
+        if command.startswith('su -c "ls -1t'):
             return "a.jpg\n"
         return ""
 
@@ -36,7 +41,9 @@ class _Devices:
     def __init__(self, adb: _Adb) -> None:
         self._adb = adb
 
-    def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0) -> None:
+    def pull(
+        self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0
+    ) -> None:
         return self._adb.pull(serial, remote_path, local_path, timeout_s=timeout_s)
 
     def shell(self, serial: str, command: str, timeout_s: float = 0.0) -> str:
@@ -50,9 +57,13 @@ def _mk_chrome_history(tmp_path: pathlib.Path) -> pathlib.Path:
     p = tmp_path / "History"
     con = sqlite3.connect(str(p))
     try:
-        con.execute("CREATE TABLE urls (url TEXT, title TEXT, last_visit_time INTEGER, visit_count INTEGER)")
+        con.execute(
+            "CREATE TABLE urls (url TEXT, title TEXT, last_visit_time INTEGER, visit_count INTEGER)"
+        )
         con.execute("INSERT INTO urls VALUES ('https://example.com', 't', 1, 2)")
-        con.execute("CREATE TABLE downloads (tab_url TEXT, target_path TEXT, start_time INTEGER, end_time INTEGER, received_bytes INTEGER)")
+        con.execute(
+            "CREATE TABLE downloads (tab_url TEXT, target_path TEXT, start_time INTEGER, end_time INTEGER, received_bytes INTEGER)"
+        )
         con.execute("INSERT INTO downloads VALUES ('https://d', '/tmp/x', 1, 2, 3)")
         con.commit()
     finally:
@@ -64,7 +75,9 @@ def _mk_chrome_login(tmp_path: pathlib.Path) -> pathlib.Path:
     p = tmp_path / "chrome.sqlite"
     con = sqlite3.connect(str(p))
     try:
-        con.execute("CREATE TABLE logins (origin_url TEXT, username_value TEXT, password_value TEXT, encrypted_password BLOB)")
+        con.execute(
+            "CREATE TABLE logins (origin_url TEXT, username_value TEXT, password_value TEXT, encrypted_password BLOB)"
+        )
         con.execute("INSERT INTO logins VALUES ('https://x', 'u', 'p', X'0102')")
         con.commit()
     finally:
@@ -90,7 +103,9 @@ def _mk_firefox_places(tmp_path: pathlib.Path) -> pathlib.Path:
     p = tmp_path / "places.sqlite"
     con = sqlite3.connect(str(p))
     try:
-        con.execute("CREATE TABLE moz_places (id INTEGER, url TEXT, title TEXT, last_visit_date INTEGER, visit_count INTEGER)")
+        con.execute(
+            "CREATE TABLE moz_places (id INTEGER, url TEXT, title TEXT, last_visit_date INTEGER, visit_count INTEGER)"
+        )
         con.execute("INSERT INTO moz_places VALUES (1, 'https://f', 'ft', 1, 2)")
         con.execute("CREATE TABLE moz_bookmarks (fk INTEGER, title TEXT, dateAdded INTEGER)")
         con.execute("INSERT INTO moz_bookmarks VALUES (1, 'bt', 10)")
@@ -102,14 +117,29 @@ def _mk_firefox_places(tmp_path: pathlib.Path) -> pathlib.Path:
 
 def _mk_firefox_logins(tmp_path: pathlib.Path) -> pathlib.Path:
     p = tmp_path / "logins.json"
-    p.write_text(json.dumps({"logins": [{"hostname": "https://f", "username": "u", "encryptedPassword": "x"}]}), encoding="utf-8")
+    p.write_text(
+        json.dumps(
+            {"logins": [{"hostname": "https://f", "username": "u", "encryptedPassword": "x"}]}
+        ),
+        encoding="utf-8",
+    )
     return p
 
 
 def _mk_bookmarks_json(tmp_path: pathlib.Path) -> pathlib.Path:
     p = tmp_path / "Bookmarks"
     p.write_text(
-        json.dumps({"roots": {"bookmark_bar": {"children": [{"type": "url", "url": "https://b", "name": "B", "date_added": "1"}]}}}),
+        json.dumps(
+            {
+                "roots": {
+                    "bookmark_bar": {
+                        "children": [
+                            {"type": "url", "url": "https://b", "name": "B", "date_added": "1"}
+                        ]
+                    }
+                }
+            }
+        ),
         encoding="utf-8",
     )
     return p
@@ -168,8 +198,8 @@ def test_extract_browser_chrome_and_firefox(tmp_path) -> None:
     dls = extract_chrome_downloads(dev, "SER", limit=10)  # type: ignore[arg-type]
     assert dls[0].target_path == "/tmp/x"
 
-    l = extract_chrome_saved_logins(dev, "SER", limit=10)  # type: ignore[arg-type]
-    assert l[0].origin_url == "https://x"
+    logins = extract_chrome_saved_logins(dev, "SER", limit=10)  # type: ignore[arg-type]
+    assert logins[0].origin_url == "https://x"
 
     fh = extract_firefox_history(dev, "SER", limit=10)  # type: ignore[arg-type]
     assert fh[0].url == "https://f"

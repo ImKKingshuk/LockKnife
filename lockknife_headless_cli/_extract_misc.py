@@ -14,11 +14,25 @@ def register(extract: Any, cli: Any) -> None:
     @extract.command("media")
     @click.option("-s", "--serial", required=True)
     @click.option("--limit", type=int, default=50)
-    @click.option("--format", "out_format", type=click.Choice(["json", "csv"], case_sensitive=False), default="json")
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["json", "csv"], case_sensitive=False),
+        default="json",
+    )
     @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
+    @click.option(
+        "--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path)
+    )
     @click.pass_obj
-    def extract_media_cmd(app: Any, serial: str, limit: int, out_format: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+    def extract_media_cmd(
+        app: Any,
+        serial: str,
+        limit: int,
+        out_format: str,
+        output: pathlib.Path | None,
+        case_dir: pathlib.Path | None,
+    ) -> None:
         rows = cli.extract_media_with_exif(app.devices, serial, limit=limit)
         items = [dataclasses.asdict(row) for row in rows]
         ext = "csv" if out_format.lower() == "csv" else "json"
@@ -43,12 +57,22 @@ def register(extract: Any, cli: Any) -> None:
 
     @extract.command("location")
     @click.option("-s", "--serial", required=True)
-    @click.option("--mode", type=click.Choice(["snapshot", "artifacts"], case_sensitive=False), default="snapshot")
+    @click.option(
+        "--mode",
+        type=click.Choice(["snapshot", "artifacts"], case_sensitive=False),
+        default="snapshot",
+    )
     @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
+    @click.option(
+        "--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path)
+    )
     @click.pass_obj
-    def extract_location_cmd(app: Any, serial: str, mode: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
-        output, derived = cli._resolve_case_output(output, case_dir, filename=f"location_{mode.lower()}.json")
+    def extract_location_cmd(
+        app: Any, serial: str, mode: str, output: pathlib.Path | None, case_dir: pathlib.Path | None
+    ) -> None:
+        output, derived = cli._resolve_case_output(
+            output, case_dir, filename=f"location_{mode.lower()}.json"
+        )
         if mode.lower() == "artifacts":
             payload = dataclasses.asdict(cli.extract_location_artifacts(app.devices, serial))
         else:

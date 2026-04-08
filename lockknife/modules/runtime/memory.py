@@ -5,8 +5,8 @@ import threading
 import time
 from typing import Any
 
-from lockknife.modules.runtime.frida_manager import FridaManager
 from lockknife.core.logging import get_logger
+from lockknife.modules.runtime.frida_manager import FridaManager
 
 log = get_logger()
 
@@ -54,7 +54,12 @@ setImmediate(function() {{
 }});
 """.strip()
     script = mgr.load_script(session, script_source)
-    out: dict[str, object] = {"pattern": pattern, "pattern_type": pat_type, "protection": protection, "hits": []}
+    out: dict[str, object] = {
+        "pattern": pattern,
+        "pattern_type": pat_type,
+        "protection": protection,
+        "hits": [],
+    }
     done = threading.Event()
 
     def on_message(m: dict[str, Any], _data: Any) -> None:
@@ -104,7 +109,9 @@ setImmediate(function() {{
     return json.dumps(out)
 
 
-def heap_dump(app_id: str, output_path: str, *, device_id: str | None = None, timeout_s: float = 30.0) -> str:
+def heap_dump(
+    app_id: str, output_path: str, *, device_id: str | None = None, timeout_s: float = 30.0
+) -> str:
     started = time.perf_counter()
     mgr = FridaManager(device_id=device_id)
     _, session = mgr.spawn_and_attach(app_id)

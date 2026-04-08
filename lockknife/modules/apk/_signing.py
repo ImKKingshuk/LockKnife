@@ -9,7 +9,9 @@ from lockknife.modules.apk._decompile_inspection import _apk_method
 
 
 def signing_summary(apk_obj: Any, apk_path: pathlib.Path) -> dict[str, Any]:
-    certificates = [certificate_payload(cert) for cert in (_apk_method(apk_obj, "get_certificates", []) or [])]
+    certificates = [
+        certificate_payload(cert) for cert in (_apk_method(apk_obj, "get_certificates", []) or [])
+    ]
     inventory = archive_inventory(apk_path)
     schemes = {
         "v1": bool(_apk_method(apk_obj, "is_signed_v1", False)),
@@ -18,11 +20,18 @@ def signing_summary(apk_obj: Any, apk_path: pathlib.Path) -> dict[str, Any]:
         "v4": bool(_apk_method(apk_obj, "is_signed_v4", False)),
     }
     certificate_count = len(certificates)
-    signature_algorithms = sorted({str(item.get("signature_algorithm")) for item in certificates if item.get("signature_algorithm")})
+    signature_algorithms = sorted(
+        {
+            str(item.get("signature_algorithm"))
+            for item in certificates
+            if item.get("signature_algorithm")
+        }
+    )
     has_debug_or_test = any(item.get("is_debug_or_test") for item in certificates)
     if not certificates and inventory.get("meta_inf_signers"):
         has_debug_or_test = any(
-            any(token in signer.lower() for token in ["test", "debug", "devkey"]) for signer in inventory["meta_inf_signers"]
+            any(token in signer.lower() for token in ["test", "debug", "devkey"])
+            for signer in inventory["meta_inf_signers"]
         )
     lineage = [
         {
@@ -77,7 +86,9 @@ def certificate_payload(cert: Any) -> dict[str, Any]:
     signature_algorithm = getattr(cert, "signature_algorithm", None)
     signature_algorithm = getattr(signature_algorithm, "native", signature_algorithm)
     text_blob = " ".join(filter(None, [subject or "", issuer or ""])).lower()
-    debugish = any(token in text_blob for token in ["android debug", "androiddebugkey", "testkey", "devkey"])
+    debugish = any(
+        token in text_blob for token in ["android debug", "androiddebugkey", "testkey", "devkey"]
+    )
     return {
         "subject": subject,
         "issuer": issuer,
@@ -149,9 +160,15 @@ def _recommended_next(status: str, findings: list[dict[str, Any]], schemes: dict
     if status == "fail":
         return "Verify the APK is intact and re-run signing inspection before trusting any certificate assumptions."
     if any(item.get("id") == "debug-or-test-keys" for item in findings):
-        return "Treat the APK as non-production until release signing can be confirmed independently."
+        return (
+            "Treat the APK as non-production until release signing can be confirmed independently."
+        )
     if schemes.get("v3") or schemes.get("v4"):
-        return "Modern signing is visible; pivot to manifest/components and code-signal review next."
+        return (
+            "Modern signing is visible; pivot to manifest/components and code-signal review next."
+        )
     if any(item.get("id") == "legacy-v1-only-signing" for item in findings):
         return "Prioritize a source of truth for release provenance because only legacy signing coverage was visible."
-    return "Signing visibility looks reasonable; move on to manifest surface and code-signal review."
+    return (
+        "Signing visibility looks reasonable; move on to manifest surface and code-signal review."
+    )

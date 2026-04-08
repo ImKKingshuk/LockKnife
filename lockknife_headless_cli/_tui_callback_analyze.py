@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -40,6 +41,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         for p in input_dir.glob("*.dex"):
             try:
                 from lockknife.modules.security.malware import scan_with_patterns
+
                 pat_hits.append({"file": str(p), "hits": scan_with_patterns(list(patterns), p)})
             except Exception:
                 cb.log.debug("evidence_dex_scan_failed", exc_info=True, path=str(p))
@@ -57,9 +59,18 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 category="analyze-evidence",
                 source_command="analyze evidence",
                 input_paths=[str(input_dir)],
-                metadata={"patterns": list(patterns), "artifact_count": len(artifacts), "ioc_count": len(iocs)},
+                metadata={
+                    "patterns": list(patterns),
+                    "artifact_count": len(artifacts),
+                    "ioc_count": len(iocs),
+                },
             )
-            return _ok(payload, f"Analyzed evidence directory: {len(artifacts)} artifacts, {len(iocs)} IOCs saved to {output}")
-        return _ok(payload, f"Analyzed evidence directory: {len(artifacts)} artifacts, {len(iocs)} IOCs")
+            return _ok(
+                payload,
+                f"Analyzed evidence directory: {len(artifacts)} artifacts, {len(iocs)} IOCs saved to {output}",
+            )
+        return _ok(
+            payload, f"Analyzed evidence directory: {len(artifacts)} artifacts, {len(iocs)} IOCs"
+        )
 
     return None

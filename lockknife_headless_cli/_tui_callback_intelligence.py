@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -193,7 +194,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="derived",
             filename=f"intel_cve_{_safe_name(package)}.json",
         )
-        payload = cve_payload(package, correlate_cves_for_apk_package(package), case_dir=case_dir, output=output)
+        payload = cve_payload(
+            package, correlate_cves_for_apk_package(package), case_dir=case_dir, output=output
+        )
         if output is not None:
             write_json(output, payload)
             _register_case_output(
@@ -240,7 +243,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="derived",
             filename=f"intel_virustotal_{_safe_name(str(indicator)[:32])}.json",
         )
-        payload = virustotal_payload(str(indicator), vt_data, indicator_type=indicator_type, case_dir=case_dir, output=output)
+        payload = virustotal_payload(
+            str(indicator), vt_data, indicator_type=indicator_type, case_dir=case_dir, output=output
+        )
         if output is not None:
             write_json(output, payload)
             _register_case_output(
@@ -276,10 +281,18 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         }
         case_dir = _path_param(params.get("case_dir"))
         filename = f"intel_cve_risk_{_safe_name(kernel_version or f'sdk_{sdk}')}.json"
-        output, _derived = _resolve_case_output(_path_param(params.get("output")), case_dir, area="derived", filename=filename)
+        output, _derived = _resolve_case_output(
+            _path_param(params.get("output")), case_dir, area="derived", filename=filename
+        )
         if output is not None:
             write_json(output, risk_payload)
-            _register_case_output(case_dir, path=output, category="intel-cve-risk", source_command="intel cve-risk", metadata=risk_payload.get("summary"))
+            _register_case_output(
+                case_dir,
+                path=output,
+                category="intel-cve-risk",
+                source_command="intel cve-risk",
+                metadata=risk_payload.get("summary"),
+            )
             return _ok(risk_payload, f"CVE risk saved to {output}")
         return _ok(risk_payload, "CVE risk profiled")
 
@@ -292,7 +305,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="derived",
             filename=f"intel_otx_{_safe_name(indicator)}.json",
         )
-        payload = otx_payload(indicator, indicator_reputation(indicator), case_dir=case_dir, output=output)
+        payload = otx_payload(
+            indicator, indicator_reputation(indicator), case_dir=case_dir, output=output
+        )
         if output is not None:
             write_json(output, payload)
             _register_case_output(

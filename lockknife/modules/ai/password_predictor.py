@@ -14,8 +14,12 @@ class PasswordPredictor:
         self._order = max(1, order)
 
     @classmethod
-    def train_from_wordlist(cls, path: pathlib.Path, *, max_words: int = 200_000, order: int = 2) -> "PasswordPredictor":
-        trans: dict[str, dict[str, int]] = collections.defaultdict(lambda: collections.defaultdict(int))
+    def train_from_wordlist(
+        cls, path: pathlib.Path, *, max_words: int = 200_000, order: int = 2
+    ) -> PasswordPredictor:
+        trans: dict[str, dict[str, int]] = collections.defaultdict(
+            lambda: collections.defaultdict(int)
+        )
         start = "^" * max(1, order)
         end = "$"
         n = 0
@@ -46,7 +50,9 @@ class PasswordPredictor:
         rng = random.Random(seed)  # nosec B311
         out: list[str] = []
         seen: set[str] = set()
-        for candidate in self.augment_with_personal_data(personal_data, min_len=min_len, max_len=max_len):
+        for candidate in self.augment_with_personal_data(
+            personal_data, min_len=min_len, max_len=max_len
+        ):
             if candidate not in seen:
                 seen.add(candidate)
                 out.append(candidate)
@@ -72,7 +78,9 @@ class PasswordPredictor:
             out.append(w)
         return out
 
-    def augment_with_personal_data(self, personal_data: Any | None, *, min_len: int, max_len: int) -> list[str]:
+    def augment_with_personal_data(
+        self, personal_data: Any | None, *, min_len: int, max_len: int
+    ) -> list[str]:
         tokens = _extract_personal_tokens(personal_data)
         if not tokens:
             return []
@@ -144,4 +152,3 @@ def _tokenize_value(value: str) -> list[str]:
         if len(compact) >= 3:
             out.append(compact)
     return out
-

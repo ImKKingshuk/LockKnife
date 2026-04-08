@@ -3,7 +3,8 @@ from __future__ import annotations
 import dataclasses
 import json
 import pathlib
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from defusedxml.ElementTree import ParseError, fromstring
 
@@ -16,7 +17,6 @@ from lockknife.modules.forensics.parsers import (
     parse_notifications_artifacts,
     parse_wifi_history_artifacts,
 )
-
 
 ArtifactLoader = Callable[[pathlib.Path], list[dict[str, Any]]]
 
@@ -33,16 +33,64 @@ class ArtifactParserSpec:
 REGISTRY: tuple[ArtifactParserSpec, ...] = (
     ArtifactParserSpec("android-sms", "Android SMS", "sms", ("sms.json",)),
     ArtifactParserSpec("android-contacts", "Android Contacts", "contacts", ("contacts.json",)),
-    ArtifactParserSpec("android-call-logs", "Android Call Logs", "call_logs", ("call_logs.json", "calls.json")),
-    ArtifactParserSpec("android-browser", "Browser Artifacts", "browser", ("browser.json", "history.json", "bookmarks.json", "downloads.json")),
-    ArtifactParserSpec("android-messaging", "Messaging Artifacts", "messaging", ("messaging.json", "messages.json", "whatsapp.json", "telegram.json", "signal.json")),
+    ArtifactParserSpec(
+        "android-call-logs", "Android Call Logs", "call_logs", ("call_logs.json", "calls.json")
+    ),
+    ArtifactParserSpec(
+        "android-browser",
+        "Browser Artifacts",
+        "browser",
+        ("browser.json", "history.json", "bookmarks.json", "downloads.json"),
+    ),
+    ArtifactParserSpec(
+        "android-messaging",
+        "Messaging Artifacts",
+        "messaging",
+        ("messaging.json", "messages.json", "whatsapp.json", "telegram.json", "signal.json"),
+    ),
     ArtifactParserSpec("android-media", "Media Artifacts", "media", ("media.json", "photos.json")),
     ArtifactParserSpec("android-location", "Location Artifacts", "location", ("location.json",)),
-    ArtifactParserSpec("android-accounts", "Android Accounts", "accounts", ("accounts.json", "accounts.xml", "*accounts*.json", "*accounts*.xml"), parse_accounts_artifacts),
-    ArtifactParserSpec("android-app-usage", "Android App Usage", "app_usage", ("app_usage.json", "usagestats.json", "*usagestats*.xml"), parse_app_usage_artifacts),
-    ArtifactParserSpec("android-wifi-history", "Wi-Fi History", "wifi_history", ("wifi_history.json", "wifi_history.xml", "*wifi*.json", "*Wifi*.xml"), parse_wifi_history_artifacts),
-    ArtifactParserSpec("android-bluetooth", "Bluetooth Artifacts", "bluetooth", ("bluetooth.json", "bluetooth.xml", "*bluetooth*.json", "*bluetooth*.xml", "bt_config.conf"), parse_bluetooth_artifacts),
-    ArtifactParserSpec("android-notifications", "Notification Artifacts", "notifications", ("notifications.json", "notifications.xml", "*notifications*.json", "*notifications*.xml"), parse_notifications_artifacts),
+    ArtifactParserSpec(
+        "android-accounts",
+        "Android Accounts",
+        "accounts",
+        ("accounts.json", "accounts.xml", "*accounts*.json", "*accounts*.xml"),
+        parse_accounts_artifacts,
+    ),
+    ArtifactParserSpec(
+        "android-app-usage",
+        "Android App Usage",
+        "app_usage",
+        ("app_usage.json", "usagestats.json", "*usagestats*.xml"),
+        parse_app_usage_artifacts,
+    ),
+    ArtifactParserSpec(
+        "android-wifi-history",
+        "Wi-Fi History",
+        "wifi_history",
+        ("wifi_history.json", "wifi_history.xml", "*wifi*.json", "*Wifi*.xml"),
+        parse_wifi_history_artifacts,
+    ),
+    ArtifactParserSpec(
+        "android-bluetooth",
+        "Bluetooth Artifacts",
+        "bluetooth",
+        (
+            "bluetooth.json",
+            "bluetooth.xml",
+            "*bluetooth*.json",
+            "*bluetooth*.xml",
+            "bt_config.conf",
+        ),
+        parse_bluetooth_artifacts,
+    ),
+    ArtifactParserSpec(
+        "android-notifications",
+        "Notification Artifacts",
+        "notifications",
+        ("notifications.json", "notifications.xml", "*notifications*.json", "*notifications*.xml"),
+        parse_notifications_artifacts,
+    ),
 )
 
 
@@ -67,12 +115,16 @@ def iter_registered_artifacts(input_dir: pathlib.Path) -> list[dict[str, Any]]:
     return out
 
 
-def parse_app_data_artifacts(input_dir: pathlib.Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def parse_app_data_artifacts(
+    input_dir: pathlib.Path,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     app_data: list[dict[str, Any]] = []
     protobufs: list[dict[str, Any]] = []
     if looks_like_aleapp_output(input_dir):
         return app_data, protobufs
-    registered_names = {name for spec in REGISTRY for name in spec.filenames if "*" not in name and "?" not in name}
+    registered_names = {
+        name for spec in REGISTRY for name in spec.filenames if "*" not in name and "?" not in name
+    }
     for path in sorted(input_dir.rglob("*")):
         if not path.is_file():
             continue
@@ -101,7 +153,11 @@ def _candidate_paths(input_dir: pathlib.Path, patterns: tuple[str, ...]) -> list
     seen: set[str] = set()
     out: list[pathlib.Path] = []
     for pattern in patterns:
-        matches = sorted(input_dir.rglob(pattern)) if any(token in pattern for token in "*?[]") else [input_dir / pattern]
+        matches = (
+            sorted(input_dir.rglob(pattern))
+            if any(token in pattern for token in "*?[]")
+            else [input_dir / pattern]
+        )
         for path in matches:
             if not path.exists() or not path.is_file():
                 continue
@@ -148,8 +204,16 @@ def _parse_app_data_file(path: pathlib.Path) -> dict[str, Any] | None:
         data = _load_json(path)
         if not isinstance(data, dict):
             return None
-        preview = [{"key": str(key), "value": _value_preview(value)} for key, value in list(data.items())[:8]]
-        return {"source_file": str(path), "format": "json", "key_count": len(data), "preview": preview}
+        preview = [
+            {"key": str(key), "value": _value_preview(value)}
+            for key, value in list(data.items())[:8]
+        ]
+        return {
+            "source_file": str(path),
+            "format": "json",
+            "key_count": len(data),
+            "preview": preview,
+        }
     try:
         root = fromstring(path.read_text(encoding="utf-8", errors="ignore"))
     except (OSError, ParseError, TypeError, ValueError):

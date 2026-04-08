@@ -41,7 +41,9 @@ def inspect_keystore(devices: DeviceManager, serial: str) -> KeystoreInventory:
             out.append(KeystoreListing(path=path, entries=entries))
     if not out:
         raise DeviceError("No keystore directories found or accessible")
-    return KeystoreInventory(serial=serial, listings=out, candidate_paths=list(KEYSTORE_CANDIDATE_PATHS))
+    return KeystoreInventory(
+        serial=serial, listings=out, candidate_paths=list(KEYSTORE_CANDIDATE_PATHS)
+    )
 
 
 def list_keystore(devices: DeviceManager, serial: str) -> list[KeystoreListing]:

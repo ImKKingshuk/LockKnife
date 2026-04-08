@@ -3,7 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 
-def confidence_level(*, evidence_count: int = 0, mode: str = "remote", credential_configured: bool | None = None, has_error: bool = False) -> str:
+def confidence_level(
+    *,
+    evidence_count: int = 0,
+    mode: str = "remote",
+    credential_configured: bool | None = None,
+    has_error: bool = False,
+) -> str:
     if has_error:
         return "limited"
     if mode == "local":
@@ -34,7 +40,9 @@ def confidence_notes(
         ttl = f" (ttl {cache_ttl_s}s)" if cache_ttl_s else ""
         notes.append(f"Provider responses may be served from {cache_mode} cache{ttl}.")
     if credential_required and credential_configured is False:
-        notes.append("Provider credentials are not configured, so coverage may be incomplete or unavailable.")
+        notes.append(
+            "Provider credentials are not configured, so coverage may be incomplete or unavailable."
+        )
     if evidence_count == 0 and not has_error:
         notes.append("No provider evidence was returned for this query.")
     elif evidence_count > 0:
@@ -42,7 +50,9 @@ def confidence_notes(
     return notes[:4]
 
 
-def coverage_summary(subject: str, *, evidence_count: int, confidence: str, providers: list[str]) -> dict[str, Any]:
+def coverage_summary(
+    subject: str, *, evidence_count: int, confidence: str, providers: list[str]
+) -> dict[str, Any]:
     return {
         "subject": subject,
         "provider_count": len(providers),

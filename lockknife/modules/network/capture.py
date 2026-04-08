@@ -24,6 +24,7 @@ def _validate_iface(iface: str) -> str:
         raise ValueError("iface contains unsafe characters")
     return value
 
+
 @dataclasses.dataclass(frozen=True)
 class CaptureResult:
     serial: str
@@ -100,7 +101,9 @@ def capture_pcap(
                 total=4,
                 metadata={"remote_path": remote},
             )
-            devices.shell(serial, f'su -c "rm -f {shlex.quote(remote)} 2>/dev/null"', timeout_s=10.0)
+            devices.shell(
+                serial, f'su -c "rm -f {shlex.quote(remote)} 2>/dev/null"', timeout_s=10.0
+            )
         except DeviceError:
             log.warning("pcap_cleanup_failed", exc_info=True, serial=serial, remote=remote)
         output_path.write_bytes(local.read_bytes())

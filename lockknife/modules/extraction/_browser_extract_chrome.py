@@ -1,19 +1,10 @@
 from __future__ import annotations
 
-
-
-import pathlib
-
 import sqlite3
 
-
-
 from lockknife.core.device import DeviceManager
-
 from lockknife.core.exceptions import DeviceError
-
 from lockknife.core.security import secure_temp_dir
-
 from lockknife.modules.extraction._browser_common import _try_root_pull_file, log
 from lockknife.modules.extraction._browser_models import (
     BrowserBookmarkEntry,
@@ -22,7 +13,6 @@ from lockknife.modules.extraction._browser_models import (
     BrowserHistoryEntry,
     BrowserLoginEntry,
 )
-
 from lockknife.modules.extraction._browser_parse_chrome import (
     _parse_chrome_bookmarks,
     _parse_chrome_cookies,
@@ -30,7 +20,6 @@ from lockknife.modules.extraction._browser_parse_chrome import (
     _parse_chrome_history,
     _parse_chrome_logins,
 )
-
 
 _CHROMIUM_BROWSER_PACKAGES = {
     "chrome": ["com.android.chrome", "com.chrome.beta"],
@@ -51,7 +40,9 @@ def _candidate_paths(browser: str, relative_path: str) -> list[str]:
     return out
 
 
-def extract_chrome_history(devices: DeviceManager, serial: str, limit: int = 500, *, browser: str = "chrome") -> list[BrowserHistoryEntry]:
+def extract_chrome_history(
+    devices: DeviceManager, serial: str, limit: int = 500, *, browser: str = "chrome"
+) -> list[BrowserHistoryEntry]:
     if limit <= 0:
         raise ValueError("limit must be > 0")
     if not devices.has_root(serial):
@@ -70,7 +61,10 @@ def extract_chrome_history(devices: DeviceManager, serial: str, limit: int = 500
 
     raise DeviceError(f"Unable to extract {browser.title()} history")
 
-def extract_chrome_bookmarks(devices: DeviceManager, serial: str, limit: int = 2000, *, browser: str = "chrome") -> list[BrowserBookmarkEntry]:
+
+def extract_chrome_bookmarks(
+    devices: DeviceManager, serial: str, limit: int = 2000, *, browser: str = "chrome"
+) -> list[BrowserBookmarkEntry]:
     if limit <= 0:
         raise ValueError("limit must be > 0")
     if not devices.has_root(serial):
@@ -85,11 +79,19 @@ def extract_chrome_bookmarks(devices: DeviceManager, serial: str, limit: int = 2
             try:
                 return _parse_chrome_bookmarks(local, limit)
             except Exception:
-                log.debug("chrome_bookmarks_parse_failed", exc_info=True, serial=serial, local_path=str(local))
+                log.debug(
+                    "chrome_bookmarks_parse_failed",
+                    exc_info=True,
+                    serial=serial,
+                    local_path=str(local),
+                )
                 continue
     raise DeviceError(f"Unable to extract {browser.title()} bookmarks")
 
-def extract_chrome_downloads(devices: DeviceManager, serial: str, limit: int = 500, *, browser: str = "chrome") -> list[BrowserDownloadEntry]:
+
+def extract_chrome_downloads(
+    devices: DeviceManager, serial: str, limit: int = 500, *, browser: str = "chrome"
+) -> list[BrowserDownloadEntry]:
     if limit <= 0:
         raise ValueError("limit must be > 0")
     if not devices.has_root(serial):
@@ -109,7 +111,10 @@ def extract_chrome_downloads(devices: DeviceManager, serial: str, limit: int = 5
                 continue
     return []
 
-def extract_chrome_cookies(devices: DeviceManager, serial: str, limit: int = 1000, *, browser: str = "chrome") -> list[BrowserCookieEntry]:
+
+def extract_chrome_cookies(
+    devices: DeviceManager, serial: str, limit: int = 1000, *, browser: str = "chrome"
+) -> list[BrowserCookieEntry]:
     if limit <= 0:
         raise ValueError("limit must be > 0")
     if not devices.has_root(serial):
@@ -129,7 +134,10 @@ def extract_chrome_cookies(devices: DeviceManager, serial: str, limit: int = 100
                 continue
     return []
 
-def extract_chrome_saved_logins(devices: DeviceManager, serial: str, limit: int = 500, *, browser: str = "chrome") -> list[BrowserLoginEntry]:
+
+def extract_chrome_saved_logins(
+    devices: DeviceManager, serial: str, limit: int = 500, *, browser: str = "chrome"
+) -> list[BrowserLoginEntry]:
     if limit <= 0:
         raise ValueError("limit must be > 0")
     if not devices.has_root(serial):

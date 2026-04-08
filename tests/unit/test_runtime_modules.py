@@ -13,7 +13,12 @@ def test_hooks_scripts() -> None:
 
     assert "ssl_bypass" in ssl_pinning_bypass_script()
     assert "root_bypass" in root_bypass_script()
-    assert {item["name"] for item in list_builtin_runtime_scripts()} >= {"ssl_bypass", "root_bypass", "debug_bypass", "crypto_intercept"}
+    assert {item["name"] for item in list_builtin_runtime_scripts()} >= {
+        "ssl_bypass",
+        "root_bypass",
+        "debug_bypass",
+        "crypto_intercept",
+    }
     assert get_builtin_runtime_script("ssl-bypass")["name"] == "ssl_bypass"
     assert suggest_builtin_runtime_scripts("com.secure.bank.app")
 
@@ -31,7 +36,13 @@ def test_memory_search_and_heap_dump(monkeypatch) -> None:
 
     class _Script:
         def on(self, _event: str, handler):
-            handler({"type": "send", "payload": json.dumps({"hits": ["0x1"], "ok": True, "output_path": "/tmp/x"})}, None)
+            handler(
+                {
+                    "type": "send",
+                    "payload": json.dumps({"hits": ["0x1"], "ok": True, "output_path": "/tmp/x"}),
+                },
+                None,
+            )
             return None
 
     class _Mgr:
@@ -109,7 +120,9 @@ def test_frida_manager_spawns(monkeypatch) -> None:
         def get_process(self, _app_id):
             return types.SimpleNamespace(pid=321)
 
-    fake_frida = types.SimpleNamespace(get_usb_device=lambda timeout=0: _Device(), get_device=lambda _id: _Device())
+    fake_frida = types.SimpleNamespace(
+        get_usb_device=lambda timeout=0: _Device(), get_device=lambda _id: _Device()
+    )
     monkeypatch.setitem(__import__("sys").modules, "frida", fake_frida)
 
     mgr = fm_mod.FridaManager()

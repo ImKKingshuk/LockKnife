@@ -29,8 +29,12 @@ def group_endpoints(endpoints: list[dict[str, Any]]) -> list[dict[str, Any]]:
         out.append(
             {
                 **bucket,
-                "top_routes": [{"name": name, "count": count} for name, count in routes[key].most_common(5)],
-                "methods": [{"name": name, "count": count} for name, count in methods[key].most_common(5)],
+                "top_routes": [
+                    {"name": name, "count": count} for name, count in routes[key].most_common(5)
+                ],
+                "methods": [
+                    {"name": name, "count": count} for name, count in methods[key].most_common(5)
+                ],
             }
         )
     out.sort(key=lambda item: (-int(item.get("count") or 0), str(item.get("host") or "unknown")))

@@ -55,7 +55,8 @@ dev = [
     "pytest-cov>=5.0",
     "bandit>=1.7",
     "pip-audit>=2.7",
-    "mypy>=1.8",
+    "ty>=0.0.29",
+    "ruff>=0.15.9",
     "maturin>=1.9.4",
 ]
 
@@ -80,41 +81,69 @@ exclude_lines = [
   "if __name__ == .__main__.:",
 ]
 
-[tool.mypy]
-python_version = "3.12"
-strict = true
-warn_unused_configs = true
-no_implicit_optional = true
-ignore_missing_imports = true
-pretty = true
-exclude = "^(lockknife_headless_cli/|lockknife/__main__\\.py$)"
+[tool.ty]
 
-[[tool.mypy.overrides]]
-module = [
-  "lockknife_headless_cli.main",
-  "lockknife_headless_cli.features",
-  "lockknife_headless_cli.plugins",
-]
-disable_error_code = ["untyped-decorator"]
+[tool.ty.src]
+include = ["lockknife", "lockknife_headless_cli"]
 
-[[tool.mypy.overrides]]
-module = [
-  "lockknife_headless_cli._extract_all",
-  "lockknife_headless_cli._extract_basic",
-  "lockknife_headless_cli._extract_browser",
-  "lockknife_headless_cli._extract_messaging",
-  "lockknife_headless_cli._extract_misc",
-  "lockknife_headless_cli._case_cli_core",
-  "lockknife_headless_cli._case_cli_enrichment",
-  "lockknife_headless_cli._case_cli_queries",
-  "lockknife_headless_cli.device",
-  "lockknife_headless_cli.network",
-  "lockknife_headless_cli.forensics",
-  "lockknife_headless_cli.security",
-  "lockknife_headless_cli.crack",
-  "lockknife_headless_cli.exploit",
+[tool.ty.analysis]
+respect-type-ignore-comments = true
+allowed-unresolved-imports = [
+  "OTXv2",
+  "androguard",
+  "androguard.core.bytecodes.apk",
+  "bleak",
+  "bluetooth",
+  "frida",
+  "joblib",
+  "numpy",
+  "scapy",
+  "sklearn",
+  "sklearn.ensemble",
+  "sklearn.neighbors",
+  "vt",
+  "weasyprint",
+  "xhtml2pdf",
+  "yara",
 ]
-disable_error_code = ["untyped-decorator"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "UP",  # pyupgrade
+  "SIM", # flake8-simplify
+]
+ignore = [
+  "E501", # large existing corpus of long literals/messages
+  "B008", # existing API defaults use call expressions in places
+  "F841", # existing CLI/progress code keeps intentionally assigned values
+  "E402", # several modules intentionally stage imports around runtime setup
+  "SIM103", # style-only simplification across many existing helpers
+  "SIM105", # style-only conversion to contextlib.suppress
+  "SIM117", # style-only nested-with flattening
+  "SIM102", # style-only nested-if flattening
+  "SIM118", # style-only dict membership rewrite
+  "SIM108", # style-only ternary rewrites
+  "C401", # style-only comprehension rewrite
+  "UP042", # defer StrEnum migration for compatibility/readability reasons
+  "F401", # existing package/module exports rely on imported names
+  "SIM115", # style-only context-manager rewrites
+  "SIM116", # style-only dict-dispatch rewrites
+  "F601", # historical duplicate-key fixtures remain tolerated for now
+  "B905", # strict zip migration deferred across older call sites
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lockknife", "lockknife_headless_cli"]
 
 [project.scripts]
 lockknife = "lockknife_headless_cli.main:cli"
@@ -128,3 +157,9 @@ include = [
   { path = "lockknife_headless_cli/**/*.py", format = ["sdist", "wheel"] },
 ]
 features = ["extension-module"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.9",
+    "ty>=0.0.29",
+]

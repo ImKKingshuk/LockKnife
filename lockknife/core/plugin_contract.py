@@ -7,7 +7,6 @@ import click
 
 from lockknife.core.plugin_models import PluginCapability, PluginMetadata
 
-
 LOCKKNIFE_PLUGIN_API_VERSION = "1"
 LOCKKNIFE_PLUGIN_ENTRY_POINT_GROUP = "lockknife.plugins"
 

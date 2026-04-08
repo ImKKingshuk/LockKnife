@@ -28,7 +28,9 @@ def test_features_command_json(monkeypatch) -> None:
 
     fake_console = _Console()
     monkeypatch.setattr(features_cli, "console", fake_console)
-    result = CliRunner().invoke(features_cli.features_cmd, ["--format", "json", "--status", "dependency-gated"])
+    result = CliRunner().invoke(
+        features_cli.features_cmd, ["--format", "json", "--status", "dependency-gated"]
+    )
     assert result.exit_code == 0
     assert '"rows"' in result.output
     assert '"status": "dependency-gated"' in result.output

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -190,7 +191,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         case_dir = _require_runtime_case_dir(params)
         attach_mode = str(params.get("attach_mode") or "spawn")
         descriptor = get_builtin_runtime_script(builtin_script)
-        session_name = _runtime_session_name(params, default=f"builtin-{_safe_name(app_id)}-{descriptor['name']}")
+        session_name = _runtime_session_name(
+            params, default=f"builtin-{_safe_name(app_id)}-{descriptor['name']}"
+        )
         output, _derived = _resolve_case_output(
             _path_param(params.get("output")),
             case_dir,
@@ -207,16 +210,24 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             script_label=str(descriptor["file_name"]),
             device_id=device_id,
             attach_mode=attach_mode,
-            metadata={"builtin_script": descriptor["name"], "builtin_category": descriptor["category"]},
+            metadata={
+                "builtin_script": descriptor["name"],
+                "builtin_category": descriptor["category"],
+            },
             initial_wait_s=timeout,
             manager_factory=FridaManager,
         )
         payload["available_builtin_scripts"] = list_builtin_runtime_scripts()
-        payload["suggested_builtin_scripts"] = suggest_builtin_runtime_scripts(app_id, session_kind=str(descriptor["name"]))
+        payload["suggested_builtin_scripts"] = suggest_builtin_runtime_scripts(
+            app_id, session_kind=str(descriptor["name"])
+        )
         if output is not None:
             write_json(output, payload)
             return _ok(payload, f"Managed built-in runtime session saved to {output}")
-        return _ok(payload, f"Managed built-in runtime session {payload['session']['session_id']} is active")
+        return _ok(
+            payload,
+            f"Managed built-in runtime session {payload['session']['session_id']} is active",
+        )
 
     if action == "runtime.bypass_ssl":
         app_id = _require(params, "app_id")
@@ -248,7 +259,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         if output is not None:
             write_json(output, payload)
             return _ok(payload, f"Managed SSL bypass session saved to {output}")
-        return _ok(payload, f"Managed SSL bypass session {payload['session']['session_id']} is active")
+        return _ok(
+            payload, f"Managed SSL bypass session {payload['session']['session_id']} is active"
+        )
 
     if action == "runtime.bypass_root":
         app_id = _require(params, "app_id")
@@ -280,7 +293,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         if output is not None:
             write_json(output, payload)
             return _ok(payload, f"Managed root bypass session saved to {output}")
-        return _ok(payload, f"Managed root bypass session {payload['session']['session_id']} is active")
+        return _ok(
+            payload, f"Managed root bypass session {payload['session']['session_id']} is active"
+        )
 
     if action == "runtime.trace":
         app_id = _require(params, "app_id")
@@ -413,7 +428,15 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             filename=f"runtime_memory_search_{_safe_name(app_id)}.json",
         )
         search_pattern = f"hex:{pattern}" if is_hex else pattern
-        payload = json.loads(memory_search(app_id, search_pattern, device_id=device_id, protection=protection, timeout_s=timeout))
+        payload = json.loads(
+            memory_search(
+                app_id,
+                search_pattern,
+                device_id=device_id,
+                protection=protection,
+                timeout_s=timeout,
+            )
+        )
         if output is not None:
             write_json(output, payload)
             _register_case_output(
@@ -422,7 +445,12 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 category="runtime-memory-search",
                 source_command="runtime memory-search",
                 device_serial=device_id,
-                metadata={"app_id": app_id, "pattern": search_pattern, "protection": protection, "timeout_s": timeout},
+                metadata={
+                    "app_id": app_id,
+                    "pattern": search_pattern,
+                    "protection": protection,
+                    "timeout_s": timeout,
+                },
             )
             return _ok(payload, f"Memory search saved to {output}")
         return _ok(payload, "Memory search complete")
@@ -448,7 +476,11 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 category="runtime-heap-dump",
                 source_command="runtime heap-dump",
                 device_serial=device_id,
-                metadata={"app_id": app_id, "remote_output_path": output_path, "timeout_s": timeout},
+                metadata={
+                    "app_id": app_id,
+                    "remote_output_path": output_path,
+                    "timeout_s": timeout,
+                },
             )
             return _ok(payload, f"Heap dump result saved to {result_output}")
         return _ok(payload, "Heap dump complete")

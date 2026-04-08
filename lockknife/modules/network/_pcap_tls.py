@@ -4,7 +4,9 @@ import re
 from collections import Counter
 from typing import Any
 
-_TLS_SERVER_NAME = re.compile(r"(?i)(?:server_name|sni|hostname)[:=\s]+([a-zA-Z0-9._-]+\.[a-zA-Z]{2,})")
+_TLS_SERVER_NAME = re.compile(
+    r"(?i)(?:server_name|sni|hostname)[:=\s]+([a-zA-Z0-9._-]+\.[a-zA-Z]{2,})"
+)
 _TLS_ALPN = re.compile(r"(?i)(?:alpn|application_layer_protocol)[:=\s]+([a-zA-Z0-9._/-]+)")
 
 
@@ -33,6 +35,8 @@ def summarize_tls_metadata(server_names: list[str], alpns: list[str]) -> dict[st
     return {
         "server_name_count": len(server_names),
         "server_names": server_names[:25],
-        "top_server_names": [{"name": name, "count": count} for name, count in host_counts.most_common(8)],
+        "top_server_names": [
+            {"name": name, "count": count} for name, count in host_counts.most_common(8)
+        ],
         "alpn": [{"name": name, "count": count} for name, count in alpn_counts.most_common(6)],
     }

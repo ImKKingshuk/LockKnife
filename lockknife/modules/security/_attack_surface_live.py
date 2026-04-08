@@ -4,10 +4,8 @@ import shlex
 from typing import Any
 
 from lockknife.core.device import DeviceManager
-
 from lockknife.modules.security._deeplink_probe import probe_deeplink, unique_deeplinks
 from lockknife.modules.security._provider_probe import probe_provider, unique_providers
-
 
 PROBE_LIMIT = 8
 
@@ -66,7 +64,11 @@ def probe_surface(
         for item in component_results
         if item.get("static_permission_gap") and item.get("status") == "resolved"
     )
-    static_gap_total = sum(1 for item in _component_probe_targets(exported_components)[:PROBE_LIMIT] if item.get("static_permission_gap"))
+    static_gap_total = sum(
+        1
+        for item in _component_probe_targets(exported_components)[:PROBE_LIMIT]
+        if item.get("static_permission_gap")
+    )
     return {
         "attempted": True,
         "serial": serial,
@@ -75,15 +77,27 @@ def probe_surface(
         "package_path": package_out.strip() or None,
         "summary": {
             "deeplink_probe_total": len(deeplink_results),
-            "deeplink_resolved_total": sum(1 for item in deeplink_results if item["status"] == "resolved"),
+            "deeplink_resolved_total": sum(
+                1 for item in deeplink_results if item["status"] == "resolved"
+            ),
             "provider_probe_total": len(provider_results),
-            "provider_resolved_total": sum(1 for item in provider_results if item["status"] == "resolved"),
+            "provider_resolved_total": sum(
+                1 for item in provider_results if item["status"] == "resolved"
+            ),
             "component_probe_total": len(component_results),
-            "component_resolved_total": sum(1 for item in component_results if item["status"] == "resolved"),
-            "component_interaction_total": sum(1 for item in component_results if item.get("interaction_status") == "resolved"),
-            "component_permission_enforced_total": sum(1 for item in component_results if item.get("permission_verification") == "declared"),
+            "component_resolved_total": sum(
+                1 for item in component_results if item["status"] == "resolved"
+            ),
+            "component_interaction_total": sum(
+                1 for item in component_results if item.get("interaction_status") == "resolved"
+            ),
+            "component_permission_enforced_total": sum(
+                1 for item in component_results if item.get("permission_verification") == "declared"
+            ),
             "component_permission_gap_total": max(
-                sum(1 for item in component_results if item.get("permission_verification") == "gap"),
+                sum(
+                    1 for item in component_results if item.get("permission_verification") == "gap"
+                ),
                 resolved_static_gaps,
                 static_gap_total,
             ),
@@ -107,7 +121,11 @@ def probe_findings(probe_results: dict[str, Any]) -> list[dict[str, Any]]:
                 "title": "Browsable deep links resolve on-device",
                 "severity": "medium",
                 "description": "Safe package-manager probes resolved one or more browsable deep-link entry points on the device.",
-                "evidence": [item.get("uri") for item in probe_results.get("deeplinks", []) if item.get("status") == "resolved"],
+                "evidence": [
+                    item.get("uri")
+                    for item in probe_results.get("deeplinks", [])
+                    if item.get("status") == "resolved"
+                ],
             }
         )
     if summary.get("provider_resolved_total", 0):
@@ -117,7 +135,11 @@ def probe_findings(probe_results: dict[str, Any]) -> list[dict[str, Any]]:
                 "title": "Exported providers resolve on-device",
                 "severity": "high",
                 "description": "Safe provider-resolution probes confirmed one or more exported content-provider authorities on the device.",
-                "evidence": [item.get("authority") for item in probe_results.get("providers", []) if item.get("status") == "resolved"],
+                "evidence": [
+                    item.get("authority")
+                    for item in probe_results.get("providers", [])
+                    if item.get("status") == "resolved"
+                ],
             }
         )
     if summary.get("component_resolved_total", 0):
@@ -127,7 +149,11 @@ def probe_findings(probe_results: dict[str, Any]) -> list[dict[str, Any]]:
                 "title": "Exported components resolve on-device",
                 "severity": "medium",
                 "description": "Safe package-manager probes resolved one or more exported activity, service, or receiver entry points on the device.",
-                "evidence": [item.get("component") for item in probe_results.get("components", []) if item.get("status") == "resolved"],
+                "evidence": [
+                    item.get("component")
+                    for item in probe_results.get("components", [])
+                    if item.get("status") == "resolved"
+                ],
             }
         )
     if summary.get("component_permission_gap_total", 0):
@@ -137,7 +163,11 @@ def probe_findings(probe_results: dict[str, Any]) -> list[dict[str, Any]]:
                 "title": "Resolved components appear reachable without permission enforcement",
                 "severity": "high",
                 "description": "Live resolution plus missing permission guards indicates a reachable exported component surface that likely lacks caller gating.",
-                "evidence": [item.get("component") for item in probe_results.get("components", []) if item.get("permission_verification") == "gap"],
+                "evidence": [
+                    item.get("component")
+                    for item in probe_results.get("components", [])
+                    if item.get("permission_verification") == "gap"
+                ],
             }
         )
     return findings
@@ -161,7 +191,9 @@ def _component_probe_targets(items: list[dict[str, Any]]) -> list[dict[str, Any]
     return targets
 
 
-def _probe_component(devices: DeviceManager, serial: str, package: str, item: dict[str, Any]) -> dict[str, Any]:
+def _probe_component(
+    devices: DeviceManager, serial: str, package: str, item: dict[str, Any]
+) -> dict[str, Any]:
     component = str(item.get("name") or "").strip()
     component_type = str(item.get("type") or "activity")
     if component_type == "activity":
@@ -173,7 +205,11 @@ def _probe_component(devices: DeviceManager, serial: str, package: str, item: di
     interaction_command = _interaction_command(item)
     try:
         output = devices.shell(serial, command, timeout_s=10.0)
-        interaction_output = devices.shell(serial, interaction_command, timeout_s=10.0) if interaction_command else ""
+        interaction_output = (
+            devices.shell(serial, interaction_command, timeout_s=10.0)
+            if interaction_command
+            else ""
+        )
     except Exception as exc:  # pragma: no cover - exercised through callback/CLI plumbing
         return {
             "component": component,
@@ -186,14 +222,22 @@ def _probe_component(devices: DeviceManager, serial: str, package: str, item: di
     lowered = output.lower()
     interaction_lowered = interaction_output.lower()
     resolved = bool(output.strip()) and not any(
-        token in lowered for token in ("no activities", "no services", "no receivers", "unable to", "not found")
+        token in lowered
+        for token in ("no activities", "no services", "no receivers", "unable to", "not found")
     )
     resolved = resolved and package.lower() in lowered
     interaction_resolved = bool(interaction_output.strip()) and not any(
-        token in interaction_lowered for token in ("no activities", "no services", "no receivers", "unable to", "not found")
+        token in interaction_lowered
+        for token in ("no activities", "no services", "no receivers", "unable to", "not found")
     )
-    interaction_resolved = interaction_resolved and package.lower() in interaction_lowered if interaction_command else False
-    permission_verification = "declared" if item.get("permission") or item.get("permission_protected") else "none"
+    interaction_resolved = (
+        interaction_resolved and package.lower() in interaction_lowered
+        if interaction_command
+        else False
+    )
+    permission_verification = (
+        "declared" if item.get("permission") or item.get("permission_protected") else "none"
+    )
     if (resolved or interaction_resolved) and permission_verification == "none":
         permission_verification = "gap"
     return {
@@ -237,13 +281,21 @@ def _review_queue(
     queue: list[str] = []
     for item in providers:
         if item.get("status") == "resolved":
-            queue.append(f"Confirmed provider authority {item.get('authority')} resolves on-device; attempt safe read-path validation next.")
+            queue.append(
+                f"Confirmed provider authority {item.get('authority')} resolves on-device; attempt safe read-path validation next."
+            )
     for item in deeplinks:
         if item.get("status") == "resolved":
-            queue.append(f"Confirmed deep link {item.get('uri')} resolves on-device; inspect auth, session, and redirect handling.")
+            queue.append(
+                f"Confirmed deep link {item.get('uri')} resolves on-device; inspect auth, session, and redirect handling."
+            )
     for item in components:
         if item.get("status") == "resolved":
-            queue.append(f"Confirmed exported {item.get('type')} {item.get('component')} resolves on-device; review caller trust assumptions.")
+            queue.append(
+                f"Confirmed exported {item.get('type')} {item.get('component')} resolves on-device; review caller trust assumptions."
+            )
         if item.get("permission_verification") == "gap":
-            queue.append(f"Component {item.get('component')} resolved without an explicit permission guard; validate caller restrictions next.")
+            queue.append(
+                f"Component {item.get('component')} resolved without an explicit permission guard; validate caller restrictions next."
+            )
     return queue[:6]

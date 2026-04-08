@@ -7,7 +7,9 @@ from lockknife.modules.forensics.parsers import decode_protobuf_file
 from lockknife.modules.forensics.timeline import build_timeline_report
 
 
-def test_parse_forensics_directory_imports_aleapp_lava_and_populates_timeline(tmp_path: pathlib.Path) -> None:
+def test_parse_forensics_directory_imports_aleapp_lava_and_populates_timeline(
+    tmp_path: pathlib.Path,
+) -> None:
     metadata = {
         "artifacts": {
             "Messaging": [
@@ -24,13 +26,17 @@ def test_parse_forensics_directory_imports_aleapp_lava_and_populates_timeline(tm
     db_path = tmp_path / "_lava_artifacts.db"
     conn = sqlite3.connect(db_path)
     conn.execute("CREATE TABLE wa_messages (ts INTEGER, body TEXT, jid TEXT)")
-    conn.execute("INSERT INTO wa_messages VALUES (?, ?, ?)", (1710000000000, "hello", "alice@example.com"))
+    conn.execute(
+        "INSERT INTO wa_messages VALUES (?, ?, ?)", (1710000000000, "hello", "alice@example.com")
+    )
     conn.commit()
     conn.close()
 
     report = parse_forensics_directory(tmp_path)
     parsed_artifacts = tmp_path / "parsed_artifacts.json"
-    parsed_artifacts.write_text(json.dumps([artifact.__dict__ for artifact in report.artifacts]), encoding="utf-8")
+    parsed_artifacts.write_text(
+        json.dumps([artifact.__dict__ for artifact in report.artifacts]), encoding="utf-8"
+    )
     timeline = build_timeline_report(parsed_artifacts_path=parsed_artifacts)
 
     assert report.summary["aleapp_compatible"] is True

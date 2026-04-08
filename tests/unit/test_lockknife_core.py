@@ -50,7 +50,7 @@ def test_android_pin_sha1_bruteforce() -> None:
     lockknife_core = pytest.importorskip("lockknife.lockknife_core")
     salt = 1234
     pin = "0420"
-    target = lockknife_core.sha1_hex(f"{salt}{pin}".encode("utf-8"))
+    target = lockknife_core.sha1_hex(f"{salt}{pin}".encode())
     found = lockknife_core.bruteforce_android_pin_sha1(target, salt, 4)
     assert found == pin
 
@@ -63,8 +63,8 @@ def test_scan_patterns_json() -> None:
 
 def test_sqlite_table_to_json(tmp_path) -> None:
     lockknife_core = pytest.importorskip("lockknife.lockknife_core")
-    import sqlite3
     import json
+    import sqlite3
 
     db = tmp_path / "x.db"
     con = sqlite3.connect(str(db))
@@ -95,5 +95,5 @@ def test_parse_ipv4_header_json() -> None:
 
 def test_parse_elf_header_json_rejects_invalid() -> None:
     lockknife_core = pytest.importorskip("lockknife.lockknife_core")
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         lockknife_core.parse_elf_header_json(b"not-elf")

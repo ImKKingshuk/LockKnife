@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 
-def build_apk_risk_summary(info: dict[str, Any], findings: list[Any], permission_score: int) -> dict[str, Any]:
+def build_apk_risk_summary(
+    info: dict[str, Any], findings: list[Any], permission_score: int
+) -> dict[str, Any]:
     component_summary = info.get("component_summary") or {}
     strings = info.get("string_analysis") or {}
     signing = info.get("signing") or {}
@@ -12,7 +14,9 @@ def build_apk_risk_summary(info: dict[str, Any], findings: list[Any], permission
     breakdown: list[dict[str, Any]] = []
     score = 0
 
-    finding_score = sum(_severity_weight(_finding_value(item, "severity") or "info") for item in findings)
+    finding_score = sum(
+        _severity_weight(_finding_value(item, "severity") or "info") for item in findings
+    )
     score += _add_breakdown(
         breakdown,
         factor="finding-severity",
@@ -46,7 +50,11 @@ def build_apk_risk_summary(info: dict[str, Any], findings: list[Any], permission
     signing_points = 0
     if signing.get("has_debug_or_test_certificate"):
         signing_points += 12
-    if any(item.get("id") == "legacy-v1-only-signing" for item in signing_findings if isinstance(item, dict)):
+    if any(
+        item.get("id") == "legacy-v1-only-signing"
+        for item in signing_findings
+        if isinstance(item, dict)
+    ):
         signing_points += 6
     if strict_signing.get("status") == "fail":
         signing_points += 8
@@ -82,7 +90,9 @@ def build_apk_risk_summary(info: dict[str, Any], findings: list[Any], permission
     return {
         "score": score,
         "level": _risk_level(score),
-        "exploitability": _exploitability_level(exported_total, weak_provider_total, secret_count > 0, severity_counts),
+        "exploitability": _exploitability_level(
+            exported_total, weak_provider_total, secret_count > 0, severity_counts
+        ),
         "evidence_strength": _evidence_strength(findings, component_summary, secret_count),
         "finding_count": len(findings),
         "severity_counts": severity_counts,
@@ -112,7 +122,7 @@ def _severity_weight(severity: str) -> int:
 
 
 def _severity_counts(findings: list[Any]) -> dict[str, int]:
-    counts = {key: 0 for key in ["critical", "high", "medium", "low", "info"]}
+    counts = dict.fromkeys(["critical", "high", "medium", "low", "info"], 0)
     for finding in findings:
         severity = str(_finding_value(finding, "severity") or "info").lower()
         counts[severity] = counts.get(severity, 0) + 1
@@ -136,17 +146,26 @@ def _exploitability_level(
     severity_counts: dict[str, int],
 ) -> str:
     pressure = exported_total + (provider_weak_total * 2) + (2 if has_secret else 0)
-    if provider_weak_total or severity_counts.get("critical", 0) or severity_counts.get("high", 0) >= 2:
+    if (
+        provider_weak_total
+        or severity_counts.get("critical", 0)
+        or severity_counts.get("high", 0) >= 2
+    ):
         return "high"
     if pressure >= 4 or severity_counts.get("medium", 0):
         return "medium"
     return "low"
 
 
-def _evidence_strength(findings: list[Any], component_summary: dict[str, Any], secret_count: int) -> str:
+def _evidence_strength(
+    findings: list[Any], component_summary: dict[str, Any], secret_count: int
+) -> str:
     if secret_count > 0 or int(component_summary.get("provider_weak_permission_total") or 0) > 0:
         return "strong"
-    if any(str(_finding_value(item, "severity") or "").lower() in {"critical", "high"} for item in findings):
+    if any(
+        str(_finding_value(item, "severity") or "").lower() in {"critical", "high"}
+        for item in findings
+    ):
         return "strong"
     if findings:
         return "moderate"
@@ -187,13 +206,21 @@ def _string_signal_traces(strings: dict[str, Any]) -> list[dict[str, Any]]:
     traces: list[dict[str, Any]] = []
     for item in (strings.get("hardcoded_secret_indicators") or [])[:2]:
         if isinstance(item, dict):
-            traces.append({"source": "string-analysis", "id": "secret-indicator", "preview": item.get("preview")})
+            traces.append(
+                {
+                    "source": "string-analysis",
+                    "id": "secret-indicator",
+                    "preview": item.get("preview"),
+                }
+            )
     for item in (strings.get("trackers") or [])[:2]:
         if isinstance(item, dict):
             traces.append({"source": "tracker", "id": item.get("id"), "title": item.get("label")})
     for item in (strings.get("code_signals") or [])[:2]:
         if isinstance(item, dict):
-            traces.append({"source": "code-signal", "id": item.get("id"), "title": item.get("label")})
+            traces.append(
+                {"source": "code-signal", "id": item.get("id"), "title": item.get("label")}
+            )
     return traces
 
 
@@ -206,5 +233,12 @@ def _collect_evidence_traces(
     traces.extend(_string_signal_traces(strings))
     for item in signing_findings[:3]:
         if isinstance(item, dict):
-            traces.append({"source": "signing", "id": item.get("id"), "severity": item.get("severity"), "title": item.get("title")})
+            traces.append(
+                {
+                    "source": "signing",
+                    "id": item.get("id"),
+                    "severity": item.get("severity"),
+                    "title": item.get("title"),
+                }
+            )
     return traces[:12]

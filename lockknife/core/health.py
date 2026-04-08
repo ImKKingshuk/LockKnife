@@ -90,13 +90,17 @@ def doctor_status() -> dict[str, Any]:
     secrets = load_secrets()
     rust_ok = bool((core.get("checks") or {}).get("rust_extension", {}).get("ok"))
 
-    apk = _check_module("androguard.core.bytecodes.apk", hint="Install APK support extras: uv sync --extra apk")
+    apk = _check_module(
+        "androguard.core.bytecodes.apk", hint="Install APK support extras: uv sync --extra apk"
+    )
     apktool = shutil.which("apktool")
     jadx = shutil.which("jadx")
     frida = _check_module("frida", hint="Install runtime extras: uv sync --extra frida")
     scapy = _check_module("scapy", hint="Install network extras: uv sync --extra network")
     vt_mod = _check_module("vt", hint="Install threat intel extras: uv sync --extra threat-intel")
-    otx_mod = _check_module("OTXv2", hint="Install threat intel extras: uv sync --extra threat-intel")
+    otx_mod = _check_module(
+        "OTXv2", hint="Install threat intel extras: uv sync --extra threat-intel"
+    )
     yara_py = _check_module("yara", hint="Install YARA support: uv sync --extra yara")
     numpy_mod = _check_module("numpy", hint="Install ML extras: uv sync --extra ml")
     sklearn_mod = _check_module("sklearn", hint="Install ML extras: uv sync --extra ml")
@@ -106,8 +110,12 @@ def doctor_status() -> dict[str, Any]:
 
     pdf_ok = bool(weasy_mod.get("ok") or xhtml_mod.get("ok"))
     ai_ok = bool(numpy_mod.get("ok") and sklearn_mod.get("ok") and joblib_mod.get("ok"))
-    vt_key = _configured_secret("VT_API_KEY", secrets.VT_API_KEY, hint="Set VT_API_KEY in the environment or .env")
-    otx_key = _configured_secret("OTX_API_KEY", secrets.OTX_API_KEY, hint="Set OTX_API_KEY in the environment or .env")
+    vt_key = _configured_secret(
+        "VT_API_KEY", secrets.VT_API_KEY, hint="Set VT_API_KEY in the environment or .env"
+    )
+    otx_key = _configured_secret(
+        "OTX_API_KEY", secrets.OTX_API_KEY, hint="Set OTX_API_KEY in the environment or .env"
+    )
 
     optional: dict[str, Any] = {
         "apk_analysis": apk,
@@ -128,7 +136,9 @@ def doctor_status() -> dict[str, Any]:
         "pdf_generation": {
             "ok": pdf_ok,
             "backends": {"weasyprint": weasy_mod, "xhtml2pdf": xhtml_mod},
-            "hint": "Install weasyprint or xhtml2pdf for PDF report output." if not pdf_ok else None,
+            "hint": "Install weasyprint or xhtml2pdf for PDF report output."
+            if not pdf_ok
+            else None,
         },
         "ai_ml": {
             "ok": ai_ok,

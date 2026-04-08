@@ -4,7 +4,7 @@ import dataclasses
 import json
 import pathlib
 import re
-from typing import Any
+from typing import Any, cast
 
 import click
 
@@ -32,7 +32,9 @@ def _safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._") or "security"
 
 
-def _resolve_case_output(output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str) -> tuple[pathlib.Path | None, bool]:
+def _resolve_case_output(
+    output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str
+) -> tuple[pathlib.Path | None, bool]:
     if output is not None:
         return output, False
     if case_dir is None:
@@ -63,15 +65,27 @@ def _register_security_output(
     )
 
 
+def _object_dict(value: object) -> dict[str, object]:
+    return cast(dict[str, object], value) if isinstance(value, dict) else {}
+
+
+def _object_list(value: object) -> list[object]:
+    return cast(list[object], value) if isinstance(value, list) else []
+
+
 @security.command("scan")
 @click.option("-s", "--serial", required=True)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
 @click.pass_obj
-def scan_cmd(app: Any, serial: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def scan_cmd(
+    app: Any, serial: str, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     findings = run_device_audit(app.devices, serial)
     payload = [dataclasses.asdict(f) for f in findings]
-    output, derived = _resolve_case_output(output, case_dir, filename=f"security_scan_{_safe_name(serial)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"security_scan_{_safe_name(serial)}.json"
+    )
     if output:
         write_json(output, payload)
         _register_security_output(
@@ -93,10 +107,14 @@ def scan_cmd(app: Any, serial: str, output: pathlib.Path | None, case_dir: pathl
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
 @click.pass_obj
-def selinux_cmd(app: Any, serial: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def selinux_cmd(
+    app: Any, serial: str, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     status = get_selinux_status(app.devices, serial)
     payload = dataclasses.asdict(status)
-    output, derived = _resolve_case_output(output, case_dir, filename=f"security_selinux_{_safe_name(serial)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"security_selinux_{_safe_name(serial)}.json"
+    )
     if output:
         write_json(output, payload)
         _register_security_output(
@@ -107,7 +125,10 @@ def selinux_cmd(app: Any, serial: str, output: pathlib.Path | None, case_dir: pa
             serial=serial,
             metadata={
                 "status": payload.get("status") or payload.get("mode"),
-                "risk_level": ((payload.get("posture") if isinstance(payload.get("posture"), dict) else {}) or {}).get("risk_level"),
+                "risk_level": (
+                    (payload.get("posture") if isinstance(payload.get("posture"), dict) else {})
+                    or {}
+                ).get("risk_level"),
             },
         )
         if derived:
@@ -122,13 +143,21 @@ def selinux_cmd(app: Any, serial: str, output: pathlib.Path | None, case_dir: pa
 @click.option("--target", type=READABLE_FILE, required=True)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def malware_cmd(yara_rule: pathlib.Path | None, patterns: tuple[str, ...], target: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def malware_cmd(
+    yara_rule: pathlib.Path | None,
+    patterns: tuple[str, ...],
+    target: pathlib.Path,
+    output: pathlib.Path | None,
+    case_dir: pathlib.Path | None,
+) -> None:
     if yara_rule:
         matches = [dataclasses.asdict(m) for m in scan_with_yara(yara_rule, target)]
         payload = {"engine": "yara", "matches": matches}
     else:
         payload = {"engine": "patterns", "matches": scan_with_patterns(list(patterns), target)}
-    output, derived = _resolve_case_output(output, case_dir, filename=f"security_malware_{_safe_name(target.stem)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"security_malware_{_safe_name(target.stem)}.json"
+    )
     if output:
         write_json(output, payload)
         input_paths = [str(target)] + ([str(yara_rule)] if yara_rule is not None else [])
@@ -138,7 +167,11 @@ def malware_cmd(yara_rule: pathlib.Path | None, patterns: tuple[str, ...], targe
             category="security-malware",
             source_command="security malware",
             input_paths=input_paths,
-            metadata={"engine": payload["engine"], "pattern_count": len(patterns), "match_count": len(payload["matches"])},
+            metadata={
+                "engine": payload["engine"],
+                "pattern_count": len(patterns),
+                "match_count": len(payload["matches"]),
+            },
         )
         if derived:
             console.print(str(output))
@@ -151,7 +184,9 @@ def malware_cmd(yara_rule: pathlib.Path | None, patterns: tuple[str, ...], targe
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
 @click.pass_obj
-def network_scan_cmd(app: Any, serial: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def network_scan_cmd(
+    app: Any, serial: str, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     scan = scan_network(app.devices, serial)
     payload: dict[str, Any] = {
         "dns": scan.dns,
@@ -159,7 +194,9 @@ def network_scan_cmd(app: Any, serial: str, output: pathlib.Path | None, case_di
         "listening": [dataclasses.asdict(p) for p in scan.listening],
         "raw": scan.raw,
     }
-    output, derived = _resolve_case_output(output, case_dir, filename=f"security_network_scan_{_safe_name(serial)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"security_network_scan_{_safe_name(serial)}.json"
+    )
     if output:
         write_json(output, payload)
         _register_security_output(
@@ -168,7 +205,11 @@ def network_scan_cmd(app: Any, serial: str, output: pathlib.Path | None, case_di
             category="security-network-scan",
             source_command="security network-scan",
             serial=serial,
-            metadata={"listening_count": len(payload["listening"]), "dns_count": len(payload["dns"]), "dns_cache_count": len(payload["dns_cache"])},
+            metadata={
+                "listening_count": len(payload["listening"]),
+                "dns_count": len(payload["dns"]),
+                "dns_cache_count": len(payload["dns_cache"]),
+            },
         )
         if derived:
             console.print(str(output))
@@ -181,9 +222,13 @@ def network_scan_cmd(app: Any, serial: str, output: pathlib.Path | None, case_di
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
 @click.pass_obj
-def bootloader_cmd(app: Any, serial: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def bootloader_cmd(
+    app: Any, serial: str, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     status = dataclasses.asdict(analyze_bootloader(app.devices, serial))
-    output, derived = _resolve_case_output(output, case_dir, filename=f"security_bootloader_{_safe_name(serial)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"security_bootloader_{_safe_name(serial)}.json"
+    )
     if output:
         write_json(output, status)
         _register_security_output(
@@ -205,9 +250,13 @@ def bootloader_cmd(app: Any, serial: str, output: pathlib.Path | None, case_dir:
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
 @click.pass_obj
-def hardware_cmd(app: Any, serial: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def hardware_cmd(
+    app: Any, serial: str, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     status = dataclasses.asdict(analyze_hardware_security(app.devices, serial))
-    output, derived = _resolve_case_output(output, case_dir, filename=f"security_hardware_{_safe_name(serial)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"security_hardware_{_safe_name(serial)}.json"
+    )
     if output:
         write_json(output, status)
         _register_security_output(
@@ -243,9 +292,18 @@ def attack_surface_cmd(
 ) -> None:
     if not any((package, apk, artifacts)):
         raise click.UsageError("Provide at least one of --package, --apk, or --artifacts")
-    report: dict[str, Any] = assess_attack_surface(app.devices, package=package, serial=serial, apk_path=apk, artifacts_path=artifacts)
-    name_hint = report.get("package") or (artifacts.stem if artifacts is not None else None) or (apk.stem if apk is not None else None) or "attack_surface"
-    output, derived = _resolve_case_output(output, case_dir, filename=f"security_attack_surface_{_safe_name(str(name_hint))}.json")
+    report: dict[str, Any] = assess_attack_surface(
+        app.devices, package=package, serial=serial, apk_path=apk, artifacts_path=artifacts
+    )
+    name_hint = (
+        report.get("package")
+        or (artifacts.stem if artifacts is not None else None)
+        or (apk.stem if apk is not None else None)
+        or "attack_surface"
+    )
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"security_attack_surface_{_safe_name(str(name_hint))}.json"
+    )
     if output:
         write_json(output, report)
         _register_security_output(
@@ -257,9 +315,11 @@ def attack_surface_cmd(
             input_paths=[str(path) for path in (apk, artifacts) if path is not None],
             metadata={
                 "package": report.get("package"),
-                "finding_count": len(report.get("findings") or []),
-                "live_probe_enabled": bool((report.get("probe_results") or {}).get("attempted")),
-                "risk_level": (report.get("risk_summary") or {}).get("level"),
+                "finding_count": len(_object_list(report.get("findings"))),
+                "live_probe_enabled": bool(
+                    _object_dict(report.get("probe_results")).get("attempted")
+                ),
+                "risk_level": _object_dict(report.get("risk_summary")).get("level"),
             },
         )
         if derived:
@@ -272,10 +332,14 @@ def attack_surface_cmd(
 @click.option("--artifacts", type=click.Path(dir_okay=False, path_type=pathlib.Path), required=True)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def owasp_cmd(artifacts: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def owasp_cmd(
+    artifacts: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     data = json.loads(artifacts.read_text(encoding="utf-8"))
     payload = mastg_summary(data)
-    output, derived = _resolve_case_output(output, case_dir, filename=f"security_owasp_{_safe_name(artifacts.stem)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"security_owasp_{_safe_name(artifacts.stem)}.json"
+    )
     if output:
         write_json(output, payload)
         _register_security_output(

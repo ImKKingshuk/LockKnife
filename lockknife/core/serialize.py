@@ -23,4 +23,3 @@ def write_csv(path: pathlib.Path, rows: list[dict[str, Any]]) -> None:
         w.writeheader()
         for r in rows:
             w.writerow(r)
-

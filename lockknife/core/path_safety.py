@@ -24,7 +24,9 @@ def validate_relative_component(raw: str, *, label: str) -> str:
     return text
 
 
-def ensure_child_path(base_dir: pathlib.Path, target_path: pathlib.Path, *, label: str = "path") -> pathlib.Path:
+def ensure_child_path(
+    base_dir: pathlib.Path, target_path: pathlib.Path, *, label: str = "path"
+) -> pathlib.Path:
     base_resolved = base_dir.resolve()
     target_resolved = target_path.resolve()
     try:
@@ -51,7 +53,9 @@ def safe_extract_zip(archive: zipfile.ZipFile, output_dir: pathlib.Path) -> list
     extracted: list[pathlib.Path] = []
     for info in archive.infolist():
         member_path = validate_archive_member(info.filename)
-        destination = ensure_child_path(output_dir, output_dir / pathlib.Path(*member_path.parts), label="archive member")
+        destination = ensure_child_path(
+            output_dir, output_dir / pathlib.Path(*member_path.parts), label="archive member"
+        )
         if info.is_dir():
             destination.mkdir(parents=True, exist_ok=True)
             extracted.append(destination)

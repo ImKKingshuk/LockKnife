@@ -25,14 +25,20 @@ def provider_review_notes(item: dict[str, Any]) -> list[str]:
     if item.get("grant_uri_permissions"):
         notes.append("grantUriPermissions enabled")
     if item.get("authorities"):
-        notes.append(f"Authorities: {', '.join(str(value) for value in item.get('authorities') or [])}")
+        notes.append(
+            f"Authorities: {', '.join(str(value) for value in item.get('authorities') or [])}"
+        )
     return notes
 
 
-def probe_provider(devices: DeviceManager, serial: str, package: str, item: dict[str, Any]) -> dict[str, Any]:
+def probe_provider(
+    devices: DeviceManager, serial: str, package: str, item: dict[str, Any]
+) -> dict[str, Any]:
     authority = _provider_authority(item) or package
     command = f"cmd package resolve-content-provider {shlex.quote(authority)}"
-    result = _probe_command(devices, serial, command, key="authority", value=authority, match_terms=[package, authority])
+    result = _probe_command(
+        devices, serial, command, key="authority", value=authority, match_terms=[package, authority]
+    )
     result.update(
         {
             "component": item.get("name"),

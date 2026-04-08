@@ -20,7 +20,11 @@ def test_health_status_ok(monkeypatch) -> None:
             return "ok"
 
     monkeypatch.setattr(health_mod, "AdbClient", _Adb)
-    monkeypatch.setitem(__import__("sys").modules, "lockknife.lockknife_core", types.SimpleNamespace(__version__="x"))
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "lockknife.lockknife_core",
+        types.SimpleNamespace(__version__="x"),
+    )
 
     out = health_mod.health_status()
     assert out["ok"] is True
@@ -37,7 +41,9 @@ def test_health_status_reports_errors(monkeypatch) -> None:
 
     monkeypatch.setattr(health_mod, "load_config", boom)
     monkeypatch.setattr(health_mod.shutil, "which", lambda _value: None)
-    monkeypatch.setattr(health_mod, "AdbClient", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("no adb")))
+    monkeypatch.setattr(
+        health_mod, "AdbClient", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("no adb"))
+    )
     monkeypatch.setitem(__import__("sys").modules, "lockknife.lockknife_core", None)
 
     out = health_mod.health_status()

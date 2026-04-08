@@ -1,44 +1,52 @@
 import dataclasses
 import json
 import pathlib
-import types
 
 import pytest
 
-from lockknife_headless_cli.tui_callback import build_tui_callback
 from lockknife.core.device import DeviceHandle, DeviceInfo, DeviceState
+from lockknife_headless_cli.tui_callback import build_tui_callback
+
 
 @dataclasses.dataclass
 class DummyRow:
     value: str
 
+
 @dataclasses.dataclass
 class DummyAnalysis:
     tables: list[str]
+
 
 @dataclasses.dataclass
 class DummySnapshot:
     output: str
 
+
 @dataclasses.dataclass
 class DummyStatus:
     status: str
+
 
 @dataclasses.dataclass
 class DummyBoot:
     ok: bool
 
+
 @dataclasses.dataclass
 class DummyHardware:
     ok: bool
+
 
 @dataclasses.dataclass
 class DummyAudit:
     rule: str
 
+
 @dataclasses.dataclass
 class DummyVuln:
     score: float
+
 
 @dataclasses.dataclass
 class DummyAnalysisReport:
@@ -49,17 +57,20 @@ class DummyAnalysisReport:
     risk_summary: dict[str, object]
     mastg: dict[str, object]
 
+
 @dataclasses.dataclass
 class DummyIoc:
     ioc: str
     kind: str
     location: str
 
+
 @dataclasses.dataclass
 class DummyScan:
     dns: list[str]
     dns_cache: list[str]
     listening: list[DummyRow]
+
 
 class DummyScript:
     def __init__(self) -> None:
@@ -76,6 +87,7 @@ class DummyScript:
     def unload(self) -> None:
         return None
 
+
 class DummySession:
     def __init__(self) -> None:
         self.handlers: dict[str, object] = {}
@@ -90,6 +102,7 @@ class DummySession:
 
     def detach(self) -> None:
         return None
+
 
 class DummyFridaManager:
     def __init__(self, device_id: str | None = None) -> None:
@@ -113,10 +126,14 @@ class DummyFridaManager:
     def running_pid(self, _app_id: str) -> int:
         return 4343
 
+
 class DummyPredictor:
-    def generate(self, *, count: int, min_len: int, max_len: int, seed: int | None, personal_data=None):
+    def generate(
+        self, *, count: int, min_len: int, max_len: int, seed: int | None, personal_data=None
+    ):
         _ = (min_len, max_len, seed, personal_data)
         return [f"pwd{i}" for i in range(count)]
+
 
 class DummyDevices:
     def list_handles(self):
@@ -140,10 +157,12 @@ class DummyDevices:
     def has_root(self, _serial: str) -> bool:
         return True
 
+
 class DummyApp:
     def __init__(self) -> None:
         self.devices = DummyDevices()
         self.selected_device_serial = "SERIAL"
+
 
 def test_tui_callback_export_json(tmp_path: pathlib.Path) -> None:
     callback = build_tui_callback(DummyApp())
@@ -188,11 +207,20 @@ def test_tui_callback_apk_permissions_includes_manifest_and_risk_summary(
             "string_analysis": {"stats": {"secret_indicator_count": 1}},
         },
     )
-    monkeypatch.setattr(cb, "score_permissions", lambda _perms: (9, [_Risk(permission="READ_SMS", score=9)]))
+    monkeypatch.setattr(
+        cb, "score_permissions", lambda _perms: (9, [_Risk(permission="READ_SMS", score=9)])
+    )
     monkeypatch.setattr(
         cb,
         "findings_from_manifest",
-        lambda _info: [_Finding(id="debuggable", severity="high", title="App is debuggable", details={"debuggable": True})],
+        lambda _info: [
+            _Finding(
+                id="debuggable",
+                severity="high",
+                title="App is debuggable",
+                details={"debuggable": True},
+            )
+        ],
     )
     monkeypatch.setattr(
         cb,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import pathlib
-from typing import Any
+from typing import Any, cast
 
 import click
 from rich.console import Console
@@ -13,20 +13,27 @@ from lockknife.core.case import (
     case_integrity_report,
     case_output_path,
     find_case_artifact,
-    generate_case_chain_of_custody,
     load_case_manifest,
     register_case_artifact,
     summarize_case_manifest,
 )
-from lockknife.modules.reporting.chain_of_custody import EvidenceItem, build_chain_of_custody_payload, generate_chain_of_custody, sign_report_file
+from lockknife.modules.reporting.chain_of_custody import (
+    EvidenceItem,
+    build_chain_of_custody_payload,
+    generate_chain_of_custody,
+    sign_report_file,
+)
 from lockknife.modules.reporting.context import build_report_context
 from lockknife.modules.reporting.csv_export import export_csv
 from lockknife.modules.reporting.html_report import write_html_report
 from lockknife.modules.reporting.json_export import export_json
 from lockknife.modules.reporting.pdf_report import write_pdf_report
 
-
 console = Console()
+
+
+def _object_dict(value: object) -> dict[str, object]:
+    return cast(dict[str, object], value) if isinstance(value, dict) else {}
 
 
 def _case_path(case_dir: str | None) -> pathlib.Path | None:
@@ -43,7 +50,9 @@ def _resolve_case_id(case_id: str | None, case_path: pathlib.Path | None) -> str
         return case_id
     if manifest:
         return str(manifest.case_id)
-    raise click.BadParameter("--case-id is required unless --case-dir points to a LockKnife case workspace")
+    raise click.BadParameter(
+        "--case-id is required unless --case-dir points to a LockKnife case workspace"
+    )
 
 
 def _resolve_examiner(examiner: str | None, case_path: pathlib.Path | None) -> str:
@@ -52,12 +61,16 @@ def _resolve_examiner(examiner: str | None, case_path: pathlib.Path | None) -> s
         return examiner
     if manifest:
         return str(manifest.examiner)
-    raise click.BadParameter("--examiner is required unless --case-dir points to a LockKnife case workspace")
+    raise click.BadParameter(
+        "--examiner is required unless --case-dir points to a LockKnife case workspace"
+    )
 
 
 def _default_output(case_path: pathlib.Path | None, *, filename: str) -> pathlib.Path:
     if not case_path:
-        raise click.BadParameter("--output is required unless --case-dir points to a LockKnife case workspace")
+        raise click.BadParameter(
+            "--output is required unless --case-dir points to a LockKnife case workspace"
+        )
     return case_output_path(case_path, area="reports", filename=filename)
 
 
@@ -66,7 +79,9 @@ def _artifact_payload(path: str | None, case_path: pathlib.Path | None) -> Any:
         return json.loads(pathlib.Path(path).read_text())
     if case_path:
         return summarize_case_manifest(case_path)
-    raise click.BadParameter("--artifacts is required unless --case-dir points to a LockKnife case workspace")
+    raise click.BadParameter(
+        "--artifacts is required unless --case-dir points to a LockKnife case workspace"
+    )
 
 
 def _template_path(template: str) -> pathlib.Path:
@@ -82,12 +97,12 @@ def _template_path(template: str) -> pathlib.Path:
 
 def _csv_rows(artifacts: Any, context: dict[str, object]) -> list[dict[str, object]]:
     if isinstance(artifacts, list) and all(isinstance(row, dict) for row in artifacts):
-        return artifacts
+        return [cast(dict[str, object], row) for row in artifacts]
     evidence_inventory = context.get("evidence_inventory")
     if isinstance(evidence_inventory, list) and evidence_inventory:
-        return [row for row in evidence_inventory if isinstance(row, dict)]
+        return [cast(dict[str, object], row) for row in evidence_inventory if isinstance(row, dict)]
     if isinstance(artifacts, dict):
-        return [artifacts]
+        return [cast(dict[str, object], artifacts)]
     return [{"value": artifacts}]
 
 
@@ -113,7 +128,9 @@ def _register_output(
     )
 
 
-def _manual_evidence(case_path: pathlib.Path | None, evidence: tuple[str, ...]) -> list[EvidenceItem]:
+def _manual_evidence(
+    case_path: pathlib.Path | None, evidence: tuple[str, ...]
+) -> list[EvidenceItem]:
     if not case_path:
         return [EvidenceItem(name=pathlib.Path(path).name, path=path) for path in evidence]
 
@@ -131,23 +148,22 @@ def _render_integrity_text(report: dict[str, object]) -> str:
     summary = report["summary"]
     if not isinstance(summary, dict):
         raise click.ClickException("Integrity report summary is malformed")
-    custody_chain_obj = report.get("custody_chain")
-    custody_chain: dict[str, object] = custody_chain_obj if isinstance(custody_chain_obj, dict) else {}
-    verification_obj = custody_chain.get("verification")
-    verification: dict[str, object] = verification_obj if isinstance(verification_obj, dict) else {}
+    summary_dict = _object_dict(summary)
+    custody_chain = _object_dict(report.get("custody_chain"))
+    verification = _object_dict(custody_chain.get("verification"))
     lines = [
         f"Case integrity report: {report['case_id']}",
         f"Examiner: {report['examiner']}",
         f"Verified at: {report['verified_at_utc']}",
         "",
         "Summary:",
-        f"- Artifacts: {summary['artifact_count']}",
-        f"- Verified: {summary['verified_count']}",
-        f"- Modified: {summary['modified_count']}",
-        f"- Missing: {summary['missing_count']}",
-        f"- Unreadable: {summary['unreadable_count']}",
-        f"- Unsupported: {summary['unsupported_count']}",
-        f"- Custody chain: {summary.get('custody_chain_status', 'unknown')}",
+        f"- Artifacts: {summary_dict.get('artifact_count', 0)}",
+        f"- Verified: {summary_dict.get('verified_count', 0)}",
+        f"- Modified: {summary_dict.get('modified_count', 0)}",
+        f"- Missing: {summary_dict.get('missing_count', 0)}",
+        f"- Unreadable: {summary_dict.get('unreadable_count', 0)}",
+        f"- Unsupported: {summary_dict.get('unsupported_count', 0)}",
+        f"- Custody chain: {summary_dict.get('custody_chain_status', 'unknown')}",
         "",
         "Custody chain:",
         f"- Entries: {custody_chain.get('entry_count', 0)}",
@@ -168,15 +184,32 @@ def report() -> None:
 @click.option("--case-id", required=False)
 @click.option("--artifacts", type=click.Path(exists=True, dir_okay=False), required=False)
 @click.option("--template", type=click.Choice(["technical", "executive"]), default="technical")
-@click.option("--format", "out_format", type=click.Choice(["html", "pdf", "json", "csv"]), default="html")
+@click.option(
+    "--format", "out_format", type=click.Choice(["html", "pdf", "json", "csv"]), default="html"
+)
 @click.option("--output", type=click.Path(dir_okay=False), required=False)
-@click.option("--case-dir", type=click.Path(exists=True, file_okay=False, dir_okay=True), required=False)
-def generate(case_id: str | None, artifacts: str | None, template: str, out_format: str, output: str | None, case_dir: str | None) -> None:
+@click.option(
+    "--case-dir", type=click.Path(exists=True, file_okay=False, dir_okay=True), required=False
+)
+def generate(
+    case_id: str | None,
+    artifacts: str | None,
+    template: str,
+    out_format: str,
+    output: str | None,
+    case_dir: str | None,
+) -> None:
     case_path = _case_path(case_dir)
     resolved_case_id = _resolve_case_id(case_id, case_path)
     artifact_data = _artifact_payload(artifacts, case_path)
-    context = build_report_context(case_id=resolved_case_id, artifacts=artifact_data, case_dir=case_path)
-    output_path = pathlib.Path(output) if output else _default_output(case_path, filename=f"{template}_{resolved_case_id}.{out_format}")
+    context = build_report_context(
+        case_id=resolved_case_id, artifacts=artifact_data, case_dir=case_path
+    )
+    output_path = (
+        pathlib.Path(output)
+        if output
+        else _default_output(case_path, filename=f"{template}_{resolved_case_id}.{out_format}")
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     final_output_path = output_path
     final_format = out_format
@@ -206,7 +239,12 @@ def generate(case_id: str | None, artifacts: str | None, template: str, out_form
         source_command="report generate",
         case_id=resolved_case_id,
         input_paths=[artifacts] if artifacts else [],
-        metadata={"template": template, "format": final_format, "requested_format": out_format, "degraded": degraded},
+        metadata={
+            "template": template,
+            "format": final_format,
+            "requested_format": out_format,
+            "degraded": degraded,
+        },
     )
     click.echo(str(final_output_path))
 
@@ -220,14 +258,30 @@ def generate(case_id: str | None, artifacts: str | None, template: str, out_form
 @click.option("--format", "out_format", type=click.Choice(["text", "html"]), default="text")
 @click.option("--sign", is_flag=True, default=False)
 @click.option("--gpg-key-id", required=False)
-@click.option("--case-dir", type=click.Path(exists=True, file_okay=False, dir_okay=True), required=False)
-def chain_of_custody(case_id: str | None, examiner: str | None, evidence: tuple[str, ...], output: str | None, notes: str, out_format: str, sign: bool, gpg_key_id: str | None, case_dir: str | None) -> None:
+@click.option(
+    "--case-dir", type=click.Path(exists=True, file_okay=False, dir_okay=True), required=False
+)
+def chain_of_custody(
+    case_id: str | None,
+    examiner: str | None,
+    evidence: tuple[str, ...],
+    output: str | None,
+    notes: str,
+    out_format: str,
+    sign: bool,
+    gpg_key_id: str | None,
+    case_dir: str | None,
+) -> None:
     case_path = _case_path(case_dir)
     resolved_case_id = _resolve_case_id(case_id, case_path)
     resolved_examiner = _resolve_examiner(examiner, case_path)
     evidence_items = _manual_evidence(case_path, evidence) if evidence else None
     suffix = "html" if out_format == "html" else "txt"
-    output_path = pathlib.Path(output) if output else _default_output(case_path, filename=f"chain_of_custody_{resolved_case_id}.{suffix}")
+    output_path = (
+        pathlib.Path(output)
+        if output
+        else _default_output(case_path, filename=f"chain_of_custody_{resolved_case_id}.{suffix}")
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if case_path and evidence_items is None:
@@ -241,7 +295,11 @@ def chain_of_custody(case_id: str | None, examiner: str | None, evidence: tuple[
             evidence=evidence_items or [],
         )
     if out_format == "html":
-        write_html_report(_template_path("chain_of_custody"), {"report_title": "Chain of Custody", **payload}, output_path)
+        write_html_report(
+            _template_path("chain_of_custody"),
+            {"report_title": "Chain of Custody", **payload},
+            output_path,
+        )
     else:
         output_path.write_text(
             generate_chain_of_custody(
@@ -252,7 +310,9 @@ def chain_of_custody(case_id: str | None, examiner: str | None, evidence: tuple[
             ),
             encoding="utf-8",
         )
-    signature = sign_report_file(output_path, key_id=gpg_key_id) if sign else {"status": "not-requested"}
+    signature = (
+        sign_report_file(output_path, key_id=gpg_key_id) if sign else {"status": "not-requested"}
+    )
 
     _register_output(
         case_path,
@@ -260,7 +320,11 @@ def chain_of_custody(case_id: str | None, examiner: str | None, evidence: tuple[
         category="chain-of-custody",
         source_command="report chain-of-custody",
         case_id=resolved_case_id,
-        metadata={"evidence_count": int(payload.get("entry_count", 0)), "format": out_format, "signature_status": signature.get("status")},
+        metadata={
+            "evidence_count": int(payload.get("entry_count", 0)),
+            "format": out_format,
+            "signature_status": signature.get("status"),
+        },
     )
     if case_path and signature.get("status") == "signed" and signature.get("signature_path"):
         _register_output(
@@ -275,7 +339,9 @@ def chain_of_custody(case_id: str | None, examiner: str | None, evidence: tuple[
 
 
 @report.command("integrity")
-@click.option("--case-dir", type=click.Path(exists=True, file_okay=False, dir_okay=True), required=True)
+@click.option(
+    "--case-dir", type=click.Path(exists=True, file_okay=False, dir_okay=True), required=True
+)
 @click.option("--format", "out_format", type=click.Choice(["json", "text"]), default="json")
 @click.option("--output", type=click.Path(dir_okay=False), required=False)
 def integrity(case_dir: str, out_format: str, output: str | None) -> None:
@@ -283,7 +349,11 @@ def integrity(case_dir: str, out_format: str, output: str | None) -> None:
     manifest = load_case_manifest(case_path)
     report_payload = case_integrity_report(case_path)
     suffix = "json" if out_format == "json" else "txt"
-    output_path = pathlib.Path(output) if output else _default_output(case_path, filename=f"integrity_{manifest.case_id}.{suffix}")
+    output_path = (
+        pathlib.Path(output)
+        if output
+        else _default_output(case_path, filename=f"integrity_{manifest.case_id}.{suffix}")
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if out_format == "json":

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import itertools
 import pathlib
 
 from lockknife.core.exceptions import LockKnifeError
@@ -25,7 +24,9 @@ def _variants(word: str) -> set[str]:
     return out
 
 
-def crack_password_with_rules(target_hash_hex: str, algo: str, wordlist_path: pathlib.Path, max_suffix: int = 100) -> str | None:
+def crack_password_with_rules(
+    target_hash_hex: str, algo: str, wordlist_path: pathlib.Path, max_suffix: int = 100
+) -> str | None:
     try:
         import lockknife.lockknife_core as lockknife_core
     except Exception as e:
@@ -37,11 +38,18 @@ def crack_password_with_rules(target_hash_hex: str, algo: str, wordlist_path: pa
 
     if hasattr(lockknife_core, "dictionary_attack_rules"):
         try:
-            found = lockknife_core.dictionary_attack_rules(target_hash_hex, algo_l, str(wordlist_path), int(max_suffix))
+            found = lockknife_core.dictionary_attack_rules(
+                target_hash_hex, algo_l, str(wordlist_path), int(max_suffix)
+            )
             if found is not None:
                 return str(found)
         except Exception:
-            log.warning("password_crack_rules_failed", exc_info=True, algo=algo_l, wordlist=str(wordlist_path))
+            log.warning(
+                "password_crack_rules_failed",
+                exc_info=True,
+                algo=algo_l,
+                wordlist=str(wordlist_path),
+            )
 
     def digest(b: bytes) -> str:
         if algo_l == "sha1":

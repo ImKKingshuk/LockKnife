@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import json
 import pathlib
 import time
@@ -9,13 +8,6 @@ from typing import Any
 import click
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 
-from lockknife_headless_cli._credential_workflows import (
-    run_gesture_recovery_workflow,
-    run_keystore_workflow,
-    run_passkey_workflow,
-    run_pin_recovery_workflow,
-    run_wifi_workflow,
-)
 from lockknife.core.case import load_case_manifest, register_case_artifact
 from lockknife.core.cli_instrumentation import LockKnifeGroup
 from lockknife.core.cli_types import HASH_HEX, READABLE_FILE
@@ -25,9 +17,15 @@ from lockknife.modules.credentials.fido2 import pull_passkey_artifacts
 from lockknife.modules.credentials.gesture import export_gesture_recovery, recover_gesture
 from lockknife.modules.credentials.keystore import inspect_keystore, list_keystore
 from lockknife.modules.credentials.password import crack_password_with_rules
-from lockknife.modules.credentials.pin import recover_pin
-from lockknife.modules.credentials.pin import export_pin_recovery
+from lockknife.modules.credentials.pin import export_pin_recovery, recover_pin
 from lockknife.modules.credentials.wifi import export_wifi_credentials, extract_wifi_passwords
+from lockknife_headless_cli._credential_workflows import (
+    run_gesture_recovery_workflow,
+    run_keystore_workflow,
+    run_passkey_workflow,
+    run_pin_recovery_workflow,
+    run_wifi_workflow,
+)
 
 
 @click.group(help="Crack and recover credentials (offline or from device).", cls=LockKnifeGroup)
@@ -37,7 +35,9 @@ def crack() -> None:
 
 @crack.command("pin")
 @click.option("--hash", "target_hash", required=True, type=HASH_HEX)
-@click.option("--algo", type=click.Choice(["sha1", "sha256"], case_sensitive=False), default="sha256")
+@click.option(
+    "--algo", type=click.Choice(["sha1", "sha256"], case_sensitive=False), default="sha256"
+)
 @click.option("--length", type=int, required=True)
 def crack_pin(target_hash: str, algo: str, length: int) -> None:
     try:
@@ -46,7 +46,9 @@ def crack_pin(target_hash: str, algo: str, length: int) -> None:
         raise click.ClickException("lockknife_core extension is not available") from e
 
     started = time.time()
-    with Progress(SpinnerColumn(), BarColumn(), TextColumn("{task.description}"), transient=True) as progress:
+    with Progress(
+        SpinnerColumn(), BarColumn(), TextColumn("{task.description}"), transient=True
+    ) as progress:
         progress.add_task(description="Brute-forcing PIN", total=None)
         pin = lockknife_core.bruteforce_numeric_pin(target_hash, algo.lower(), int(length))
     elapsed = time.time() - started
@@ -59,7 +61,11 @@ def crack_pin(target_hash: str, algo: str, length: int) -> None:
 
 @crack.command("password")
 @click.option("--hash", "target_hash", required=True, type=HASH_HEX)
-@click.option("--algo", type=click.Choice(["sha1", "sha256", "sha512"], case_sensitive=False), default="sha256")
+@click.option(
+    "--algo",
+    type=click.Choice(["sha1", "sha256", "sha512"], case_sensitive=False),
+    default="sha256",
+)
 @click.option("--wordlist", type=READABLE_FILE, required=True)
 def crack_password(target_hash: str, algo: str, wordlist: pathlib.Path) -> None:
     try:
@@ -75,10 +81,16 @@ def crack_password(target_hash: str, algo: str, wordlist: pathlib.Path) -> None:
 
 @crack.command("password-rules")
 @click.option("--hash", "target_hash", required=True, type=HASH_HEX)
-@click.option("--algo", type=click.Choice(["sha1", "sha256", "sha512"], case_sensitive=False), default="sha256")
+@click.option(
+    "--algo",
+    type=click.Choice(["sha1", "sha256", "sha512"], case_sensitive=False),
+    default="sha256",
+)
 @click.option("--wordlist", type=READABLE_FILE, required=True)
 @click.option("--max-suffix", type=int, default=100)
-def crack_password_rules(target_hash: str, algo: str, wordlist: pathlib.Path, max_suffix: int) -> None:
+def crack_password_rules(
+    target_hash: str, algo: str, wordlist: pathlib.Path, max_suffix: int
+) -> None:
     found = crack_password_with_rules(target_hash, algo, wordlist, max_suffix=max_suffix)
     if found is None:
         raise click.ClickException("No password found")
@@ -90,7 +102,9 @@ def crack_password_rules(target_hash: str, algo: str, wordlist: pathlib.Path, ma
 @click.option("--output-dir", type=click.Path(file_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
 @click.pass_obj
-def crack_gesture(app: Any, serial: str | None, output_dir: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def crack_gesture(
+    app: Any, serial: str | None, output_dir: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     payload = run_gesture_recovery_workflow(
         app.devices,
         serial=serial,
@@ -142,7 +156,9 @@ def crack_pin_device(
 @click.option("--output-dir", type=click.Path(file_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
 @click.pass_obj
-def crack_wifi(app: Any, serial: str | None, output_dir: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def crack_wifi(
+    app: Any, serial: str | None, output_dir: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     payload = run_wifi_workflow(
         app.devices,
         serial=serial,
@@ -163,7 +179,9 @@ def crack_wifi(app: Any, serial: str | None, output_dir: pathlib.Path | None, ca
 @click.option("--output-dir", type=click.Path(file_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
 @click.pass_obj
-def crack_keystore(app: Any, serial: str | None, output_dir: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def crack_keystore(
+    app: Any, serial: str | None, output_dir: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     payload = run_keystore_workflow(
         app.devices,
         serial=serial,

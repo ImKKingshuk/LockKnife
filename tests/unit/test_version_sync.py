@@ -3,12 +3,16 @@ import pathlib
 from lockknife.core import version as version_mod
 
 
-def _write_versions(root: pathlib.Path, py_version: str, cargo_version: str, init_version: str) -> tuple[pathlib.Path, pathlib.Path, pathlib.Path]:
+def _write_versions(
+    root: pathlib.Path, py_version: str, cargo_version: str, init_version: str
+) -> tuple[pathlib.Path, pathlib.Path, pathlib.Path]:
     pyproject = root / "pyproject.toml"
     cargo = root / "Cargo.toml"
     init = root / "__init__.py"
     pyproject.write_text(f'[project]\nversion = "{py_version}"\n', encoding="utf-8")
-    cargo.write_text(f'[package]\nname = "lockknife-core"\nversion = "{cargo_version}"\n', encoding="utf-8")
+    cargo.write_text(
+        f'[package]\nname = "lockknife-core"\nversion = "{cargo_version}"\n', encoding="utf-8"
+    )
     init.write_text(f'__version__ = "{init_version}"\n', encoding="utf-8")
     return pyproject, cargo, init
 

@@ -34,7 +34,7 @@ def test_http_parse_https_and_cache_root(monkeypatch, tmp_path) -> None:
     assert host == "example.com"
     assert path.endswith("?b=1")
 
-    with pytest.raises(Exception):
+    with pytest.raises(http_mod.HttpError):
         http_mod._parse_https("https:///x")
 
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))

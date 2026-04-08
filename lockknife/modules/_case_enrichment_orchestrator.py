@@ -1,28 +1,13 @@
 from __future__ import annotations
 
-
-
-import dataclasses
-
 import csv
-
+import dataclasses
 import pathlib
-
 from typing import Any
-
-
 
 from lockknife.core.case import case_output_path, load_case_manifest, register_case_artifact
 from lockknife.core.exceptions import LockKnifeError
-
 from lockknife.core.serialize import write_json
-
-from lockknife.modules.ai.anomaly import anomaly_scores
-
-from lockknife.modules.intelligence.cve import correlate_cves_for_apk_package
-
-from lockknife.modules.intelligence.ioc import detect_iocs
-
 from lockknife.modules._case_enrichment_helpers import (
     _artifact_path,
     _extract_package,
@@ -32,13 +17,21 @@ from lockknife.modules._case_enrichment_helpers import (
     _structured_rows,
     _unique_provider_status,
 )
-
-from lockknife.modules._case_enrichment_payloads import anomaly_payload, cve_payload, ioc_payload, password_payload
-
-from lockknife.modules._case_enrichment_runs import _error_run_entry, _pcap_runs, _reputation_runs, _run_entry
+from lockknife.modules._case_enrichment_payloads import (
+    anomaly_payload,
+    cve_payload,
+    ioc_payload,
+)
+from lockknife.modules._case_enrichment_runs import (
+    _error_run_entry,
+    _pcap_runs,
+    _reputation_runs,
+    _run_entry,
+)
 from lockknife.modules._case_enrichment_summary import summarize_case_enrichment_runs
-
-
+from lockknife.modules.ai.anomaly import anomaly_scores
+from lockknife.modules.intelligence.cve import correlate_cves_for_apk_package
+from lockknife.modules.intelligence.ioc import detect_iocs
 
 _NON_FATAL_ENRICHMENT_ERRORS: tuple[type[BaseException], ...] = (
     LockKnifeError,
@@ -48,7 +41,6 @@ _NON_FATAL_ENRICHMENT_ERRORS: tuple[type[BaseException], ...] = (
     ValueError,
     csv.Error,
 )
-
 
 
 def run_case_enrichment(
@@ -74,7 +66,9 @@ def run_case_enrichment(
         limit=limit,
     )
     if output is None:
-        output = case_output_path(case_dir, area="derived", filename=f"case_enrichment_{manifest.case_id}.json")
+        output = case_output_path(
+            case_dir, area="derived", filename=f"case_enrichment_{manifest.case_id}.json"
+        )
 
     runs: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
@@ -83,7 +77,9 @@ def run_case_enrichment(
     for artifact in selected:
         path = _artifact_path(case_dir, str(artifact.get("path") or ""))
         if not path.exists():
-            skipped.append({"artifact_id": artifact.get("artifact_id"), "path": str(path), "reason": "missing"})
+            skipped.append(
+                {"artifact_id": artifact.get("artifact_id"), "path": str(path), "reason": "missing"}
+            )
             continue
 
         try:
@@ -94,10 +90,22 @@ def run_case_enrichment(
         try:
             raw = _load_artifact_data(path)
         except _NON_FATAL_ENRICHMENT_ERRORS as exc:
-            skipped.append({"artifact_id": artifact.get("artifact_id"), "path": str(path), "reason": f"read-error: {exc}"})
+            skipped.append(
+                {
+                    "artifact_id": artifact.get("artifact_id"),
+                    "path": str(path),
+                    "reason": f"read-error: {exc}",
+                }
+            )
             continue
         if raw is None:
-            skipped.append({"artifact_id": artifact.get("artifact_id"), "path": str(path), "reason": "unsupported"})
+            skipped.append(
+                {
+                    "artifact_id": artifact.get("artifact_id"),
+                    "path": str(path),
+                    "reason": "unsupported",
+                }
+            )
             continue
 
         try:
@@ -108,10 +116,14 @@ def run_case_enrichment(
                 elif isinstance(match, dict):
                     ioc_matches.append(match)
         except _NON_FATAL_ENRICHMENT_ERRORS as exc:
-            runs.append(_error_run_entry("intelligence.ioc", artifact, str(exc), input_path=str(path)))
+            runs.append(
+                _error_run_entry("intelligence.ioc", artifact, str(exc), input_path=str(path))
+            )
             ioc_matches = []
         if ioc_matches:
-            runs.append(_run_entry("intelligence.ioc", artifact, ioc_payload(ioc_matches, input_path=path)))
+            runs.append(
+                _run_entry("intelligence.ioc", artifact, ioc_payload(ioc_matches, input_path=path))
+            )
             if reputation_budget > 0:
                 for rep in _reputation_runs(artifact, path, ioc_matches, limit=reputation_budget):
                     runs.append(rep)
@@ -126,20 +138,34 @@ def run_case_enrichment(
                     _run_entry(
                         "intelligence.cve",
                         artifact,
-                        cve_payload(package, correlate_cves_for_apk_package(package), input_paths=[str(path)]),
+                        cve_payload(
+                            package,
+                            correlate_cves_for_apk_package(package),
+                            input_paths=[str(path)],
+                        ),
                     )
                 )
             except _NON_FATAL_ENRICHMENT_ERRORS as exc:
-                runs.append(_error_run_entry("intelligence.cve", artifact, str(exc), input_path=str(path)))
+                runs.append(
+                    _error_run_entry("intelligence.cve", artifact, str(exc), input_path=str(path))
+                )
 
         rows = _structured_rows(raw)
         feature_keys = _infer_numeric_feature_keys(rows)
         if rows and feature_keys:
             try:
                 scores = anomaly_scores(rows, feature_keys)
-                runs.append(_run_entry("ai.anomaly_score", artifact, anomaly_payload(rows, feature_keys, scores, input_path=path)))
+                runs.append(
+                    _run_entry(
+                        "ai.anomaly_score",
+                        artifact,
+                        anomaly_payload(rows, feature_keys, scores, input_path=path),
+                    )
+                )
             except _NON_FATAL_ENRICHMENT_ERRORS as exc:
-                runs.append(_error_run_entry("ai.anomaly_score", artifact, str(exc), input_path=str(path)))
+                runs.append(
+                    _error_run_entry("ai.anomaly_score", artifact, str(exc), input_path=str(path))
+                )
 
     provider_status = _unique_provider_status(runs)
     run_summary = summarize_case_enrichment_runs(runs, skipped)
@@ -155,7 +181,9 @@ def run_case_enrichment(
         "case_dir": str(case_dir),
         "case_id": manifest.case_id,
         "title": manifest.title,
-        "artifact_id": artifact_id if artifact_id else (selected[0].get("artifact_id") if len(selected) == 1 else None),
+        "artifact_id": artifact_id
+        if artifact_id
+        else (selected[0].get("artifact_id") if len(selected) == 1 else None),
         "selected_artifacts": selected,
         "summary": summary,
         "runs": runs,
@@ -166,8 +194,14 @@ def run_case_enrichment(
         "output": str(output),
         "category": "case-enrichment",
         "source_command": "case enrich",
-        "input_paths": [str(_artifact_path(case_dir, str(item.get("path") or ""))) for item in selected],
-        "parent_artifact_ids": [str(item.get("artifact_id")) for item in selected if str(item.get("artifact_id") or "").strip()],
+        "input_paths": [
+            str(_artifact_path(case_dir, str(item.get("path") or ""))) for item in selected
+        ],
+        "parent_artifact_ids": [
+            str(item.get("artifact_id"))
+            for item in selected
+            if str(item.get("artifact_id") or "").strip()
+        ],
     }
     write_json(output, payload)
     register_case_artifact(

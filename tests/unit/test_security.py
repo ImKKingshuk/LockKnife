@@ -1,8 +1,6 @@
 import os
 import pathlib
 
-import pytest
-
 from lockknife.core.security import (
     decrypt_bytes_aes256gcm,
     encrypt_bytes_aes256gcm,
@@ -31,4 +29,3 @@ def test_encrypt_decrypt_roundtrip() -> None:
     payload = encrypt_bytes_aes256gcm(key, plaintext)
     out = decrypt_bytes_aes256gcm(key, payload)
     assert out == plaintext
-

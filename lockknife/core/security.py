@@ -7,8 +7,8 @@ import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from lockknife.core.exceptions import LockKnifeError
 from lockknife.core.cleanup import register_temp_path, unregister_temp_path
+from lockknife.core.exceptions import LockKnifeError
 
 
 class CryptoError(LockKnifeError):
@@ -82,7 +82,9 @@ def decrypt_bytes_aes256gcm(key: bytes, payload: bytes, associated_data: bytes =
         raise CryptoError("Decryption failed") from e
 
 
-def encrypt_file(path: pathlib.Path, key: bytes, out_path: pathlib.Path | None = None) -> pathlib.Path:
+def encrypt_file(
+    path: pathlib.Path, key: bytes, out_path: pathlib.Path | None = None
+) -> pathlib.Path:
     data = path.read_bytes()
     encrypted = encrypt_bytes_aes256gcm(key, data, associated_data=b"lockknife-evidence")
     target = out_path or path.with_suffix(path.suffix + ".lkenc")
@@ -90,7 +92,9 @@ def encrypt_file(path: pathlib.Path, key: bytes, out_path: pathlib.Path | None =
     return target
 
 
-def decrypt_file(path: pathlib.Path, key: bytes, out_path: pathlib.Path | None = None) -> pathlib.Path:
+def decrypt_file(
+    path: pathlib.Path, key: bytes, out_path: pathlib.Path | None = None
+) -> pathlib.Path:
     data = path.read_bytes()
     decrypted = decrypt_bytes_aes256gcm(key, data, associated_data=b"lockknife-evidence")
     target = out_path or path.with_suffix(".dec")

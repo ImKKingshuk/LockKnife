@@ -8,6 +8,14 @@ import click
 from rich.panel import Panel
 
 from lockknife import __version__
+from lockknife.core.adb import AdbClient
+from lockknife.core.cli_instrumentation import LockKnifeGroup
+from lockknife.core.config import LoadedConfig, load_config
+from lockknife.core.device import DeviceManager
+from lockknife.core.logging import configure_logging, get_logger
+from lockknife.core.output import console
+from lockknife.core.plugin import import_submodules
+from lockknife.modules.base import load_registered_modules
 from lockknife_headless_cli.ai import ai
 from lockknife_headless_cli.analyze import analyze
 from lockknife_headless_cli.apk import apk
@@ -16,6 +24,7 @@ from lockknife_headless_cli.completion import completion
 from lockknife_headless_cli.crack import crack
 from lockknife_headless_cli.crypto_wallet import crypto_wallet
 from lockknife_headless_cli.device import device
+from lockknife_headless_cli.exploit import exploit
 from lockknife_headless_cli.extract import extract
 from lockknife_headless_cli.features import features_cmd
 from lockknife_headless_cli.forensics import forensics
@@ -27,15 +36,6 @@ from lockknife_headless_cli.plugins import plugins_group
 from lockknife_headless_cli.report import report
 from lockknife_headless_cli.runtime import runtime
 from lockknife_headless_cli.security import security
-from lockknife_headless_cli.exploit import exploit
-from lockknife.core.adb import AdbClient
-from lockknife.core.config import LoadedConfig, load_config
-from lockknife.core.cli_instrumentation import LockKnifeGroup
-from lockknife.core.device import DeviceManager
-from lockknife.core.logging import configure_logging, get_logger
-from lockknife.core.plugin import import_submodules
-from lockknife.modules.base import load_registered_modules
-from lockknife.core.output import console
 
 
 class AppContext:
@@ -46,9 +46,15 @@ class AppContext:
         self.devices = DeviceManager(self.adb)
 
 
-@click.group(context_settings={"help_option_names": ["-h", "--help"]}, invoke_without_command=True, cls=LockKnifeGroup)
+@click.group(
+    context_settings={"help_option_names": ["-h", "--help"]},
+    invoke_without_command=True,
+    cls=LockKnifeGroup,
+)
 @click.option("--config", "config_path", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-@click.option("--cli", "headless", is_flag=True, default=False, help="Run the Click CLI instead of the TUI.")
+@click.option(
+    "--cli", "headless", is_flag=True, default=False, help="Run the Click CLI instead of the TUI."
+)
 @click.option("--headless", "headless", is_flag=True, default=False, help="Alias for --cli.")
 @click.version_option(__version__, "--version", "-V")
 @click.pass_context
@@ -77,10 +83,12 @@ def cli(ctx: click.Context, config_path: pathlib.Path | None, headless: bool) ->
 
     if ctx.invoked_subcommand is None and not headless:
         try:
-            from lockknife_headless_cli.tui_callback import build_tui_callback
             from lockknife import lockknife_core
+            from lockknife_headless_cli.tui_callback import build_tui_callback
         except Exception as exc:
-            raise click.ClickException("TUI unavailable: lockknife_core extension not loaded") from exc
+            raise click.ClickException(
+                "TUI unavailable: lockknife_core extension not loaded"
+            ) from exc
         callback = build_tui_callback(ctx.obj)
         try:
             lockknife_core.run_tui(callback)
@@ -103,6 +111,7 @@ def cli(ctx: click.Context, config_path: pathlib.Path | None, headless: bool) ->
             ]
         )
         console.print(Panel.fit(banner, title="LockKnife", border_style="red"))
+
 
 cli.add_command(device)
 cli.add_command(case_group)

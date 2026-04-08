@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -15,7 +16,10 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         reload = _bool_param(params.get("reload")) or False
         payload = plugin_inventory(reload=reload)
         if out_format.lower() == "json":
-            return _ok(payload, f"Plugin inventory: {payload.get('loaded', 0)} loaded, {payload.get('failures', 0)} failures")
+            return _ok(
+                payload,
+                f"Plugin inventory: {payload.get('loaded', 0)} loaded, {payload.get('failures', 0)} failures",
+            )
         # Text format rendering
         loaded = payload.get("loaded", [])
         failures = payload.get("failures", [])
@@ -27,10 +31,15 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         for item in loaded:
             metadata = item.get("metadata", {})
             commands = ", ".join(item.get("commands", [])) or "-"
-            lines.append(f"- {metadata.get('name')} v{metadata.get('version')} [{item.get('source')}] commands={commands}")
+            lines.append(
+                f"- {metadata.get('name')} v{metadata.get('version')} [{item.get('source')}] commands={commands}"
+            )
         for item in failures:
             lines.append(f"- FAILED {item.get('source')}: {item.get('error')}")
         text_output = "\n".join(lines)
-        return _ok({"text": text_output, **payload}, f"Plugin inventory: {len(loaded)} loaded, {len(failures)} failures")
+        return _ok(
+            {"text": text_output, **payload},
+            f"Plugin inventory: {len(loaded)} loaded, {len(failures)} failures",
+        )
 
     return None

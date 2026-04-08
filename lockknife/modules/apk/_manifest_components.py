@@ -4,10 +4,16 @@ from typing import Any
 
 from defusedxml.ElementTree import ParseError, fromstring
 
-from lockknife.modules.apk._decompile_inspection import _android_attr, _coerce_manifest_bool, _normalize_component_name
+from lockknife.modules.apk._decompile_inspection import (
+    _android_attr,
+    _coerce_manifest_bool,
+    _normalize_component_name,
+)
 
 
-def component_details(manifest_xml: str | None, package: str | None, *, target_sdk: Any = None) -> dict[str, Any]:
+def component_details(
+    manifest_xml: str | None, package: str | None, *, target_sdk: Any = None
+) -> dict[str, Any]:
     empty = {
         "activities": [],
         "services": [],
@@ -93,14 +99,20 @@ def component_details(manifest_xml: str | None, package: str | None, *, target_s
     return inventory
 
 
-def _component_payload(node: Any, bucket: str, package: str | None, target_sdk: int | None) -> dict[str, Any]:
+def _component_payload(
+    node: Any, bucket: str, package: str | None, target_sdk: int | None
+) -> dict[str, Any]:
     filters, deeplinks, browsable_count, auto_verify_count = _intent_filter_payload(node, package)
     exported, export_inference = _component_export_state(node, bucket, filters, target_sdk)
     permission = _normalize_component_name(package, _android_attr(node, "permission"))
     read_permission = _normalize_component_name(package, _android_attr(node, "readPermission"))
     write_permission = _normalize_component_name(package, _android_attr(node, "writePermission"))
-    authorities = _split_authorities(_android_attr(node, "authorities")) if bucket == "providers" else []
-    permission_protected = _permission_protected(bucket, permission, read_permission, write_permission)
+    authorities = (
+        _split_authorities(_android_attr(node, "authorities")) if bucket == "providers" else []
+    )
+    permission_protected = _permission_protected(
+        bucket, permission, read_permission, write_permission
+    )
     risk_flags = []
     if exported and not permission_protected:
         risk_flags.append("exported-without-permission")
@@ -116,8 +128,22 @@ def _component_payload(node: Any, bucket: str, package: str | None, target_sdk: 
             risk_flags.append("grant-uri-permissions")
     actions = sorted({action for item in filters for action in item.get("actions") or []})
     categories = sorted({category for item in filters for category in item.get("categories") or []})
-    schemes = sorted({str(data.get("scheme")) for item in filters for data in item.get("data") or [] if data.get("scheme")})
-    hosts = sorted({str(data.get("host")) for item in filters for data in item.get("data") or [] if data.get("host")})
+    schemes = sorted(
+        {
+            str(data.get("scheme"))
+            for item in filters
+            for data in item.get("data") or []
+            if data.get("scheme")
+        }
+    )
+    hosts = sorted(
+        {
+            str(data.get("host"))
+            for item in filters
+            for data in item.get("data") or []
+            if data.get("host")
+        }
+    )
     path_patterns = sorted(
         {
             str(data.get(key))
@@ -140,7 +166,9 @@ def _component_payload(node: Any, bucket: str, package: str | None, target_sdk: 
         "read_permission": read_permission,
         "write_permission": write_permission,
         "authorities": authorities,
-        "grant_uri_permissions": bool(_coerce_manifest_bool(_android_attr(node, "grantUriPermissions"))),
+        "grant_uri_permissions": bool(
+            _coerce_manifest_bool(_android_attr(node, "grantUriPermissions"))
+        ),
         "permission_protected": permission_protected,
         "intent_filters": filters,
         "actions": actions,
@@ -157,7 +185,9 @@ def _component_payload(node: Any, bucket: str, package: str | None, target_sdk: 
     }
 
 
-def _intent_filter_payload(node: Any, package: str | None) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int, int]:
+def _intent_filter_payload(
+    node: Any, package: str | None
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int, int]:
     filters: list[dict[str, Any]] = []
     deeplinks: list[dict[str, Any]] = []
     browsable_count = 0
@@ -185,7 +215,15 @@ def _intent_filter_payload(node: Any, package: str | None) -> tuple[list[dict[st
         for child in intent_filter.findall("data"):
             item = {
                 key: value
-                for key in ["scheme", "host", "port", "path", "pathPrefix", "pathPattern", "mimeType"]
+                for key in [
+                    "scheme",
+                    "host",
+                    "port",
+                    "path",
+                    "pathPrefix",
+                    "pathPattern",
+                    "mimeType",
+                ]
                 if (value := _android_attr(child, key))
             }
             if not item:
@@ -331,7 +369,18 @@ def _interaction_analysis(inventory: dict[str, Any]) -> dict[str, Any]:
         "android.intent.action.VIEW",
         "android.intent.action.WEB_SEARCH",
     }
-    custom_scheme_allowlist = {"http", "https", "content", "file", "geo", "mailto", "market", "sms", "smsto", "tel"}
+    custom_scheme_allowlist = {
+        "http",
+        "https",
+        "content",
+        "file",
+        "geo",
+        "mailto",
+        "market",
+        "sms",
+        "smsto",
+        "tel",
+    }
 
     for bucket in ("activities", "services", "receivers", "providers"):
         for item in inventory.get(bucket) or []:
@@ -353,7 +402,9 @@ def _interaction_analysis(inventory: dict[str, Any]) -> dict[str, Any]:
                     provider_authority_map.setdefault(str(authority).lower(), set()).add(name)
             if item.get("exported") and not item.get("permission_protected"):
                 risky = sorted(set(actions).intersection(sensitive_actions))
-                if bucket in {"activities", "services", "receivers"} and (risky or schemes or hosts):
+                if bucket in {"activities", "services", "receivers"} and (
+                    risky or schemes or hosts
+                ):
                     permission_gaps.append(
                         {
                             "component": name,
@@ -370,7 +421,11 @@ def _interaction_analysis(inventory: dict[str, Any]) -> dict[str, Any]:
     for (scheme, host), names in sorted(scheme_host_map.items()):
         if len(names) < 2:
             continue
-        overlap_type = "custom-scheme" if scheme and scheme not in custom_scheme_allowlist else "deeplink-overlap"
+        overlap_type = (
+            "custom-scheme"
+            if scheme and scheme not in custom_scheme_allowlist
+            else "deeplink-overlap"
+        )
         overlaps.append(
             {
                 "type": overlap_type,
@@ -389,8 +444,7 @@ def _interaction_analysis(inventory: dict[str, Any]) -> dict[str, Any]:
         "overlaps": overlaps,
         "permission_gaps": permission_gaps,
         "provider_authority_map": {
-            authority: sorted(names)
-            for authority, names in sorted(provider_authority_map.items())
+            authority: sorted(names) for authority, names in sorted(provider_authority_map.items())
         },
         "custom_schemes": sorted(custom_scheme_map),
         "custom_scheme_overlaps": custom_scheme_overlaps,

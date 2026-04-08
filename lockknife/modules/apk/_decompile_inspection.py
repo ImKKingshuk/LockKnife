@@ -1,20 +1,12 @@
 from __future__ import annotations
 
-
-
 import hashlib
-
 import pathlib
-
 import zipfile
-
 from typing import Any
-
 from urllib.parse import urlparse
 
 from defusedxml.ElementTree import ParseError, fromstring
-
-
 
 from lockknife.modules.apk._decompile_shared import (
     ANDROID_ATTR,
@@ -27,12 +19,12 @@ from lockknife.modules.apk._decompile_shared import (
 )
 
 
-
 def _android_attr(node: Any | None, name: str) -> str | None:
     if node is None:
         return None
     value = node.get(f"{ANDROID_ATTR}{name}") or node.get(f"android:{name}") or node.get(name)
     return str(value) if value is not None else None
+
 
 def _coerce_manifest_bool(value: Any) -> bool | None:
     if isinstance(value, bool):
@@ -46,6 +38,7 @@ def _coerce_manifest_bool(value: Any) -> bool | None:
         return False
     return None
 
+
 def _clean_strings(values: Any) -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
@@ -57,6 +50,7 @@ def _clean_strings(values: Any) -> list[str]:
         out.append(text)
     return out
 
+
 def _apk_method(apk_obj: Any, method_name: str, default: Any = None) -> Any:
     method = getattr(apk_obj, method_name, None)
     if callable(method):
@@ -65,6 +59,7 @@ def _apk_method(apk_obj: Any, method_name: str, default: Any = None) -> Any:
         except TypeError:
             return default
     return default
+
 
 def _normalize_component_name(package: str | None, name: str | None) -> str | None:
     if not name:
@@ -77,6 +72,7 @@ def _normalize_component_name(package: str | None, name: str | None) -> str | No
     if "." not in text and package:
         return f"{package}.{text}"
     return text
+
 
 def _intent_filter_payload(node: Any) -> tuple[list[dict[str, Any]], list[str], int]:
     filters: list[dict[str, Any]] = []
@@ -101,7 +97,15 @@ def _intent_filter_payload(node: Any) -> tuple[list[dict[str, Any]], list[str], 
         for child in intent_filter.findall("data"):
             item = {
                 key: value
-                for key in ["scheme", "host", "port", "path", "pathPrefix", "pathPattern", "mimeType"]
+                for key in [
+                    "scheme",
+                    "host",
+                    "port",
+                    "path",
+                    "pathPrefix",
+                    "pathPattern",
+                    "mimeType",
+                ]
                 if (value := _android_attr(child, key))
             }
             if item:
@@ -110,7 +114,9 @@ def _intent_filter_payload(node: Any) -> tuple[list[dict[str, Any]], list[str], 
                 host = item.get("host")
                 if scheme or host:
                     uri = f"{scheme or '*'}://{host or '*'}"
-                    path_hint = item.get("path") or item.get("pathPrefix") or item.get("pathPattern")
+                    path_hint = (
+                        item.get("path") or item.get("pathPrefix") or item.get("pathPattern")
+                    )
                     if path_hint:
                         uri = f"{uri}{path_hint}"
                     deeplinks.append(uri)
@@ -127,6 +133,7 @@ def _intent_filter_payload(node: Any) -> tuple[list[dict[str, Any]], list[str], 
             }
         )
     return filters, sorted(set(deeplinks)), browsable_count
+
 
 def _component_details(manifest_xml: str | None, package: str | None) -> dict[str, Any]:
     if not manifest_xml:
@@ -189,7 +196,9 @@ def _component_details(manifest_xml: str | None, package: str | None) -> dict[st
                 item.update(
                     {
                         "authorities": _android_attr(node, "authorities"),
-                        "grant_uri_permissions": _coerce_manifest_bool(_android_attr(node, "grantUriPermissions")),
+                        "grant_uri_permissions": _coerce_manifest_bool(
+                            _android_attr(node, "grantUriPermissions")
+                        ),
                         "read_permission": _android_attr(node, "readPermission"),
                         "write_permission": _android_attr(node, "writePermission"),
                     }
@@ -225,6 +234,7 @@ def _component_details(manifest_xml: str | None, package: str | None) -> dict[st
     inventory["deeplinks"] = sorted(set(filter(None, deeplinks)))
     return inventory
 
+
 def _archive_inventory(apk_path: pathlib.Path) -> dict[str, Any]:
     dex_files: list[str] = []
     native_libs: list[str] = []
@@ -249,17 +259,20 @@ def _archive_inventory(apk_path: pathlib.Path) -> dict[str, Any]:
         "asset_file_count": asset_files,
     }
 
+
 def _string_preview(value: str, limit: int = 96) -> str:
     collapsed = " ".join(value.strip().split())
     if len(collapsed) <= limit:
         return collapsed
     return f"{collapsed[: limit - 3]}..."
 
+
 def _redact_secret(value: str) -> str:
     preview = _string_preview(value, limit=80)
     if len(preview) <= 12:
         return preview
     return f"{preview[:6]}…{preview[-6:]}"
+
 
 def _scan_archive_strings(apk_path: pathlib.Path) -> dict[str, Any]:
     urls: list[dict[str, str]] = []
@@ -304,7 +317,10 @@ def _scan_archive_strings(apk_path: pathlib.Path) -> dict[str, Any]:
                 text = sample.decode("utf-8", errors="ignore")
                 candidates = [line for line in text.splitlines() if line.strip()]
             else:
-                candidates = [match.decode("utf-8", errors="ignore") for match in ASCII_STRING_RE.findall(sample)]
+                candidates = [
+                    match.decode("utf-8", errors="ignore")
+                    for match in ASCII_STRING_RE.findall(sample)
+                ]
 
             for candidate in candidates[:1000]:
                 preview = _string_preview(candidate)
@@ -351,6 +367,7 @@ def _scan_archive_strings(apk_path: pathlib.Path) -> dict[str, Any]:
         "certificate_pin_indicators": pins[:25],
     }
 
+
 def _certificate_payload(cert: Any) -> dict[str, Any]:
     raw: bytes | None = None
     dump = getattr(cert, "dump", None)
@@ -366,7 +383,9 @@ def _certificate_payload(cert: Any) -> dict[str, Any]:
     signature_algorithm = getattr(cert, "signature_algorithm", None)
     signature_algorithm = getattr(signature_algorithm, "native", signature_algorithm)
     text_blob = " ".join(filter(None, [subject or "", issuer or ""])).lower()
-    debugish = any(token in text_blob for token in ["android debug", "androiddebugkey", "testkey", "devkey"])
+    debugish = any(
+        token in text_blob for token in ["android debug", "androiddebugkey", "testkey", "devkey"]
+    )
     payload = {
         "subject": subject,
         "issuer": issuer,
@@ -377,8 +396,11 @@ def _certificate_payload(cert: Any) -> dict[str, Any]:
     }
     return payload
 
+
 def _signing_summary(apk_obj: Any, apk_path: pathlib.Path) -> dict[str, Any]:
-    certificates = [_certificate_payload(cert) for cert in (_apk_method(apk_obj, "get_certificates", []) or [])]
+    certificates = [
+        _certificate_payload(cert) for cert in (_apk_method(apk_obj, "get_certificates", []) or [])
+    ]
     inventory = _archive_inventory(apk_path)
     signing = {
         "schemes": {

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
 from lockknife.core.exceptions import LockKnifeError
 from lockknife.core.secrets import load_secrets
@@ -19,8 +18,7 @@ _RE_DOMAIN = re.compile(r"^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 def _require_otx() -> tuple[Any, Any]:
     try:
-        from OTXv2 import IndicatorTypes
-        from OTXv2 import OTXv2
+        from OTXv2 import IndicatorTypes, OTXv2
     except ImportError as e:
         raise OtxError("OTXv2 is required (install extras: lockknife[threat-intel])") from e
     return OTXv2, IndicatorTypes
@@ -44,7 +42,9 @@ def classify_indicator(value: str) -> str:
     return "unknown"
 
 
-def indicator_reputation(value: str, *, api_key: str | None = None, section: str = "general") -> dict[str, Any]:
+def indicator_reputation(
+    value: str, *, api_key: str | None = None, section: str = "general"
+) -> dict[str, Any]:
     OTXv2, IndicatorTypes = _require_otx()
     key = api_key or get_api_key()
     otx = OTXv2(key)

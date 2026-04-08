@@ -28,7 +28,7 @@ def test_recover_deleted_records_walks_freelist_pages(tmp_path: pathlib.Path) ->
     page2[4:8] = (1).to_bytes(4, "big")
     page2[8:12] = (3).to_bytes(4, "big")
     page3 = bytearray(page_size)
-    page3[32:32 + len(b"alice@example.com")] = b"alice@example.com"
+    page3[32 : 32 + len(b"alice@example.com")] = b"alice@example.com"
     p.write_bytes(bytes(header) + b"\x00" * (page_size - len(header)) + bytes(page2) + bytes(page3))
 
     out = recover_deleted_records(p, max_fragments=20)

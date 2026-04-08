@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -236,7 +237,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 output = case_dir / "evidence" / f"apk_decompile_{_safe_name(path.stem)}"
         report = decompile_apk_report(path, output, mode=mode)
         manifest_path = pathlib.Path(str(report.get("manifest_path") or output / "manifest.json"))
-        report_path = pathlib.Path(str(report.get("report_path") or output / "decompile_report.json"))
+        report_path = pathlib.Path(
+            str(report.get("report_path") or output / "decompile_report.json")
+        )
         if case_dir is not None and manifest_path.exists():
             _register_case_output(
                 case_dir,

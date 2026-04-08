@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-
-
 import dataclasses
-
 
 
 @dataclasses.dataclass(frozen=True)
@@ -13,12 +10,14 @@ class BrowserHistoryEntry:
     last_visit_time_raw: int | None
     visit_count: int | None
 
+
 @dataclasses.dataclass(frozen=True)
 class BrowserBookmarkEntry:
     url: str
     title: str | None
     folder: str | None
     date_added_raw: int | None = None
+
 
 @dataclasses.dataclass(frozen=True)
 class BrowserDownloadEntry:
@@ -28,6 +27,7 @@ class BrowserDownloadEntry:
     end_time_raw: int | None
     received_bytes: int | None
 
+
 @dataclasses.dataclass(frozen=True)
 class BrowserCookieEntry:
     host: str | None
@@ -36,6 +36,7 @@ class BrowserCookieEntry:
     encrypted_value_b64: str | None
     expires_utc_raw: int | None
     last_access_utc_raw: int | None
+
 
 @dataclasses.dataclass(frozen=True)
 class BrowserLoginEntry:

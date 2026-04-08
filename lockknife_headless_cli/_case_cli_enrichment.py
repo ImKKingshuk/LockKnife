@@ -10,7 +10,11 @@ import click
 
 def register(case_group: Any, cli: Any) -> None:
     @case_group.command("enrich")
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path), required=True)
+    @click.option(
+        "--case-dir",
+        type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path),
+        required=True,
+    )
     @click.option("--artifact-id")
     @click.option("--category", "categories", multiple=True)
     @click.option("--exclude-category", "exclude_categories", multiple=True)
@@ -19,8 +23,24 @@ def register(case_group: Any, cli: Any) -> None:
     @click.option("--limit", type=int, default=25, show_default=True)
     @click.option("--reputation-limit", type=int, default=10, show_default=True)
     @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-    @click.option("--format", "out_format", type=click.Choice(["text", "json"], case_sensitive=False), default="text")
-    def enrich_cmd(case_dir: pathlib.Path, artifact_id: str | None, categories: tuple[str, ...], exclude_categories: tuple[str, ...], source_commands: tuple[str, ...], device_serials: tuple[str, ...], limit: int, reputation_limit: int, output: pathlib.Path | None, out_format: str) -> None:
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["text", "json"], case_sensitive=False),
+        default="text",
+    )
+    def enrich_cmd(
+        case_dir: pathlib.Path,
+        artifact_id: str | None,
+        categories: tuple[str, ...],
+        exclude_categories: tuple[str, ...],
+        source_commands: tuple[str, ...],
+        device_serials: tuple[str, ...],
+        limit: int,
+        reputation_limit: int,
+        output: pathlib.Path | None,
+        out_format: str,
+    ) -> None:
         payload = cli.run_case_enrichment(
             case_dir=case_dir,
             artifact_id=artifact_id,
@@ -38,15 +58,37 @@ def register(case_group: Any, cli: Any) -> None:
         cli.console.print(cli._render_enrichment_text(payload))
 
     @case_group.command("register")
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path), required=True)
-    @click.option("--path", "artifact_path", type=click.Path(dir_okay=False, exists=True, path_type=pathlib.Path), required=True)
+    @click.option(
+        "--case-dir",
+        type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path),
+        required=True,
+    )
+    @click.option(
+        "--path",
+        "artifact_path",
+        type=click.Path(dir_okay=False, exists=True, path_type=pathlib.Path),
+        required=True,
+    )
     @click.option("--category", required=True)
     @click.option("--source-command", required=True)
     @click.option("--device-serial")
     @click.option("--input-path", "input_paths", multiple=True)
     @click.option("--parent-artifact-id", "parent_artifact_ids", multiple=True)
-    @click.option("--on-conflict", type=click.Choice(["auto", "replace", "duplicate", "error"], case_sensitive=False), default="auto")
-    def register_cmd(case_dir: pathlib.Path, artifact_path: pathlib.Path, category: str, source_command: str, device_serial: str | None, input_paths: tuple[str, ...], parent_artifact_ids: tuple[str, ...], on_conflict: str) -> None:
+    @click.option(
+        "--on-conflict",
+        type=click.Choice(["auto", "replace", "duplicate", "error"], case_sensitive=False),
+        default="auto",
+    )
+    def register_cmd(
+        case_dir: pathlib.Path,
+        artifact_path: pathlib.Path,
+        category: str,
+        source_command: str,
+        device_serial: str | None,
+        input_paths: tuple[str, ...],
+        parent_artifact_ids: tuple[str, ...],
+        on_conflict: str,
+    ) -> None:
         try:
             result = cli.register_case_artifact_with_status(
                 case_dir=case_dir,

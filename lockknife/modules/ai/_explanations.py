@@ -7,7 +7,9 @@ from typing import Any
 from lockknife.modules._case_enrichment_common import _float_or_none
 
 
-def anomaly_explainability(rows: list[dict[str, Any]], results: list[dict[str, Any]], feature_keys: list[str]) -> dict[str, Any]:
+def anomaly_explainability(
+    rows: list[dict[str, Any]], results: list[dict[str, Any]], feature_keys: list[str]
+) -> dict[str, Any]:
     baselines: dict[str, tuple[float, float]] = {}
     for key in feature_keys:
         numeric_values = [_float_or_none(row.get(key)) for row in rows]
@@ -15,7 +17,9 @@ def anomaly_explainability(rows: list[dict[str, Any]], results: list[dict[str, A
         if not values:
             continue
         baselines[key] = (statistics.fmean(values), statistics.pstdev(values) or 0.0)
-    sorted_results = sorted(results, key=lambda entry: float(entry.get("anomaly_score") or 0.0), reverse=True)
+    sorted_results = sorted(
+        results, key=lambda entry: float(entry.get("anomaly_score") or 0.0), reverse=True
+    )
     top_rows: list[dict[str, Any]] = []
     for item in sorted_results[:3]:
         row_obj = item.get("row")
@@ -27,7 +31,9 @@ def anomaly_explainability(rows: list[dict[str, Any]], results: list[dict[str, A
                 continue
             mean, stdev = baselines[key]
             zscore = 0.0 if stdev == 0.0 else abs(value - mean) / stdev
-            contributors.append({"feature": key, "value": value, "mean": round(mean, 4), "zscore": round(zscore, 3)})
+            contributors.append(
+                {"feature": key, "value": value, "mean": round(mean, 4), "zscore": round(zscore, 3)}
+            )
         contributors.sort(key=lambda entry: float(entry.get("zscore") or 0.0), reverse=True)
         top_rows.append(
             {
@@ -60,11 +66,17 @@ def password_explainability(source_words: list[str], predictions: list[str]) -> 
     predicted_lengths = Counter(len(word) for word in predictions if word)
     return {
         "source_length_range": [min(lengths), max(lengths)] if lengths else [],
-        "top_prefixes": [{"token": token, "count": count} for token, count in prefixes.most_common(3)],
-        "top_suffixes": [{"token": token, "count": count} for token, count in suffixes.most_common(3)],
+        "top_prefixes": [
+            {"token": token, "count": count} for token, count in prefixes.most_common(3)
+        ],
+        "top_suffixes": [
+            {"token": token, "count": count} for token, count in suffixes.most_common(3)
+        ],
         "predicted_length_distribution": [
             {"length": length, "count": count}
-            for length, count in sorted(predicted_lengths.items(), key=lambda item: (item[0], item[1]))[:6]
+            for length, count in sorted(
+                predicted_lengths.items(), key=lambda item: (item[0], item[1])
+            )[:6]
         ],
         "sample_predictions": predictions[:5],
         "confidence_notes": [

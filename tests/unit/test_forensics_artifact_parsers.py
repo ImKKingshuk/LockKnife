@@ -6,7 +6,17 @@ from lockknife.modules.forensics.artifacts import parse_forensics_directory
 
 def test_parse_forensics_directory_detects_new_artifact_families(tmp_path: pathlib.Path) -> None:
     (tmp_path / "accounts.json").write_text(
-        json.dumps({"accounts": [{"name": "alice@example.com", "type": "com.google", "last_authenticated_ms": 1710000000000}]}),
+        json.dumps(
+            {
+                "accounts": [
+                    {
+                        "name": "alice@example.com",
+                        "type": "com.google",
+                        "last_authenticated_ms": 1710000000000,
+                    }
+                ]
+            }
+        ),
         encoding="utf-8",
     )
     (tmp_path / "usagestats.xml").write_text(
@@ -18,11 +28,27 @@ def test_parse_forensics_directory_detects_new_artifact_families(tmp_path: pathl
         encoding="utf-8",
     )
     (tmp_path / "bluetooth.json").write_text(
-        json.dumps({"devices": [{"name": "Headset", "address": "AA:BB:CC:DD:EE:FF", "last_seen_ms": 1710000015000}]}),
+        json.dumps(
+            {
+                "devices": [
+                    {
+                        "name": "Headset",
+                        "address": "AA:BB:CC:DD:EE:FF",
+                        "last_seen_ms": 1710000015000,
+                    }
+                ]
+            }
+        ),
         encoding="utf-8",
     )
     (tmp_path / "notifications.json").write_text(
-        json.dumps({"notifications": [{"package": "com.example", "title": "Alert", "posted_at_ms": 1710000020000}]}),
+        json.dumps(
+            {
+                "notifications": [
+                    {"package": "com.example", "title": "Alert", "posted_at_ms": 1710000020000}
+                ]
+            }
+        ),
         encoding="utf-8",
     )
 

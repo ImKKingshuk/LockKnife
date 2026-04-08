@@ -13,15 +13,21 @@ from lockknife.core.cli_instrumentation import LockKnifeGroup
 from lockknife.core.cli_types import ANDROID_PACKAGE, READABLE_FILE
 from lockknife.core.output import console
 from lockknife.core.serialize import write_json
+from lockknife.modules.apk.decompile import (
+    decompile_apk_report,
+    extract_dex_headers,
+    parse_apk_manifest,
+)
 from lockknife.modules.apk.device_pull import pull_apk_from_device
-from lockknife.modules.apk.decompile import decompile_apk_report, extract_dex_headers, parse_apk_manifest
 from lockknife.modules.apk.permissions import score_permissions
 from lockknife.modules.apk.static_analysis import analyze_apk
 from lockknife.modules.apk.vulnerability import vulnerability_report
 from lockknife.modules.security.malware import scan_with_yara
 
 
-@click.group(help="APK analysis: manifest parsing, permission scoring, static checks.", cls=LockKnifeGroup)
+@click.group(
+    help="APK analysis: manifest parsing, permission scoring, static checks.", cls=LockKnifeGroup
+)
 def apk() -> None:
     pass
 
@@ -30,7 +36,9 @@ def _safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._") or "artifact"
 
 
-def _resolve_case_output(output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str) -> tuple[pathlib.Path | None, bool]:
+def _resolve_case_output(
+    output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str
+) -> tuple[pathlib.Path | None, bool]:
     if output is not None:
         return output, False
     if case_dir is None:
@@ -69,7 +77,9 @@ def _register_apk_output(
     show_default=True,
 )
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def decompile_cmd(apk_path: pathlib.Path, output: pathlib.Path | None, mode: str, case_dir: pathlib.Path | None) -> None:
+def decompile_cmd(
+    apk_path: pathlib.Path, output: pathlib.Path | None, mode: str, case_dir: pathlib.Path | None
+) -> None:
     if output is None:
         if case_dir is None:
             raise click.ClickException("Either --output or --case-dir is required")
@@ -102,11 +112,19 @@ def decompile_cmd(apk_path: pathlib.Path, output: pathlib.Path | None, mode: str
 @click.argument("apk_path", type=READABLE_FILE)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def permissions_cmd(apk_path: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def permissions_cmd(
+    apk_path: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     info = parse_apk_manifest(apk_path)
     total, risks = score_permissions(list(info.get("permissions") or []))
-    payload = {"package": info.get("package"), "score": total, "risks": [dataclasses.asdict(r) for r in risks]}
-    output, derived = _resolve_case_output(output, case_dir, filename=f"apk_permissions_{_safe_name(apk_path.stem)}.json")
+    payload = {
+        "package": info.get("package"),
+        "score": total,
+        "risks": [dataclasses.asdict(r) for r in risks],
+    }
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"apk_permissions_{_safe_name(apk_path.stem)}.json"
+    )
     if output:
         write_json(output, payload)
         _register_apk_output(
@@ -127,7 +145,9 @@ def permissions_cmd(apk_path: pathlib.Path, output: pathlib.Path | None, case_di
 @click.argument("apk_path", type=READABLE_FILE)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def analyze_cmd(apk_path: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def analyze_cmd(
+    apk_path: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     report = analyze_apk(apk_path)
     dex_headers = extract_dex_headers(apk_path)
     payload = {
@@ -139,7 +159,9 @@ def analyze_cmd(apk_path: pathlib.Path, output: pathlib.Path | None, case_dir: p
         "mastg": report.mastg,
         "dex_headers": dex_headers,
     }
-    output, derived = _resolve_case_output(output, case_dir, filename=f"apk_analysis_{_safe_name(apk_path.stem)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"apk_analysis_{_safe_name(apk_path.stem)}.json"
+    )
     if output:
         write_json(output, payload)
         _register_apk_output(
@@ -165,7 +187,9 @@ def analyze_cmd(apk_path: pathlib.Path, output: pathlib.Path | None, case_dir: p
 @click.argument("apk_path", type=READABLE_FILE)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def vuln_cmd(apk_path: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def vuln_cmd(
+    apk_path: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     rep = vulnerability_report(apk_path)
     payload = {
         "package": rep.package,
@@ -184,7 +208,9 @@ def vuln_cmd(apk_path: pathlib.Path, output: pathlib.Path | None, case_dir: path
         "string_analysis": rep.string_analysis,
         "signing": rep.signing,
     }
-    output, derived = _resolve_case_output(output, case_dir, filename=f"apk_vulnerability_{_safe_name(apk_path.stem)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"apk_vulnerability_{_safe_name(apk_path.stem)}.json"
+    )
     if output:
         write_json(output, payload)
         _register_apk_output(
@@ -236,7 +262,9 @@ def scan_cmd(
     matches = [dataclasses.asdict(m) for m in scan_with_yara(yara_rule, local_apk)]
     payload = {"apk": str(local_apk), "package": package_name, "engine": "yara", "matches": matches}
     stem = package_name or (local_apk.stem if local_apk is not None else "scan")
-    output, derived = _resolve_case_output(output, case_dir, filename=f"apk_scan_{_safe_name(stem)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"apk_scan_{_safe_name(stem)}.json"
+    )
     if output:
         write_json(output, payload)
         _register_apk_output(

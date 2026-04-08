@@ -4,8 +4,9 @@ import builtins
 import dataclasses
 import enum
 import pathlib
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from lockknife.core.adb import AdbClient, AdbDevice
 from lockknife.core.logging import get_logger
@@ -118,37 +119,65 @@ class DeviceManager:
         self._log.debug("device_shell", serial=serial, timeout_s=timeout_s)
         return self._adb.shell(serial, command, timeout_s=timeout_s)
 
-    def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 120.0) -> None:
+    def pull(
+        self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 120.0
+    ) -> None:
         """Pull a file from a device and record it in the chain-of-custody log."""
         from lockknife.core.custody import log_pull
         from lockknife.core.metrics import track
-        self._log.debug("device_pull", serial=serial, remote_path=remote_path, local_path=str(local_path), timeout_s=timeout_s)
+
+        self._log.debug(
+            "device_pull",
+            serial=serial,
+            remote_path=remote_path,
+            local_path=str(local_path),
+            timeout_s=timeout_s,
+        )
         with track("adb.pull"):
             self._adb.pull(serial, remote_path, local_path, timeout_s=timeout_s)
         log_pull(serial=serial, remote_path=remote_path, local_path=local_path)
 
-    def push(self, serial: str, local_path: pathlib.Path, remote_path: str, timeout_s: float = 120.0) -> None:
+    def push(
+        self, serial: str, local_path: pathlib.Path, remote_path: str, timeout_s: float = 120.0
+    ) -> None:
         """Push a file to a device and record it in the chain-of-custody log."""
         from lockknife.core.custody import log_push
         from lockknife.core.metrics import track
-        self._log.debug("device_push", serial=serial, local_path=str(local_path), remote_path=remote_path, timeout_s=timeout_s)
+
+        self._log.debug(
+            "device_push",
+            serial=serial,
+            local_path=str(local_path),
+            remote_path=remote_path,
+            timeout_s=timeout_s,
+        )
         with track("adb.push"):
             self._adb.push(serial, local_path, remote_path, timeout_s=timeout_s)
         log_push(serial=serial, local_path=local_path, remote_path=remote_path)
 
-    def install(self, serial: str, apk_path: pathlib.Path, replace: bool = True, timeout_s: float = 300.0) -> str:
+    def install(
+        self, serial: str, apk_path: pathlib.Path, replace: bool = True, timeout_s: float = 300.0
+    ) -> str:
         """Install an APK on a device."""
         self._log.info("device_install", serial=serial, apk_path=str(apk_path), replace=replace)
         return self._adb.install(serial, apk_path, replace=replace, timeout_s=timeout_s)
 
-    def uninstall(self, serial: str, package_name: str, keep_data: bool = False, timeout_s: float = 60.0) -> str:
+    def uninstall(
+        self, serial: str, package_name: str, keep_data: bool = False, timeout_s: float = 60.0
+    ) -> str:
         """Uninstall a package from a device."""
-        self._log.info("device_uninstall", serial=serial, package_name=package_name, keep_data=keep_data)
+        self._log.info(
+            "device_uninstall", serial=serial, package_name=package_name, keep_data=keep_data
+        )
         return self._adb.uninstall(serial, package_name, keep_data=keep_data, timeout_s=timeout_s)
 
     def authorized_serials(self) -> builtins.list[str]:
         """Return adb serials that are in the 'authorized' state."""
-        serials = [d.serial for d in self._adb.list_devices() if self._classify_state(d.state) == DeviceState.authorized]
+        serials = [
+            d.serial
+            for d in self._adb.list_devices()
+            if self._classify_state(d.state) == DeviceState.authorized
+        ]
         self._log.debug("devices_authorized_serials", count=len(serials))
         return serials
 

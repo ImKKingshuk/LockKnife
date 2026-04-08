@@ -12,4 +12,3 @@ class ExternalToolError(LockKnifeError):
 
 class DeviceError(LockKnifeError):
     pass
-

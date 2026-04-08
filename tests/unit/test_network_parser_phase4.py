@@ -4,7 +4,13 @@ import types
 
 import pytest
 
-from lockknife.modules.network.parser import NetworkParseError, _has_layer, _packet_size, analyze_pcap, parse_ipv4_header
+from lockknife.modules.network.parser import (
+    NetworkParseError,
+    _has_layer,
+    _packet_size,
+    analyze_pcap,
+    parse_ipv4_header,
+)
 
 
 def test_parse_ipv4_header_raises_when_extension_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -22,7 +28,9 @@ def test_parse_ipv4_header_raises_when_extension_missing(monkeypatch: pytest.Mon
         parse_ipv4_header(b"\x45\x00")
 
 
-def test_analyze_pcap_uses_fake_scapy_packets(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_analyze_pcap_uses_fake_scapy_packets(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     pcap = tmp_path / "sample.pcap"
     pcap.write_text("GET /status HTTP/1.1\r\nHost: api.example.com\r\n\r\n", encoding="utf-8")
 
@@ -48,7 +56,10 @@ def test_analyze_pcap_uses_fake_scapy_packets(tmp_path: pathlib.Path, monkeypatc
                 IP: _Layer(src="192.0.2.1", dst="192.0.2.2"),
                 TCP: _Layer(sport=1234, dport=443),
                 Raw: _Layer(load=b"GET /status HTTP/1.1\r\nHost: api.example.com\r\n\r\n"),
-                DNS: _Layer(qd=_Layer(qname=b"api.example.com."), an=_Layer(rrname=b"api.example.com.", rdata="192.0.2.4")),
+                DNS: _Layer(
+                    qd=_Layer(qname=b"api.example.com."),
+                    an=_Layer(rrname=b"api.example.com.", rdata="192.0.2.4"),
+                ),
             }
 
         def haslayer(self, layer: object) -> bool:
@@ -60,7 +71,9 @@ def test_analyze_pcap_uses_fake_scapy_packets(tmp_path: pathlib.Path, monkeypatc
         def __bytes__(self) -> bytes:
             return b"packet-bytes"
 
-    fake_scapy = types.SimpleNamespace(IP=IP, IPv6=None, TCP=TCP, UDP=None, Raw=Raw, DNS=DNS, rdpcap=lambda _path: [_Packet()])
+    fake_scapy = types.SimpleNamespace(
+        IP=IP, IPv6=None, TCP=TCP, UDP=None, Raw=Raw, DNS=DNS, rdpcap=lambda _path: [_Packet()]
+    )
     monkeypatch.setitem(sys.modules, "scapy.all", fake_scapy)
 
     out = analyze_pcap(pcap)

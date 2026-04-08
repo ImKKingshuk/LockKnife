@@ -104,7 +104,9 @@ class _Cli:
         self.registrations.append(path)
 
 
-def test_run_extract_all_writes_json_outputs_and_registers_artifacts(tmp_path: pathlib.Path) -> None:
+def test_run_extract_all_writes_json_outputs_and_registers_artifacts(
+    tmp_path: pathlib.Path,
+) -> None:
     cli = _Cli(fail_signal=True)
     progress_events: list[dict[str, Any]] = []
 

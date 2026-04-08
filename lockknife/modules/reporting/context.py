@@ -41,10 +41,17 @@ def build_report_context(
     evidence_summary = summarize_evidence_inventory(evidence_inventory, artifacts)
     pdf_status = pdf_backend_status()
 
-    highlights = build_highlights(case_summary=case_summary, integrity=integrity, evidence_summary=evidence_summary, mastg=mastg)
+    highlights = build_highlights(
+        case_summary=case_summary,
+        integrity=integrity,
+        evidence_summary=evidence_summary,
+        mastg=mastg,
+    )
     row_count = _top_level_row_count(artifacts)
     if row_count > 0 and all("top-level artifact row" not in item for item in highlights):
-        highlights.append(f"Report payload includes {row_count} top-level artifact row(s) for review.")
+        highlights.append(
+            f"Report payload includes {row_count} top-level artifact row(s) for review."
+        )
 
     return {
         "case_id": resolved_case_id,
@@ -82,7 +89,9 @@ def build_report_context(
             "artifact_row_count": row_count,
             "evidence_item_count": len(evidence_inventory),
             "mastg_reference_count": len(mastg.get("mastg_ids") or []),
-            "integrity_verified_count": int(((integrity or {}).get("summary") or {}).get("verified_count") or 0),
+            "integrity_verified_count": int(
+                ((integrity or {}).get("summary") or {}).get("verified_count") or 0
+            ),
         },
         "operator_guidance": [
             "Treat generated reports as summaries over preserved case artifacts, not replacements for original evidence.",

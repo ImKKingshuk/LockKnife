@@ -1,13 +1,16 @@
 import json
 import pathlib
-import zipfile
 from dataclasses import dataclass
-from types import SimpleNamespace
 
 from click.testing import CliRunner
 
+
 def test_case_workspace_create_and_register(tmp_path: pathlib.Path) -> None:
-    from lockknife.core.case import create_case_workspace, load_case_manifest, register_case_artifact
+    from lockknife.core.case import (
+        create_case_workspace,
+        load_case_manifest,
+        register_case_artifact,
+    )
 
     case_dir = tmp_path / "case"
     create_case_workspace(case_dir=case_dir, case_id="CASE-001", examiner="Examiner", title="Demo")
@@ -29,17 +32,28 @@ def test_case_workspace_create_and_register(tmp_path: pathlib.Path) -> None:
     assert manifest.artifacts[0].metadata["kind"] == "sample"
     assert manifest.schema_version == 4
 
+
 def test_case_cli_and_report_registration(tmp_path: pathlib.Path) -> None:
+    from lockknife.core.case import load_case_manifest
     from lockknife_headless_cli.case import case_group
     from lockknife_headless_cli.report import report
-    from lockknife.core.case import load_case_manifest
 
     runner = CliRunner()
     case_dir = tmp_path / "case"
 
     result = runner.invoke(
         case_group,
-        ["init", "--case-id", "CASE-002", "--examiner", "Examiner", "--title", "Incident", "--output", str(case_dir)],
+        [
+            "init",
+            "--case-id",
+            "CASE-002",
+            "--examiner",
+            "Examiner",
+            "--title",
+            "Incident",
+            "--output",
+            str(case_dir),
+        ],
     )
     assert result.exit_code == 0, result.output
 
@@ -66,20 +80,34 @@ def test_case_cli_and_report_registration(tmp_path: pathlib.Path) -> None:
     )
     assert result.exit_code == 0, result.output
 
-    manifest_result = runner.invoke(case_group, ["manifest", "--case-dir", str(case_dir), "--format", "text"])
+    manifest_result = runner.invoke(
+        case_group, ["manifest", "--case-dir", str(case_dir), "--format", "text"]
+    )
     assert manifest_result.exit_code == 0, manifest_result.output
     manifest = load_case_manifest(case_dir)
     assert manifest.artifacts[0].category == "report-json"
     assert manifest.artifacts[0].path == "reports/report.json"
 
-def test_register_case_artifact_resolves_parent_ids_from_input_paths(tmp_path: pathlib.Path) -> None:
-    from lockknife.core.case import create_case_workspace, load_case_manifest, register_case_artifact, summarize_case_manifest
+
+def test_register_case_artifact_resolves_parent_ids_from_input_paths(
+    tmp_path: pathlib.Path,
+) -> None:
+    from lockknife.core.case import (
+        create_case_workspace,
+        load_case_manifest,
+        register_case_artifact,
+        summarize_case_manifest,
+    )
 
     case_dir = tmp_path / "case"
-    create_case_workspace(case_dir=case_dir, case_id="CASE-002B", examiner="Examiner", title="Lineage")
+    create_case_workspace(
+        case_dir=case_dir, case_id="CASE-002B", examiner="Examiner", title="Lineage"
+    )
     source = case_dir / "evidence" / "source.json"
     source.write_text("{}", encoding="utf-8")
-    parent = register_case_artifact(case_dir=case_dir, path=source, category="evidence", source_command="test")
+    parent = register_case_artifact(
+        case_dir=case_dir, path=source, category="evidence", source_command="test"
+    )
 
     derived = case_dir / "derived" / "timeline.json"
     derived.write_text("[]", encoding="utf-8")
@@ -98,7 +126,11 @@ def test_register_case_artifact_resolves_parent_ids_from_input_paths(tmp_path: p
     assert summary["artifact_count"] == 2
     assert summary["lineage"]["linked_artifacts"] == 1
     assert summary["lineage"]["parent_edges"] == 1
-    assert {(row["name"], row["count"]) for row in summary["artifacts_by_category"]} == {("derived", 1), ("evidence", 1)}
+    assert {(row["name"], row["count"]) for row in summary["artifacts_by_category"]} == {
+        ("derived", 1),
+        ("evidence", 1),
+    }
+
 
 def test_case_jobs_are_persisted_and_queryable(tmp_path: pathlib.Path) -> None:
     from lockknife.core.case import (
@@ -164,11 +196,20 @@ def test_case_jobs_are_persisted_and_queryable(tmp_path: pathlib.Path) -> None:
     assert resume is not None and resume["params"]["serial"] == "SER-2"
     assert retry is not None and retry["params"]["app_id"] == "com.example.app"
 
+
 def test_register_case_artifact_auto_reuses_updates_and_duplicates(tmp_path: pathlib.Path) -> None:
-    from lockknife.core.case import create_case_workspace, find_case_artifact, load_case_manifest, register_case_artifact, register_case_artifact_with_status
+    from lockknife.core.case import (
+        create_case_workspace,
+        find_case_artifact,
+        load_case_manifest,
+        register_case_artifact,
+        register_case_artifact_with_status,
+    )
 
     case_dir = tmp_path / "case"
-    create_case_workspace(case_dir=case_dir, case_id="CASE-002C", examiner="Examiner", title="Conflicts")
+    create_case_workspace(
+        case_dir=case_dir, case_id="CASE-002C", examiner="Examiner", title="Conflicts"
+    )
     artifact_path = case_dir / "derived" / "artifact.json"
     artifact_path.write_text("{}", encoding="utf-8")
 
@@ -216,7 +257,10 @@ def test_register_case_artifact_auto_reuses_updates_and_duplicates(tmp_path: pat
     assert duplicate.action == "created"
     manifest = load_case_manifest(case_dir)
     assert len(manifest.artifacts) == 2
-    assert find_case_artifact(case_dir, path=artifact_path).artifact_id == duplicate.artifact.artifact_id
+    assert (
+        find_case_artifact(case_dir, path=artifact_path).artifact_id
+        == duplicate.artifact.artifact_id
+    )
 
     try:
         register_case_artifact(
@@ -230,13 +274,27 @@ def test_register_case_artifact_auto_reuses_updates_and_duplicates(tmp_path: pat
     else:
         raise AssertionError("Expected collision for unrelated path reuse")
 
+
 def test_case_sync_custody_records_log(tmp_path: pathlib.Path) -> None:
-    from lockknife_headless_cli.case import case_group
     from lockknife.core.custody import clear_log, log_pull
+    from lockknife_headless_cli.case import case_group
 
     runner = CliRunner()
     case_dir = tmp_path / "case"
-    runner.invoke(case_group, ["init", "--case-id", "CASE-003", "--examiner", "Examiner", "--title", "Incident", "--output", str(case_dir)])
+    runner.invoke(
+        case_group,
+        [
+            "init",
+            "--case-id",
+            "CASE-003",
+            "--examiner",
+            "Examiner",
+            "--title",
+            "Incident",
+            "--output",
+            str(case_dir),
+        ],
+    )
 
     pulled = tmp_path / "pulled.bin"
     pulled.write_bytes(b"abc")
@@ -251,6 +309,7 @@ def test_case_sync_custody_records_log(tmp_path: pathlib.Path) -> None:
     custody = json.loads((case_dir / "logs" / "custody_log.json").read_text(encoding="utf-8"))
     assert custody[0]["serial"] == "SER"
     clear_log()
+
 
 @dataclass
 class _SmsRow:

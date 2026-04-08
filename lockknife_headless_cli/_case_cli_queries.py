@@ -9,12 +9,21 @@ import click
 
 def register(case_group: Any, cli: Any) -> None:
     @case_group.command("summary")
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path), required=True)
+    @click.option(
+        "--case-dir",
+        type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path),
+        required=True,
+    )
     @click.option("--category", "categories", multiple=True)
     @click.option("--exclude-category", "exclude_categories", multiple=True)
     @click.option("--source-command", "source_commands", multiple=True)
     @click.option("--device-serial", "device_serials", multiple=True)
-    @click.option("--format", "out_format", type=click.Choice(["text", "json"], case_sensitive=False), default="text")
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["text", "json"], case_sensitive=False),
+        default="text",
+    )
     def summary_cmd(
         case_dir: pathlib.Path,
         categories: tuple[str, ...],
@@ -64,12 +73,21 @@ def register(case_group: Any, cli: Any) -> None:
         cli.console.print("\n".join(lines))
 
     @case_group.command("graph")
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path), required=True)
+    @click.option(
+        "--case-dir",
+        type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path),
+        required=True,
+    )
     @click.option("--category", "categories", multiple=True)
     @click.option("--exclude-category", "exclude_categories", multiple=True)
     @click.option("--source-command", "source_commands", multiple=True)
     @click.option("--device-serial", "device_serials", multiple=True)
-    @click.option("--format", "out_format", type=click.Choice(["text", "json"], case_sensitive=False), default="text")
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["text", "json"], case_sensitive=False),
+        default="text",
+    )
     def graph_cmd(
         case_dir: pathlib.Path,
         categories: tuple[str, ...],
@@ -103,7 +121,11 @@ def register(case_group: Any, cli: Any) -> None:
         cli.console.print(graph_text)
 
     @case_group.command("artifacts")
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path), required=True)
+    @click.option(
+        "--case-dir",
+        type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path),
+        required=True,
+    )
     @click.option("--category", "categories", multiple=True)
     @click.option("--exclude-category", "exclude_categories", multiple=True)
     @click.option("--source-command", "source_commands", multiple=True)
@@ -112,7 +134,12 @@ def register(case_group: Any, cli: Any) -> None:
     @click.option("--path-contains")
     @click.option("--metadata-contains")
     @click.option("--limit", type=int)
-    @click.option("--format", "out_format", type=click.Choice(["text", "json"], case_sensitive=False), default="text")
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["text", "json"], case_sensitive=False),
+        default="text",
+    )
     def artifacts_cmd(
         case_dir: pathlib.Path,
         categories: tuple[str, ...],
@@ -157,16 +184,37 @@ def register(case_group: Any, cli: Any) -> None:
         else:
             for artifact in payload["artifacts"]:
                 device = artifact["device_serial"] or "unknown"
-                lines.append(f"- {artifact['artifact_id']} | {artifact['category']} | {artifact['path']} | cmd={artifact['source_command']} | device={device}")
+                lines.append(
+                    f"- {artifact['artifact_id']} | {artifact['category']} | {artifact['path']} | cmd={artifact['source_command']} | device={device}"
+                )
         cli.console.print("\n".join(lines))
 
     @case_group.command("artifact")
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path), required=True)
+    @click.option(
+        "--case-dir",
+        type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path),
+        required=True,
+    )
     @click.option("--artifact-id")
-    @click.option("--path", "artifact_path", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-    @click.option("--format", "out_format", type=click.Choice(["text", "json"], case_sensitive=False), default="text")
-    def artifact_cmd(case_dir: pathlib.Path, artifact_id: str | None, artifact_path: pathlib.Path | None, out_format: str) -> None:
-        payload = cli.case_artifact_details(case_dir, **cli._artifact_ref_kwargs(artifact_id=artifact_id, artifact_path=artifact_path))
+    @click.option(
+        "--path", "artifact_path", type=click.Path(dir_okay=False, path_type=pathlib.Path)
+    )
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["text", "json"], case_sensitive=False),
+        default="text",
+    )
+    def artifact_cmd(
+        case_dir: pathlib.Path,
+        artifact_id: str | None,
+        artifact_path: pathlib.Path | None,
+        out_format: str,
+    ) -> None:
+        payload = cli.case_artifact_details(
+            case_dir,
+            **cli._artifact_ref_kwargs(artifact_id=artifact_id, artifact_path=artifact_path),
+        )
         if payload is None:
             raise click.ClickException("Artifact not found")
         if out_format.lower() == "json":
@@ -185,12 +233,31 @@ def register(case_group: Any, cli: Any) -> None:
         cli.console.print("\n".join(lines))
 
     @case_group.command("lineage")
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path), required=True)
+    @click.option(
+        "--case-dir",
+        type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path),
+        required=True,
+    )
     @click.option("--artifact-id")
-    @click.option("--path", "artifact_path", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-    @click.option("--format", "out_format", type=click.Choice(["text", "json"], case_sensitive=False), default="text")
-    def lineage_cmd(case_dir: pathlib.Path, artifact_id: str | None, artifact_path: pathlib.Path | None, out_format: str) -> None:
-        payload = cli.case_artifact_lineage(case_dir, **cli._artifact_ref_kwargs(artifact_id=artifact_id, artifact_path=artifact_path))
+    @click.option(
+        "--path", "artifact_path", type=click.Path(dir_okay=False, path_type=pathlib.Path)
+    )
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["text", "json"], case_sensitive=False),
+        default="text",
+    )
+    def lineage_cmd(
+        case_dir: pathlib.Path,
+        artifact_id: str | None,
+        artifact_path: pathlib.Path | None,
+        out_format: str,
+    ) -> None:
+        payload = cli.case_artifact_lineage(
+            case_dir,
+            **cli._artifact_ref_kwargs(artifact_id=artifact_id, artifact_path=artifact_path),
+        )
         if payload is None:
             raise click.ClickException("Artifact not found")
         if out_format.lower() == "json":

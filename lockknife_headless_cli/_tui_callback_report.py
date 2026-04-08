@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -153,12 +154,20 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
     if action == "report.generate":
         case_dir = _path_param(params.get("case_dir"))
         case_id = _resolve_report_case_id(params, case_dir)
-        report_case_dir = case_dir if case_dir is not None and (case_dir / "case_manifest.json").exists() else None
+        report_case_dir = (
+            case_dir
+            if case_dir is not None and (case_dir / "case_manifest.json").exists()
+            else None
+        )
         template = str(params.get("template") or "technical")
         out_format = str(params.get("format") or "html").lower()
         artifacts_path = _opt(params.get("artifacts")) or ""
         inline_artifacts = _json_from_param(params.get("data_json")) or {}
-        filename_prefix = template if report_case_dir is not None and not artifacts_path and not inline_artifacts else "report"
+        filename_prefix = (
+            template
+            if report_case_dir is not None and not artifacts_path and not inline_artifacts
+            else "report"
+        )
         report_filename = {
             "json": f"{filename_prefix}_{case_id}.json",
             "csv": f"{filename_prefix}_{case_id}.csv",
@@ -180,9 +189,15 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 artifacts = summarize_case_manifest(report_case_dir)
         if not artifacts and report_case_dir is None:
             artifacts = {}
-        context = build_report_context(case_id=case_id, artifacts=artifacts, case_dir=report_case_dir)
+        context = build_report_context(
+            case_id=case_id, artifacts=artifacts, case_dir=report_case_dir
+        )
         artifact_inputs = [artifacts_path] if artifacts_path else []
-        result_payload: dict[str, Any] = {"output": str(output), "requested_format": out_format, "report_preview": context.get("report_preview")}
+        result_payload: dict[str, Any] = {
+            "output": str(output),
+            "requested_format": out_format,
+            "report_preview": context.get("report_preview"),
+        }
         if out_format == "json":
             export_json(context, output)
             _register_case_output(
@@ -191,7 +206,12 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 category="report-json",
                 source_command="report generate",
                 input_paths=artifact_inputs,
-                metadata={"report_case_id": case_id, "format": "json", "requested_format": out_format, "degraded": False},
+                metadata={
+                    "report_case_id": case_id,
+                    "format": "json",
+                    "requested_format": out_format,
+                    "degraded": False,
+                },
             )
         elif out_format == "csv":
             rows = _report_rows(artifacts, context)
@@ -202,11 +222,18 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 category="report-csv",
                 source_command="report generate",
                 input_paths=artifact_inputs,
-                metadata={"report_case_id": case_id, "format": "csv", "requested_format": out_format, "degraded": False},
+                metadata={
+                    "report_case_id": case_id,
+                    "format": "csv",
+                    "requested_format": out_format,
+                    "degraded": False,
+                },
             )
         elif out_format == "pdf":
             template_path = _template_path(template)
-            pdf_result = write_pdf_report(template_path, context, output, fallback_html_path=output.with_suffix(".html"))
+            pdf_result = write_pdf_report(
+                template_path, context, output, fallback_html_path=output.with_suffix(".html")
+            )
             actual_output = pathlib.Path(str(pdf_result["output"]))
             result_payload.update(pdf_result)
             _register_case_output(
@@ -232,7 +259,12 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 category="report-html",
                 source_command="report generate",
                 input_paths=artifact_inputs,
-                metadata={"report_case_id": case_id, "format": "html", "requested_format": out_format, "degraded": False},
+                metadata={
+                    "report_case_id": case_id,
+                    "format": "html",
+                    "requested_format": out_format,
+                    "degraded": False,
+                },
             )
         return _ok(result_payload, f"Report saved to {output}")
 
@@ -264,7 +296,11 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 evidence=evidence_items,
             )
         if out_format == "html":
-            write_html_report(_template_path("chain_of_custody"), {"report_title": "Chain of Custody", **payload}, output)
+            write_html_report(
+                _template_path("chain_of_custody"),
+                {"report_title": "Chain of Custody", **payload},
+                output,
+            )
         else:
             output.write_text(
                 generate_chain_of_custody(
@@ -276,16 +312,29 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 encoding="utf-8",
             )
         sign_requested = str(params.get("sign") or "").strip().lower() in {"1", "true", "yes", "on"}
-        signature = sign_report_file(output, key_id=_opt(params.get("gpg_key_id"))) if sign_requested else {"status": "not-requested"}
+        signature = (
+            sign_report_file(output, key_id=_opt(params.get("gpg_key_id")))
+            if sign_requested
+            else {"status": "not-requested"}
+        )
         _register_case_output(
             case_dir,
             path=output,
             category="chain-of-custody",
             source_command="report chain-of-custody",
             input_paths=evidence_paths,
-            metadata={"report_case_id": case_id, "evidence_count": int(payload.get("entry_count", 0)), "format": out_format, "signature_status": signature.get("status")},
+            metadata={
+                "report_case_id": case_id,
+                "evidence_count": int(payload.get("entry_count", 0)),
+                "format": out_format,
+                "signature_status": signature.get("status"),
+            },
         )
-        if case_dir is not None and signature.get("status") == "signed" and signature.get("signature_path"):
+        if (
+            case_dir is not None
+            and signature.get("status") == "signed"
+            and signature.get("signature_path")
+        ):
             _register_case_output(
                 case_dir,
                 path=pathlib.Path(str(signature["signature_path"])),
@@ -293,7 +342,20 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 source_command="report chain-of-custody",
                 metadata={"report_case_id": case_id, "signed_output": str(output)},
             )
-        return _ok({"output": str(output), "case_id": case_id, "evidence_count": int(payload.get("entry_count", 0)), "format": out_format, "chain_summary": {"chain_head_sha256": payload.get("chain_head_sha256"), "verification": payload.get("verification")}, "signature": signature}, f"Chain of custody saved to {output}")
+        return _ok(
+            {
+                "output": str(output),
+                "case_id": case_id,
+                "evidence_count": int(payload.get("entry_count", 0)),
+                "format": out_format,
+                "chain_summary": {
+                    "chain_head_sha256": payload.get("chain_head_sha256"),
+                    "verification": payload.get("verification"),
+                },
+                "signature": signature,
+            },
+            f"Chain of custody saved to {output}",
+        )
 
     if action == "report.integrity":
         case_dir = pathlib.Path(_require(params, "case_dir"))

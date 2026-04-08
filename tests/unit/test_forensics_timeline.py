@@ -19,18 +19,12 @@ def test_build_timeline_report_normalizes_browser_and_media(tmp_path: pathlib.Pa
     media = tmp_path / "media.json"
     browser.write_text(
         json.dumps(
-            {
-                "history": [
-                    {"url": "https://example.com", "last_visit_time_raw": 13217451500000000}
-                ]
-            }
+            {"history": [{"url": "https://example.com", "last_visit_time_raw": 13217451500000000}]}
         ),
         encoding="utf-8",
     )
     media.write_text(
-        json.dumps([
-            {"path": "/sdcard/DCIM/IMG_20240203_040506.jpg", "kind": "image"}
-        ]),
+        json.dumps([{"path": "/sdcard/DCIM/IMG_20240203_040506.jpg", "kind": "image"}]),
         encoding="utf-8",
     )
 
@@ -47,11 +41,23 @@ def test_build_timeline_report_handles_phase_one_forensics_sources(tmp_path: pat
     wifi = tmp_path / "wifi_history.json"
     bluetooth = tmp_path / "bluetooth.json"
     notifications = tmp_path / "notifications.json"
-    accounts.write_text(json.dumps([{"name": "alice@example.com", "last_authenticated_ms": 1710000000000}]), encoding="utf-8")
-    app_usage.write_text(json.dumps({"events": [{"package": "com.example", "timestamp_ms": 1710000005000}]}), encoding="utf-8")
-    wifi.write_text(json.dumps([{"ssid": "CorpWifi", "last_connected_ms": 1710000010000}]), encoding="utf-8")
-    bluetooth.write_text(json.dumps([{"name": "Watch", "last_seen_ms": 1710000015000}]), encoding="utf-8")
-    notifications.write_text(json.dumps([{"title": "Alert", "posted_at_ms": 1710000020000}]), encoding="utf-8")
+    accounts.write_text(
+        json.dumps([{"name": "alice@example.com", "last_authenticated_ms": 1710000000000}]),
+        encoding="utf-8",
+    )
+    app_usage.write_text(
+        json.dumps({"events": [{"package": "com.example", "timestamp_ms": 1710000005000}]}),
+        encoding="utf-8",
+    )
+    wifi.write_text(
+        json.dumps([{"ssid": "CorpWifi", "last_connected_ms": 1710000010000}]), encoding="utf-8"
+    )
+    bluetooth.write_text(
+        json.dumps([{"name": "Watch", "last_seen_ms": 1710000015000}]), encoding="utf-8"
+    )
+    notifications.write_text(
+        json.dumps([{"title": "Alert", "posted_at_ms": 1710000020000}]), encoding="utf-8"
+    )
 
     report = build_timeline_report(
         accounts_path=accounts,
@@ -64,4 +70,3 @@ def test_build_timeline_report_handles_phase_one_forensics_sources(tmp_path: pat
     assert report["event_count"] == 5
     assert report["summary"]["source_counts"]["accounts"] == 1
     assert report["summary"]["source_counts"]["notifications"] == 1
-

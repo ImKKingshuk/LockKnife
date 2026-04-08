@@ -5,7 +5,7 @@ import pathlib
 import re
 import subprocess  # nosec B404
 import time
-from typing import Sequence
+from collections.abc import Sequence
 
 from lockknife.core.exceptions import DeviceError, ExternalToolError
 from lockknife.core.logging import get_logger
@@ -53,7 +53,9 @@ class AdbClient:
             ExternalToolError: If adb is missing, times out, or returns non-zero.
         """
         start = time.perf_counter()
-        self._log.debug("adb_run_start", adb_path=self._adb_path, args=list(args), timeout_s=timeout_s)
+        self._log.debug(
+            "adb_run_start", adb_path=self._adb_path, args=list(args), timeout_s=timeout_s
+        )
         try:
             proc = subprocess.run(  # nosec B603
                 [self._adb_path, *args],
@@ -63,10 +65,18 @@ class AdbClient:
                 timeout=timeout_s,
             )
         except FileNotFoundError as e:
-            self._log.error("adb_run_missing", adb_path=self._adb_path, args=list(args), exc_info=True)
+            self._log.error(
+                "adb_run_missing", adb_path=self._adb_path, args=list(args), exc_info=True
+            )
             raise ExternalToolError(f"adb not found: {self._adb_path}") from e
         except subprocess.TimeoutExpired as e:
-            self._log.error("adb_run_timeout", adb_path=self._adb_path, args=list(args), timeout_s=timeout_s, exc_info=True)
+            self._log.error(
+                "adb_run_timeout",
+                adb_path=self._adb_path,
+                args=list(args),
+                timeout_s=timeout_s,
+                exc_info=True,
+            )
             raise ExternalToolError(f"adb timed out: {args}") from e
 
         if proc.returncode != 0:
@@ -81,7 +91,12 @@ class AdbClient:
                 stdout=(proc.stdout.strip()[:400] if proc.stdout else ""),
             )
             raise ExternalToolError(msg)
-        self._log.debug("adb_run_ok", adb_path=self._adb_path, args=list(args), elapsed_s=round(time.perf_counter() - start, 6))
+        self._log.debug(
+            "adb_run_ok",
+            adb_path=self._adb_path,
+            args=list(args),
+            elapsed_s=round(time.perf_counter() - start, 6),
+        )
         return proc.stdout
 
     def list_devices(self) -> list[AdbDevice]:
@@ -145,7 +160,9 @@ class AdbClient:
         )
         return self.run(["-s", serial, "shell", command], timeout_s=timeout_s)
 
-    def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 120.0) -> None:
+    def pull(
+        self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 120.0
+    ) -> None:
         """Pull a file from the device.
 
         Args:
@@ -157,10 +174,18 @@ class AdbClient:
         if not serial:
             raise DeviceError("Missing device serial")
         local_path.parent.mkdir(parents=True, exist_ok=True)
-        self._log.debug("adb_pull", serial=serial, remote_path=remote_path, local_path=str(local_path), timeout_s=timeout_s)
+        self._log.debug(
+            "adb_pull",
+            serial=serial,
+            remote_path=remote_path,
+            local_path=str(local_path),
+            timeout_s=timeout_s,
+        )
         self.run(["-s", serial, "pull", remote_path, str(local_path)], timeout_s=timeout_s)
 
-    def push(self, serial: str, local_path: pathlib.Path, remote_path: str, timeout_s: float = 120.0) -> None:
+    def push(
+        self, serial: str, local_path: pathlib.Path, remote_path: str, timeout_s: float = 120.0
+    ) -> None:
         """Push a file to the device.
 
         Args:
@@ -173,10 +198,18 @@ class AdbClient:
             raise DeviceError("Missing device serial")
         if not local_path.exists():
             raise DeviceError(f"Local path does not exist: {local_path}")
-        self._log.debug("adb_push", serial=serial, local_path=str(local_path), remote_path=remote_path, timeout_s=timeout_s)
+        self._log.debug(
+            "adb_push",
+            serial=serial,
+            local_path=str(local_path),
+            remote_path=remote_path,
+            timeout_s=timeout_s,
+        )
         self.run(["-s", serial, "push", str(local_path), remote_path], timeout_s=timeout_s)
 
-    def install(self, serial: str, apk_path: pathlib.Path, replace: bool = True, timeout_s: float = 300.0) -> str:
+    def install(
+        self, serial: str, apk_path: pathlib.Path, replace: bool = True, timeout_s: float = 300.0
+    ) -> str:
         """Install an APK on the device."""
         if not serial:
             raise DeviceError("Missing device serial")
@@ -186,10 +219,18 @@ class AdbClient:
         if replace:
             args.append("-r")
         args.append(str(apk_path))
-        self._log.info("adb_install", serial=serial, apk_path=str(apk_path), replace=replace, timeout_s=timeout_s)
+        self._log.info(
+            "adb_install",
+            serial=serial,
+            apk_path=str(apk_path),
+            replace=replace,
+            timeout_s=timeout_s,
+        )
         return self.run(args, timeout_s=timeout_s).strip()
 
-    def uninstall(self, serial: str, package_name: str, keep_data: bool = False, timeout_s: float = 60.0) -> str:
+    def uninstall(
+        self, serial: str, package_name: str, keep_data: bool = False, timeout_s: float = 60.0
+    ) -> str:
         """Uninstall a package from the device."""
         if not serial:
             raise DeviceError("Missing device serial")
@@ -197,7 +238,13 @@ class AdbClient:
         if keep_data:
             args.append("-k")
         args.append(package_name)
-        self._log.info("adb_uninstall", serial=serial, package_name=package_name, keep_data=keep_data, timeout_s=timeout_s)
+        self._log.info(
+            "adb_uninstall",
+            serial=serial,
+            package_name=package_name,
+            keep_data=keep_data,
+            timeout_s=timeout_s,
+        )
         return self.run(args, timeout_s=timeout_s).strip()
 
     def has_su(self, serial: str) -> bool:
@@ -277,7 +324,6 @@ class AdbClient:
         Returns:
             Dict with auth status information.
         """
-        import dataclasses
 
         result: dict[str, Any] = {
             "authorized": False,
@@ -343,7 +389,10 @@ class AdbClient:
             # Try adb root
             try:
                 root_out = self.run(["-s", serial, "root"], timeout_s=timeout_s)
-                if "restarting adbd as root" in root_out.lower() or "already running as root" in root_out.lower():
+                if (
+                    "restarting adbd as root" in root_out.lower()
+                    or "already running as root" in root_out.lower()
+                ):
                     result["has_adb_root"] = True
             except ExternalToolError:
                 pass
@@ -393,7 +442,9 @@ class AdbClient:
 
             # Get network info
             try:
-                ip_info = self.shell(serial, "ip addr show wlan0 2>/dev/null | grep 'inet '", timeout_s=timeout_s)
+                ip_info = self.shell(
+                    serial, "ip addr show wlan0 2>/dev/null | grep 'inet '", timeout_s=timeout_s
+                )
                 if ip_info:
                     import re
 
@@ -408,7 +459,9 @@ class AdbClient:
 
         return info
 
-    def list_packages(self, serial: str, filter_type: str = "all", timeout_s: float = 60.0) -> list[str]:
+    def list_packages(
+        self, serial: str, filter_type: str = "all", timeout_s: float = 60.0
+    ) -> list[str]:
         """List installed packages on device.
 
         Args:
@@ -445,7 +498,9 @@ class AdbClient:
 
         return packages
 
-    def get_package_info(self, serial: str, package_name: str, timeout_s: float = 30.0) -> dict[str, Any]:
+    def get_package_info(
+        self, serial: str, package_name: str, timeout_s: float = 30.0
+    ) -> dict[str, Any]:
         """Get detailed package information.
 
         Args:
@@ -519,7 +574,9 @@ class AdbClient:
         local_dir.mkdir(parents=True, exist_ok=True)
 
         try:
-            self._log.info("adb_pull_directory", serial=serial, remote=remote_dir, local=str(local_dir))
+            self._log.info(
+                "adb_pull_directory", serial=serial, remote=remote_dir, local=str(local_dir)
+            )
             self.run(["-s", serial, "pull", remote_dir, str(local_dir)], timeout_s=timeout_s)
             return True
         except ExternalToolError:
@@ -550,7 +607,9 @@ class AdbClient:
             raise DeviceError(f"Local directory does not exist: {local_dir}")
 
         try:
-            self._log.info("adb_push_directory", serial=serial, local=str(local_dir), remote=remote_dir)
+            self._log.info(
+                "adb_push_directory", serial=serial, local=str(local_dir), remote=remote_dir
+            )
             self.run(["-s", serial, "push", str(local_dir), remote_dir], timeout_s=timeout_s)
             return True
         except ExternalToolError:

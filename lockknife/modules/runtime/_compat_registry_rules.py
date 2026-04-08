@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from lockknife.modules.runtime._compat_registry_models import RuntimeCompatibilityRule
 
-
 RUNTIME_COMPATIBILITY_RULES: tuple[RuntimeCompatibilityRule, ...] = (
     RuntimeCompatibilityRule(
         rule_id="spawn-restarts-app",

@@ -1,25 +1,20 @@
 from __future__ import annotations
 
-
-
-import json
-
 import pathlib
-
 from typing import Any
 
 import click
 
 
-
 def _render_rows(title: str, rows: list[dict[str, object]]) -> list[str]:
-    lines = [f"{title}:" ]
+    lines = [f"{title}:"]
     if not rows:
         lines.append("- none")
         return lines
     for row in rows:
         lines.append(f"- {row['name']}: {row['count']}")
     return lines
+
 
 def _case_filter_kwargs(
     *,
@@ -35,6 +30,7 @@ def _case_filter_kwargs(
         "device_serials": device_serials,
     }
 
+
 def _render_filter_summary(filters: dict[str, list[str]]) -> str | None:
     parts: list[str] = []
     if filters.get("categories"):
@@ -48,6 +44,7 @@ def _render_filter_summary(filters: dict[str, list[str]]) -> str | None:
     if not parts:
         return None
     return "Filters: " + " | ".join(parts)
+
 
 def _render_search_summary(payload: dict[str, Any]) -> str | None:
     search = payload.get("search") or {}
@@ -64,10 +61,14 @@ def _render_search_summary(payload: dict[str, Any]) -> str | None:
         return None
     return "Search: " + " | ".join(parts)
 
-def _artifact_ref_kwargs(*, artifact_id: str | None, artifact_path: pathlib.Path | None) -> dict[str, str | pathlib.Path | None]:
+
+def _artifact_ref_kwargs(
+    *, artifact_id: str | None, artifact_path: pathlib.Path | None
+) -> dict[str, str | pathlib.Path | None]:
     if bool(artifact_id) == bool(artifact_path):
         raise click.ClickException("Provide exactly one of --artifact-id or --path")
     return {"artifact_id": artifact_id, "path": artifact_path}
+
 
 def _render_graph_node(
     node_id: str,
@@ -94,8 +95,16 @@ def _render_graph_node(
     rendered_shared.add(node_id)
     stack.add(node_id)
     for child_id in node.get("child_artifact_ids", []):
-        _render_graph_node(child_id, node_map=node_map, depth=depth + 1, lines=lines, stack=stack, rendered_shared=rendered_shared)
+        _render_graph_node(
+            child_id,
+            node_map=node_map,
+            depth=depth + 1,
+            lines=lines,
+            stack=stack,
+            rendered_shared=rendered_shared,
+        )
     stack.remove(node_id)
+
 
 def _render_graph_text(payload: dict[str, Any]) -> str:
     lines = [
@@ -108,15 +117,30 @@ def _render_graph_text(payload: dict[str, Any]) -> str:
     rendered_shared: set[str] = set()
     root_ids = list(payload["root_artifact_ids"])
     for root_id in root_ids:
-        _render_graph_node(root_id, node_map=node_map, depth=0, lines=lines, stack=set(), rendered_shared=rendered_shared)
+        _render_graph_node(
+            root_id,
+            node_map=node_map,
+            depth=0,
+            lines=lines,
+            stack=set(),
+            rendered_shared=rendered_shared,
+        )
 
     remaining = [node_id for node_id in node_map if node_id not in rendered_shared]
     if remaining:
         lines.append("")
         lines.append("Remaining:")
         for node_id in remaining:
-            _render_graph_node(node_id, node_map=node_map, depth=0, lines=lines, stack=set(), rendered_shared=rendered_shared)
+            _render_graph_node(
+                node_id,
+                node_map=node_map,
+                depth=0,
+                lines=lines,
+                stack=set(),
+                rendered_shared=rendered_shared,
+            )
     return "\n".join(lines)
+
 
 def _render_enrichment_text(payload: dict[str, Any]) -> str:
     summary = payload.get("summary") or {}

@@ -65,17 +65,27 @@ def scan_network(devices: DeviceManager, serial: str) -> NetworkScan:
         seen.add(x)
         dns_cache_u.append(x)
 
-    raw = devices.shell(serial, 'su -c "netstat -tunlp 2>/dev/null || ss -tunlp 2>/dev/null"', timeout_s=20.0)
+    raw = devices.shell(
+        serial, 'su -c "netstat -tunlp 2>/dev/null || ss -tunlp 2>/dev/null"', timeout_s=20.0
+    )
     listening: list[ListeningPort] = []
     for ln in raw.splitlines():
         s = ln.strip()
         m = _RE_NETSTAT.match(s)
         if not m:
             continue
-        proto, local, _remote, state, pidprog = m.group(1), m.group(2), m.group(3), m.group(4), m.group(5)
+        proto, local, _remote, state, pidprog = (
+            m.group(1),
+            m.group(2),
+            m.group(3),
+            m.group(4),
+            m.group(5),
+        )
         pid = None
         prog = None
         if pidprog and "/" in pidprog:
             pid, prog = pidprog.split("/", 1)
-        listening.append(ListeningPort(proto=proto, local=local, state=state, pid=pid, program=prog))
+        listening.append(
+            ListeningPort(proto=proto, local=local, state=state, pid=pid, program=prog)
+        )
     return NetworkScan(dns=dns, dns_cache=dns_cache_u, listening=listening, raw=raw)

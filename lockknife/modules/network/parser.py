@@ -10,7 +10,11 @@ from typing import Any, cast
 from lockknife.core.exceptions import LockKnifeError
 from lockknife.core.logging import get_logger
 from lockknife.modules.network._pcap_dns import extract_dns_records, summarize_dns_records
-from lockknife.modules.network._pcap_http import extract_http_requests, extract_http_responses, summarize_http_requests
+from lockknife.modules.network._pcap_http import (
+    extract_http_requests,
+    extract_http_responses,
+    summarize_http_requests,
+)
 from lockknife.modules.network._pcap_tls import extract_tls_metadata
 
 
@@ -84,7 +88,9 @@ def analyze_pcap(path: pathlib.Path) -> dict[str, Any]:
         log.warning("pcap_deep_parse_failed", exc_info=True, pcap=str(path))
 
     text_dns_records = extract_dns_records(texts)
-    seen_dns = {(str(item.get("query") or ""), str(item.get("answer") or "")) for item in dns_records}
+    seen_dns = {
+        (str(item.get("query") or ""), str(item.get("answer") or "")) for item in dns_records
+    }
     for record in text_dns_records:
         key = (str(record.get("query") or ""), str(record.get("answer") or ""))
         if key in seen_dns:
@@ -95,12 +101,8 @@ def analyze_pcap(path: pathlib.Path) -> dict[str, Any]:
     http_responses = extract_http_responses(texts)
     tls = extract_tls_metadata(texts)
     hosts = sorted(
-        {
-            edge["src"] for edge in connection_edges.values() if edge.get("src")
-        }
-        | {
-            edge["dst"] for edge in connection_edges.values() if edge.get("dst")
-        }
+        {edge["src"] for edge in connection_edges.values() if edge.get("src")}
+        | {edge["dst"] for edge in connection_edges.values() if edge.get("dst")}
         | {str(item.get("host") or "") for item in http_requests if str(item.get("host") or "")}
         | set(str(item) for item in (tls.get("server_names") or []) if str(item))
     )
@@ -120,9 +122,13 @@ def analyze_pcap(path: pathlib.Path) -> dict[str, Any]:
 
 def _packet_hosts(pkt: Any, *, IP: Any, IPv6: Any) -> tuple[str | None, str | None]:
     if _has_layer(pkt, IP):
-        return str(getattr(pkt[IP], "src", None) or "") or None, str(getattr(pkt[IP], "dst", None) or "") or None
+        return str(getattr(pkt[IP], "src", None) or "") or None, str(
+            getattr(pkt[IP], "dst", None) or ""
+        ) or None
     if _has_layer(pkt, IPv6):
-        return str(getattr(pkt[IPv6], "src", None) or "") or None, str(getattr(pkt[IPv6], "dst", None) or "") or None
+        return str(getattr(pkt[IPv6], "src", None) or "") or None, str(
+            getattr(pkt[IPv6], "dst", None) or ""
+        ) or None
     return None, None
 
 
@@ -148,11 +154,27 @@ def _packet_size(pkt: Any, *, Raw: Any) -> int:
         return 0
 
 
-def _accumulate_edge(edges: dict[tuple[str, str, str, int | None, int | None], dict[str, Any]], src: str | None, dst: str | None, protocol: str, sport: int | None, dport: int | None, size_bytes: int) -> None:
+def _accumulate_edge(
+    edges: dict[tuple[str, str, str, int | None, int | None], dict[str, Any]],
+    src: str | None,
+    dst: str | None,
+    protocol: str,
+    sport: int | None,
+    dport: int | None,
+    size_bytes: int,
+) -> None:
     key = (src or "unknown", dst or "unknown", protocol, sport, dport)
     bucket = edges.setdefault(
         key,
-        {"src": src, "dst": dst, "protocol": protocol, "source_port": sport, "dest_port": dport, "packet_count": 0, "byte_count": 0},
+        {
+            "src": src,
+            "dst": dst,
+            "protocol": protocol,
+            "source_port": sport,
+            "dest_port": dport,
+            "packet_count": 0,
+            "byte_count": 0,
+        },
     )
     bucket["packet_count"] += 1
     bucket["byte_count"] += int(size_bytes)
@@ -163,14 +185,22 @@ def _dns_records_from_packet(layer: Any) -> list[dict[str, Any]]:
     question = getattr(layer, "qd", None)
     if question is not None:
         qname = getattr(question, "qname", b"")
-        query = qname.decode("utf-8", errors="ignore").strip(".") if isinstance(qname, (bytes, bytearray)) else str(qname).strip(".")
+        query = (
+            qname.decode("utf-8", errors="ignore").strip(".")
+            if isinstance(qname, (bytes, bytearray))
+            else str(qname).strip(".")
+        )
         if query:
             out.append({"query": query.lower(), "answer": None, "source": "scapy"})
     answer = getattr(layer, "an", None)
     if answer is not None:
         rrname = getattr(answer, "rrname", b"")
         rdata = getattr(answer, "rdata", None)
-        query = rrname.decode("utf-8", errors="ignore").strip(".") if isinstance(rrname, (bytes, bytearray)) else str(rrname).strip(".")
+        query = (
+            rrname.decode("utf-8", errors="ignore").strip(".")
+            if isinstance(rrname, (bytes, bytearray))
+            else str(rrname).strip(".")
+        )
         resolved = str(rdata).strip() if rdata is not None else None
         if query:
             out.append({"query": query.lower(), "answer": resolved or None, "source": "scapy"})
@@ -178,13 +208,27 @@ def _dns_records_from_packet(layer: Any) -> list[dict[str, Any]]:
 
 
 def _summarize_connections(edges: list[dict[str, Any]]) -> dict[str, Any]:
-    destination_counts = Counter(str(item.get("dst") or "") for item in edges if str(item.get("dst") or ""))
-    nodes = sorted({str(item.get("src") or "") for item in edges if str(item.get("src") or "")} | {str(item.get("dst") or "") for item in edges if str(item.get("dst") or "")})
-    ranked = sorted(edges, key=lambda item: (-int(item.get("packet_count") or 0), -int(item.get("byte_count") or 0), str(item.get("dst") or "")))
+    destination_counts = Counter(
+        str(item.get("dst") or "") for item in edges if str(item.get("dst") or "")
+    )
+    nodes = sorted(
+        {str(item.get("src") or "") for item in edges if str(item.get("src") or "")}
+        | {str(item.get("dst") or "") for item in edges if str(item.get("dst") or "")}
+    )
+    ranked = sorted(
+        edges,
+        key=lambda item: (
+            -int(item.get("packet_count") or 0),
+            -int(item.get("byte_count") or 0),
+            str(item.get("dst") or ""),
+        ),
+    )
     return {
         "node_count": len(nodes),
         "edge_count": len(edges),
         "nodes": nodes[:25],
-        "top_destinations": [{"name": name, "count": count} for name, count in destination_counts.most_common(8)],
+        "top_destinations": [
+            {"name": name, "count": count} for name, count in destination_counts.most_common(8)
+        ],
         "edges": ranked[:25],
     }

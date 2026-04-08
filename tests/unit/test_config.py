@@ -35,4 +35,3 @@ ADB_PATH=/opt/android/platform-tools/adb
     cfg = _load_from_path(cfg_path)
     assert cfg.log_level == "WARNING"
     assert cfg.adb_path == "/opt/android/platform-tools/adb"
-

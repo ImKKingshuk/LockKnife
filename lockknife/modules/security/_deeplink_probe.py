@@ -53,9 +53,13 @@ def deeplink_review_notes(item: dict[str, Any]) -> list[str]:
     return notes
 
 
-def probe_deeplink(devices: DeviceManager, serial: str, package: str, item: dict[str, Any]) -> dict[str, Any]:
+def probe_deeplink(
+    devices: DeviceManager, serial: str, package: str, item: dict[str, Any]
+) -> dict[str, Any]:
     uri = deeplink_uri(item)
-    command = f"cmd package query-intent-activities -a android.intent.action.VIEW -d {shlex.quote(uri)}"
+    command = (
+        f"cmd package query-intent-activities -a android.intent.action.VIEW -d {shlex.quote(uri)}"
+    )
     result = _probe_command(devices, serial, command, key="uri", value=uri, match_terms=[package])
     result.update(
         {

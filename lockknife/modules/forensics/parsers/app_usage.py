@@ -17,7 +17,11 @@ def parse_app_usage_artifacts(path: pathlib.Path) -> list[dict[str, Any]]:
                     if isinstance(item, dict):
                         rows.append({"_section": section, **item})
             return rows
-        return [item for item in payload if isinstance(item, dict)] if isinstance(payload, list) else []
+        return (
+            [item for item in payload if isinstance(item, dict)]
+            if isinstance(payload, list)
+            else []
+        )
     root = fromstring(path.read_text(encoding="utf-8", errors="ignore"))
     xml_rows: list[dict[str, Any]] = []
     for package in root.findall(".//package"):

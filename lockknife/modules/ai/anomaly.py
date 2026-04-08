@@ -42,8 +42,15 @@ def anomaly_scores(rows: list[dict[str, Any]], feature_keys: list[str]) -> list[
     iforest_scores = _normalize_scores(iforest_raw)
     lof_scores = _normalize_scores(lof_raw)
     feature_stats = _feature_stats(rows, resolved_keys)
-    combined_scores = [round((iforest_scores[idx] + lof_scores[idx]) / 2.0, 6) for idx in range(len(rows))]
-    ranking = {index: rank + 1 for rank, index in enumerate(sorted(range(len(combined_scores)), key=lambda idx: combined_scores[idx], reverse=True))}
+    combined_scores = [
+        round((iforest_scores[idx] + lof_scores[idx]) / 2.0, 6) for idx in range(len(rows))
+    ]
+    ranking = {
+        index: rank + 1
+        for rank, index in enumerate(
+            sorted(range(len(combined_scores)), key=lambda idx: combined_scores[idx], reverse=True)
+        )
+    }
     out: list[dict[str, Any]] = []
     for idx, row in enumerate(rows):
         out.append(
@@ -86,17 +93,21 @@ def _normalize_scores(values: list[float]) -> list[float]:
     return [round((value - minimum) / (maximum - minimum), 6) for value in values]
 
 
-def _feature_stats(rows: list[dict[str, Any]], feature_keys: list[str]) -> dict[str, dict[str, float]]:
+def _feature_stats(
+    rows: list[dict[str, Any]], feature_keys: list[str]
+) -> dict[str, dict[str, float]]:
     stats: dict[str, dict[str, float]] = {}
     for key in feature_keys:
         values = [float(row.get(key) or 0.0) for row in rows]
         mean = sum(values) / len(values)
         variance = sum((value - mean) ** 2 for value in values) / len(values)
-        stats[key] = {"mean": mean, "std": variance ** 0.5}
+        stats[key] = {"mean": mean, "std": variance**0.5}
     return stats
 
 
-def _top_feature_explanations(row: dict[str, Any], feature_keys: list[str], feature_stats: dict[str, dict[str, float]]) -> list[dict[str, float | str]]:
+def _top_feature_explanations(
+    row: dict[str, Any], feature_keys: list[str], feature_stats: dict[str, dict[str, float]]
+) -> list[dict[str, float | str]]:
     explanations: list[dict[str, float | str]] = []
     for key in feature_keys:
         value = float(row.get(key) or 0.0)
@@ -112,7 +123,9 @@ def _top_feature_explanations(row: dict[str, Any], feature_keys: list[str], feat
                 "contribution": round(abs(z_score), 6),
             }
         )
-    return sorted(explanations, key=lambda item: float(item.get("contribution") or 0.0), reverse=True)[:5]
+    return sorted(
+        explanations, key=lambda item: float(item.get("contribution") or 0.0), reverse=True
+    )[:5]
 
 
 def _to_list(values: Any) -> list[float]:

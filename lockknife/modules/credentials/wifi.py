@@ -7,7 +7,10 @@ from lockknife.core.device import DeviceManager
 from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
 from lockknife.core.security import secure_temp_dir
-from lockknife.modules.credentials._wifi_parse import parse_wifi_config_store_xml, parse_wpa_supplicant
+from lockknife.modules.credentials._wifi_parse import (
+    parse_wifi_config_store_xml,
+    parse_wpa_supplicant,
+)
 
 log = get_logger()
 
@@ -31,14 +34,22 @@ class WifiExtraction:
 
 
 def _parse_wpa_supplicant(text: str) -> list[WifiCredential]:
-    return [WifiCredential(ssid=ssid, psk=psk, security=security) for ssid, psk, security in parse_wpa_supplicant(text)]
+    return [
+        WifiCredential(ssid=ssid, psk=psk, security=security)
+        for ssid, psk, security in parse_wpa_supplicant(text)
+    ]
 
 
 def _parse_wifi_config_store_xml(path: pathlib.Path) -> list[WifiCredential]:
-    return [WifiCredential(ssid=ssid, psk=psk, security=security) for ssid, psk, security in parse_wifi_config_store_xml(path)]
+    return [
+        WifiCredential(ssid=ssid, psk=psk, security=security)
+        for ssid, psk, security in parse_wifi_config_store_xml(path)
+    ]
 
 
-def export_wifi_credentials(devices: DeviceManager, serial: str, output_dir: pathlib.Path) -> WifiExtraction:
+def export_wifi_credentials(
+    devices: DeviceManager, serial: str, output_dir: pathlib.Path
+) -> WifiExtraction:
     if not devices.has_root(serial):
         raise DeviceError("Root required to access WiFi configs")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -57,7 +68,11 @@ def export_wifi_credentials(devices: DeviceManager, serial: str, output_dir: pat
         if not local.exists() or local.stat().st_size == 0:
             continue
         try:
-            rows = _parse_wifi_config_store_xml(local) if local.suffix.lower() == ".xml" else _parse_wpa_supplicant(local.read_text(encoding="utf-8", errors="ignore"))
+            rows = (
+                _parse_wifi_config_store_xml(local)
+                if local.suffix.lower() == ".xml"
+                else _parse_wpa_supplicant(local.read_text(encoding="utf-8", errors="ignore"))
+            )
         except Exception:
             log.debug("wifi_parse_failed", exc_info=True, serial=serial, local_path=str(local))
             continue

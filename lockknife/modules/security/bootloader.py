@@ -23,7 +23,8 @@ def analyze_bootloader(devices: DeviceManager, serial: str) -> BootloaderStatus:
     return BootloaderStatus(
         serial=serial,
         oem_unlock_supported=props.get("ro.oem_unlock_supported"),
-        oem_unlock_allowed=props.get("sys.oem_unlock_allowed") or props.get("ro.oem_unlock_supported"),
+        oem_unlock_allowed=props.get("sys.oem_unlock_allowed")
+        or props.get("ro.oem_unlock_supported"),
         flash_locked=props.get("ro.boot.flash.locked"),
         verifiedbootstate=props.get("ro.boot.verifiedbootstate"),
         vbmeta_device_state=props.get("ro.boot.vbmeta.device_state"),

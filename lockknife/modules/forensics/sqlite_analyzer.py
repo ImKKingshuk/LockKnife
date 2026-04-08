@@ -47,7 +47,9 @@ class SqliteAnalysis:
     integrity_check: str | None = None
 
 
-def analyze_sqlite(path: pathlib.Path, *, max_tables: int = 200, sample_rows: int = 3) -> SqliteAnalysis:
+def analyze_sqlite(
+    path: pathlib.Path, *, max_tables: int = 200, sample_rows: int = 3
+) -> SqliteAnalysis:
     con = sqlite3.connect(str(path))
     con.row_factory = sqlite3.Row
     try:
@@ -56,7 +58,12 @@ def analyze_sqlite(path: pathlib.Path, *, max_tables: int = 200, sample_rows: in
             (max_tables * 4,),
         ).fetchall()
         objects = [
-            DatabaseObject(name=str(row[1]), object_type=str(row[0]), table_name=str(row[2]) if row[2] is not None else None, sql=str(row[3]) if row[3] is not None else None)
+            DatabaseObject(
+                name=str(row[1]),
+                object_type=str(row[0]),
+                table_name=str(row[2]) if row[2] is not None else None,
+                sql=str(row[3]) if row[3] is not None else None,
+            )
             for row in rows
             if row[1]
         ]
@@ -68,12 +75,33 @@ def analyze_sqlite(path: pathlib.Path, *, max_tables: int = 200, sample_rows: in
             tables.append(
                 TableInfo(
                     name=item.name,
-                    row_count=_safe_scalar(con, f"SELECT COUNT(*) FROM {_quote_identifier(item.name)}"),  # nosec B608
+                    row_count=_safe_scalar(
+                        con, f"SELECT COUNT(*) FROM {_quote_identifier(item.name)}"
+                    ),  # nosec B608
                     schema_sql=item.sql,
                     columns=columns,
                     sample_rows=_sample_rows(con, item.name, limit=sample_rows),
-                    timestamp_columns=[column.name for column in columns if any(token in column.name.lower() for token in ("time", "date", "created", "updated", "modified", "timestamp", "last_"))],
-                    index_names=[obj.name for obj in objects if obj.object_type == "index" and obj.table_name == item.name],
+                    timestamp_columns=[
+                        column.name
+                        for column in columns
+                        if any(
+                            token in column.name.lower()
+                            for token in (
+                                "time",
+                                "date",
+                                "created",
+                                "updated",
+                                "modified",
+                                "timestamp",
+                                "last_",
+                            )
+                        )
+                    ],
+                    index_names=[
+                        obj.name
+                        for obj in objects
+                        if obj.object_type == "index" and obj.table_name == item.name
+                    ],
                 )
             )
         wal_path = pathlib.Path(str(path) + "-wal")
@@ -83,15 +111,25 @@ def analyze_sqlite(path: pathlib.Path, *, max_tables: int = 200, sample_rows: in
             tables=tables,
             objects=objects,
             pragma=_pragma_summary(con),
-            wal={"path": str(wal_path), "exists": wal_path.exists(), "size_bytes": wal_path.stat().st_size if wal_path.exists() else 0},
-            rollback_journal={"path": str(journal_path), "exists": journal_path.exists(), "size_bytes": journal_path.stat().st_size if journal_path.exists() else 0},
+            wal={
+                "path": str(wal_path),
+                "exists": wal_path.exists(),
+                "size_bytes": wal_path.stat().st_size if wal_path.exists() else 0,
+            },
+            rollback_journal={
+                "path": str(journal_path),
+                "exists": journal_path.exists(),
+                "size_bytes": journal_path.stat().st_size if journal_path.exists() else 0,
+            },
             summary={
                 "table_count": len(tables),
                 "object_count": len(objects),
                 "index_count": sum(1 for obj in objects if obj.object_type == "index"),
                 "view_count": sum(1 for obj in objects if obj.object_type == "view"),
                 "trigger_count": sum(1 for obj in objects if obj.object_type == "trigger"),
-                "tables_with_timestamp_columns": [table.name for table in tables if table.timestamp_columns],
+                "tables_with_timestamp_columns": [
+                    table.name for table in tables if table.timestamp_columns
+                ],
             },
             file_size_bytes=path.stat().st_size,
             integrity_check=_string_scalar(con, "PRAGMA integrity_check"),
@@ -147,7 +185,9 @@ def _columns_for_table(con: sqlite3.Connection, table_name: str) -> list[ColumnI
 def _sample_rows(con: sqlite3.Connection, table_name: str, *, limit: int) -> list[dict[str, Any]]:
     try:
         row_limit = max(0, int(limit))
-        rows = con.execute(f"SELECT * FROM {_quote_identifier(table_name)} LIMIT {row_limit}").fetchall()  # nosec B608
+        rows = con.execute(
+            f"SELECT * FROM {_quote_identifier(table_name)} LIMIT {row_limit}"
+        ).fetchall()  # nosec B608
     except Exception:
         return []
     out: list[dict[str, Any]] = []
@@ -162,6 +202,16 @@ def _sample_rows(con: sqlite3.Connection, table_name: str, *, limit: int) -> lis
 
 def _pragma_summary(con: sqlite3.Connection) -> dict[str, Any]:
     summary: dict[str, Any] = {}
-    for key in ["page_size", "page_count", "freelist_count", "journal_mode", "auto_vacuum", "user_version", "application_id", "schema_version", "encoding"]:
+    for key in [
+        "page_size",
+        "page_count",
+        "freelist_count",
+        "journal_mode",
+        "auto_vacuum",
+        "user_version",
+        "application_id",
+        "schema_version",
+        "encoding",
+    ]:
         summary[key] = _string_scalar(con, f"PRAGMA {key}")
     return summary
