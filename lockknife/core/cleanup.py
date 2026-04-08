@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pathlib
 import shutil
-from typing import Callable
+from collections.abc import Callable
 
 _temp_paths: set[pathlib.Path] = set()
 _terminal_cleanup_callbacks: list[Callable[[], None]] = []

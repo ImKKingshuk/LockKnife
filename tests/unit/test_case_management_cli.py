@@ -4,7 +4,6 @@ import zipfile
 from types import SimpleNamespace
 
 import pytest
-
 from click.testing import CliRunner
 
 from tests.unit.test_case_management import _SmsRow
@@ -456,6 +455,7 @@ def test_case_export_help_includes_command(tmp_path: pathlib.Path) -> None:
     assert export_help.exit_code == 0, export_help.output
     assert "include-registered-artifacts" in export_help.output
     assert "exclude-category" in export_help.output
+
 
 @pytest.mark.skip("Test failing due to AssertionError in case artifact query command")
 def test_case_artifact_query_commands(tmp_path: pathlib.Path) -> None:

@@ -5,7 +5,6 @@ import sqlite3
 from types import SimpleNamespace
 
 import pytest
-
 from click.testing import CliRunner
 
 
