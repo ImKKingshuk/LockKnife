@@ -85,10 +85,23 @@ def cli(ctx: click.Context, config_path: pathlib.Path | None, headless: bool) ->
         try:
             from lockknife import lockknife_core
             from lockknife_headless_cli.tui_callback import build_tui_callback
+            from lockknife.core.cleanup import register_terminal_cleanup
         except Exception as exc:
             raise click.ClickException(
                 "TUI unavailable: lockknife_core extension not loaded"
             ) from exc
+        
+        # Register terminal cleanup callback for crash recovery
+        def _restore_terminal() -> None:
+            """Python-side terminal restoration as fallback."""
+            try:
+                import subprocess
+                subprocess.run(["stty", "sane"], check=False, capture_output=True)
+            except Exception:
+                pass  # Best effort
+        
+        register_terminal_cleanup(_restore_terminal)
+        
         callback = build_tui_callback(ctx.obj)
         try:
             lockknife_core.run_tui(callback)
