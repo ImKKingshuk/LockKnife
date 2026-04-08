@@ -18,7 +18,7 @@ def test_hash_hex_type_rejects_non_hex() -> None:
 def test_ipv4_type_normalizes() -> None:
     from lockknife.core.cli_types import IPV4
 
-    assert IPV4.convert("001.002.003.004", None, None) == "192.0.2.2"
+    assert IPV4.convert("001.002.003.004", None, None) == "1.2.3.4"
 
 
 def test_domain_type_rejects_invalid() -> None:

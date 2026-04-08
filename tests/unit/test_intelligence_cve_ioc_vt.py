@@ -84,7 +84,7 @@ def test_ioc_helpers_and_composites(monkeypatch) -> None:
     assert fragments == [("root.outer[1].value", "https://example.test 192.0.2.5")]
 
     match = ioc_mod.IocMatch(ioc="192.0.2.5", kind="ipv4", location="remote_ip", confidence=0.8)
-    assert ioc_mod._condition_matches(match, {"kind": "ipv4", "pattern": r"8\.8", "min_confidence": 0.7}) is True
+    assert ioc_mod._condition_matches(match, {"kind": "ipv4", "pattern": r"192\.0\.2", "min_confidence": 0.7}) is True
     assert ioc_mod._condition_matches(match, {"ioc": "192.0.2.4"}) is False
     assert ioc_mod._is_valid_ipv4("999.1.1.1") is False
     assert ioc_mod._stix_boolean_operator("[a OR b]") == "OR"
