@@ -1,29 +1,13 @@
 from __future__ import annotations
 
-
-
 import json
-
 import pathlib
-
 import zipfile
-
 from collections import Counter, defaultdict
-
-from typing import Any, Sequence
-
-
-
-from lockknife.modules.reporting.chain_of_custody import (
-    EvidenceItem,
-    build_chain_of_custody_payload,
-    generate_chain_of_custody,
-)
-
-
+from collections.abc import Sequence
+from typing import Any
 
 from lockknife.core._case_artifacts import _artifact_filter_payload, _select_case_artifacts
-
 from lockknife.core._case_common import (
     _manifest_path,
     _normalize_case_path,
@@ -31,13 +15,14 @@ from lockknife.core._case_common import (
     _utc_now,
     load_case_manifest,
 )
-
 from lockknife.core._case_jobs import _job_resumable_status, _job_summary_payload
-
 from lockknife.core._case_models import CaseArtifact
-
 from lockknife.core._case_runtime import _runtime_session_summary_payload
-
+from lockknife.modules.reporting.chain_of_custody import (
+    EvidenceItem,
+    build_chain_of_custody_payload,
+    generate_chain_of_custody,
+)
 
 
 def summarize_case_manifest(
@@ -60,13 +45,28 @@ def summarize_case_manifest(
     category_counts = Counter(artifact.category for artifact in artifacts)
     command_counts = Counter(artifact.source_command for artifact in artifacts)
     device_counts = Counter(artifact.device_serial or "unknown" for artifact in artifacts)
-    linked_artifacts = sum(1 for artifact in artifacts if any(parent_id in artifact_ids for parent_id in artifact.parent_artifact_ids))
+    linked_artifacts = sum(
+        1
+        for artifact in artifacts
+        if any(parent_id in artifact_ids for parent_id in artifact.parent_artifact_ids)
+    )
     root_artifacts = len(artifacts) - linked_artifacts
-    external_inputs = sum(1 for artifact in artifacts if artifact.input_paths and not any(parent_id in artifact_ids for parent_id in artifact.parent_artifact_ids))
-    parent_edges = sum(sum(1 for parent_id in artifact.parent_artifact_ids if parent_id in artifact_ids) for artifact in artifacts)
+    external_inputs = sum(
+        1
+        for artifact in artifacts
+        if artifact.input_paths
+        and not any(parent_id in artifact_ids for parent_id in artifact.parent_artifact_ids)
+    )
+    parent_edges = sum(
+        sum(1 for parent_id in artifact.parent_artifact_ids if parent_id in artifact_ids)
+        for artifact in artifacts
+    )
 
     def _rows(counter: Counter[str]) -> list[dict[str, Any]]:
-        return [{"name": name, "count": count} for name, count in sorted(counter.items(), key=lambda item: (-item[1], item[0]))]
+        return [
+            {"name": name, "count": count}
+            for name, count in sorted(counter.items(), key=lambda item: (-item[1], item[0]))
+        ]
 
     jobs_by_status = Counter(job.status for job in manifest.jobs)
     jobs_by_workflow = Counter(job.workflow_kind for job in manifest.jobs)
@@ -128,9 +128,11 @@ def summarize_case_manifest(
         ],
     }
 
+
 def _resolve_case_artifact_path(case_dir: pathlib.Path, artifact: CaseArtifact) -> pathlib.Path:
     path = pathlib.Path(artifact.path)
     return path if path.is_absolute() else (case_dir / artifact.path)
+
 
 def case_evidence_inventory(
     case_dir: pathlib.Path,
@@ -178,6 +180,7 @@ def case_evidence_inventory(
 
     return rows
 
+
 def case_integrity_report(
     case_dir: pathlib.Path,
     *,
@@ -203,7 +206,9 @@ def case_integrity_report(
         "unreadable_count": status_counts.get("unreadable", 0),
         "unsupported_count": status_counts.get("unsupported", 0),
         "category_counts": dict(sorted(category_counts.items())),
-        "custody_chain_status": str((custody_chain.get("verification") or {}).get("status") or "unknown"),
+        "custody_chain_status": str(
+            (custody_chain.get("verification") or {}).get("status") or "unknown"
+        ),
     }
     if summary["modified_count"] > 0:
         advisory = "Integrity verification detected modified artifacts; preserve originals and investigate drift before relying on derived conclusions."
@@ -228,6 +233,7 @@ def case_integrity_report(
         "advisory": advisory,
     }
 
+
 def case_chain_of_custody_items(
     case_dir: pathlib.Path,
     *,
@@ -241,7 +247,8 @@ def case_chain_of_custody_items(
         EvidenceItem(
             name=f"{artifact.artifact_id} · {pathlib.Path(artifact.path).name}",
             path=str(_resolve_case_artifact_path(case_dir, artifact)),
-            sha256=artifact.sha256 or inventory_by_id.get(artifact.artifact_id, {}).get("current_sha256"),
+            sha256=artifact.sha256
+            or inventory_by_id.get(artifact.artifact_id, {}).get("current_sha256"),
             category=artifact.category,
             source_command=artifact.source_command,
             device_serial=artifact.device_serial,
@@ -272,6 +279,7 @@ def case_chain_of_custody_report(
         evidence=case_chain_of_custody_items(case_dir, artifacts=artifacts),
     )
 
+
 def generate_case_chain_of_custody(
     case_dir: pathlib.Path,
     *,
@@ -285,6 +293,7 @@ def generate_case_chain_of_custody(
         notes=notes,
         evidence=case_chain_of_custody_items(case_dir, artifacts=artifacts),
     )
+
 
 def case_lineage_graph(
     case_dir: pathlib.Path,
@@ -310,7 +319,9 @@ def case_lineage_graph(
         for parent_id in artifact.parent_artifact_ids:
             if parent_id in artifact_map:
                 children_by_parent[parent_id].append(artifact.artifact_id)
-                edges.append({"parent_artifact_id": parent_id, "child_artifact_id": artifact.artifact_id})
+                edges.append(
+                    {"parent_artifact_id": parent_id, "child_artifact_id": artifact.artifact_id}
+                )
 
     nodes = [
         {
@@ -329,7 +340,8 @@ def case_lineage_graph(
     roots = [
         artifact.artifact_id
         for artifact in artifacts
-        if not artifact.parent_artifact_ids or all(parent_id not in artifact_map for parent_id in artifact.parent_artifact_ids)
+        if not artifact.parent_artifact_ids
+        or all(parent_id not in artifact_map for parent_id in artifact.parent_artifact_ids)
     ]
 
     return {
@@ -349,6 +361,7 @@ def case_lineage_graph(
         "nodes": nodes,
         "edges": edges,
     }
+
 
 def _add_path_to_zip(
     archive: zipfile.ZipFile,
@@ -382,6 +395,7 @@ def _add_path_to_zip(
     archive.write(source_path, arcname=arcname)
     written_arc_names.add(arcname)
     included_paths.add(normalized)
+
 
 def export_case_bundle(
     *,
@@ -446,7 +460,9 @@ def export_case_bundle(
                 if not artifact_path.is_absolute():
                     artifact_path = case_dir / artifact.path
                 if artifact_path.resolve() == output_path.resolve() or not artifact_path.exists():
-                    missing_registered_artifacts.append({"artifact_id": artifact.artifact_id, "path": artifact.path})
+                    missing_registered_artifacts.append(
+                        {"artifact_id": artifact.artifact_id, "path": artifact.path}
+                    )
                     continue
                 _add_path_to_zip(
                     archive,
@@ -484,10 +500,20 @@ def export_case_bundle(
             "integrity_summary": integrity["summary"],
             "chain_of_custody_entry_count": len(selected_artifacts),
         }
-        archive.writestr(f"{bundle_root}/bundle/export_metadata.json", json.dumps(export_payload, indent=2, sort_keys=True))
-        archive.writestr(f"{bundle_root}/bundle/case_summary.json", json.dumps(summary, indent=2, sort_keys=True))
-        archive.writestr(f"{bundle_root}/bundle/case_graph.json", json.dumps(graph, indent=2, sort_keys=True))
-        archive.writestr(f"{bundle_root}/bundle/integrity_report.json", json.dumps(integrity, indent=2, sort_keys=True))
+        archive.writestr(
+            f"{bundle_root}/bundle/export_metadata.json",
+            json.dumps(export_payload, indent=2, sort_keys=True),
+        )
+        archive.writestr(
+            f"{bundle_root}/bundle/case_summary.json", json.dumps(summary, indent=2, sort_keys=True)
+        )
+        archive.writestr(
+            f"{bundle_root}/bundle/case_graph.json", json.dumps(graph, indent=2, sort_keys=True)
+        )
+        archive.writestr(
+            f"{bundle_root}/bundle/integrity_report.json",
+            json.dumps(integrity, indent=2, sort_keys=True),
+        )
         archive.writestr(f"{bundle_root}/bundle/chain_of_custody.txt", chain_of_custody)
 
     return export_payload

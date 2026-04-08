@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -160,7 +161,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             raise ValueError("Either output or case_dir is required")
         duration = float(params.get("duration") or 30)
         iface = str(params.get("iface") or "any")
-        result = capture_pcap(app.devices, serial, output_path=output, duration_s=duration, iface=iface)
+        result = capture_pcap(
+            app.devices, serial, output_path=output, duration_s=duration, iface=iface
+        )
         _register_case_output(
             case_dir,
             path=output,
@@ -180,7 +183,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="derived",
             filename=f"network_analyze_{path.stem}.json",
         )
-        payload = network_summary_payload(summarize_pcap(path), input_path=path, case_dir=case_dir, output=output)
+        payload = network_summary_payload(
+            summarize_pcap(path), input_path=path, case_dir=case_dir, output=output
+        )
         if output is not None:
             write_json(output, payload)
             _register_case_output(

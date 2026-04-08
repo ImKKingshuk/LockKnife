@@ -12,16 +12,22 @@ from lockknife.core.output import console
 from lockknife.core.serialize import write_json
 from lockknife.modules.apk.device_pull import pull_apk_from_device
 from lockknife.modules.credentials.fido2 import pull_passkey_artifacts
-from lockknife.modules.crypto_wallet.wallet import enrich_wallet_addresses, extract_wallet_addresses_from_sqlite
-from lockknife.modules.forensics.correlation import correlate_artifacts_json_blobs
-from lockknife.modules.forensics.recovery import recover_deleted_records
+from lockknife.modules.crypto_wallet.wallet import (
+    enrich_wallet_addresses,
+    extract_wallet_addresses_from_sqlite,
+)
 from lockknife.modules.extraction.browser import extract_chrome_history
 from lockknife.modules.extraction.call_logs import extract_call_logs
 from lockknife.modules.extraction.contacts import extract_contacts
 from lockknife.modules.extraction.location import extract_location_artifacts
 from lockknife.modules.extraction.media import extract_media_with_exif
-from lockknife.modules.extraction.messaging import extract_telegram_messages, extract_whatsapp_messages
+from lockknife.modules.extraction.messaging import (
+    extract_telegram_messages,
+    extract_whatsapp_messages,
+)
 from lockknife.modules.extraction.sms import extract_sms
+from lockknife.modules.forensics.correlation import correlate_artifacts_json_blobs
+from lockknife.modules.forensics.recovery import recover_deleted_records
 from lockknife.modules.forensics.snapshot import create_snapshot
 from lockknife.modules.forensics.sqlite_analyzer import analyze_sqlite
 from lockknife.modules.forensics.timeline import build_timeline
@@ -153,9 +159,15 @@ def interactive(app: Any, serial: str | None) -> None:
             app_name = Prompt.ask("App", choices=["whatsapp", "telegram"], default="whatsapp")
             limit = int(Prompt.ask("Limit", default="50"))
             if app_name == "telegram":
-                message_payload = [dataclasses.asdict(r) for r in extract_telegram_messages(app.devices, s, limit=limit)]
+                message_payload = [
+                    dataclasses.asdict(r)
+                    for r in extract_telegram_messages(app.devices, s, limit=limit)
+                ]
             else:
-                message_payload = [dataclasses.asdict(r) for r in extract_whatsapp_messages(app.devices, s, limit=limit)]
+                message_payload = [
+                    dataclasses.asdict(r)
+                    for r in extract_whatsapp_messages(app.devices, s, limit=limit)
+                ]
             console.print_json(json.dumps(message_payload))
             continue
         if choice == "8":
@@ -188,7 +200,9 @@ def interactive(app: Any, serial: str | None) -> None:
             out_path = Prompt.ask("Output JSON path", default="timeline.json")
             sms_rows = json.loads(pathlib.Path(sms_path).read_text(encoding="utf-8"))
             call_rows = json.loads(pathlib.Path(call_path).read_text(encoding="utf-8"))
-            events = [dataclasses.asdict(e) for e in build_timeline(sms=sms_rows, call_logs=call_rows)]
+            events = [
+                dataclasses.asdict(e) for e in build_timeline(sms=sms_rows, call_logs=call_rows)
+            ]
             write_json(pathlib.Path(out_path), events)
             console.print(f"Wrote {len(events)} events to {out_path}")
             continue
@@ -200,7 +214,11 @@ def interactive(app: Any, serial: str | None) -> None:
         if choice == "14":
             s = serial or Prompt.ask("Device serial")
             scan = scan_network(app.devices, s)
-            network_payload = {"dns": scan.dns, "dns_cache": scan.dns_cache, "listening": [dataclasses.asdict(item) for item in scan.listening]}
+            network_payload = {
+                "dns": scan.dns,
+                "dns_cache": scan.dns_cache,
+                "listening": [dataclasses.asdict(item) for item in scan.listening],
+            }
             console.print_json(json.dumps(network_payload))
             continue
         if choice == "15":
@@ -222,11 +240,16 @@ def interactive(app: Any, serial: str | None) -> None:
             s = serial or Prompt.ask("Device serial")
             out_dir = pathlib.Path(Prompt.ask("Output directory", default="passkeys"))
             limit = int(Prompt.ask("Max files", default="200"))
-            items = [dataclasses.asdict(x) for x in pull_passkey_artifacts(app.devices, s, output_dir=out_dir, limit=limit)]
+            items = [
+                dataclasses.asdict(x)
+                for x in pull_passkey_artifacts(app.devices, s, output_dir=out_dir, limit=limit)
+            ]
             console.print_json(json.dumps(items))
             continue
         if choice == "19":
-            kind = Prompt.ask("Indicator type", choices=["hash", "domain", "ip", "package"], default="hash")
+            kind = Prompt.ask(
+                "Indicator type", choices=["hash", "domain", "ip", "package"], default="hash"
+            )
             indicator_payload: dict[str, object] = {}
             combined_score = 0
             if kind == "hash":
@@ -234,7 +257,11 @@ def interactive(app: Any, serial: str | None) -> None:
                 try:
                     vt = file_report(h)
                     indicator_payload["virustotal"] = vt
-                    stats = (vt.get("attributes") or {}).get("last_analysis_stats") if isinstance(vt, dict) else None
+                    stats = (
+                        (vt.get("attributes") or {}).get("last_analysis_stats")
+                        if isinstance(vt, dict)
+                        else None
+                    )
                     if isinstance(stats, dict):
                         malicious = int(stats.get("malicious") or 0)
                         suspicious = int(stats.get("suspicious") or 0)
@@ -280,14 +307,25 @@ def interactive(app: Any, serial: str | None) -> None:
             if target is None:
                 raise click.ClickException("APK target is required")
             matches = [dataclasses.asdict(m) for m in scan_with_yara(yara_rule, target)]
-            console.print_json(json.dumps({"apk": str(target), "package": package_name, "engine": "yara", "matches": matches}))
+            console.print_json(
+                json.dumps(
+                    {
+                        "apk": str(target),
+                        "package": package_name,
+                        "engine": "yara",
+                        "matches": matches,
+                    }
+                )
+            )
             continue
         if choice == "21":
             s = serial or Prompt.ask("Device serial")
             output = pathlib.Path(Prompt.ask("Output pcap path", default="capture.pcap"))
             duration = float(Prompt.ask("Duration seconds", default="30"))
             iface = Prompt.ask("Interface", default="any")
-            result = dataclasses.asdict(capture_pcap(app.devices, s, output_path=output, duration_s=duration, iface=iface))
+            result = dataclasses.asdict(
+                capture_pcap(app.devices, s, output_path=output, duration_s=duration, iface=iface)
+            )
             console.print_json(json.dumps(result))
             continue
         if choice == "22":

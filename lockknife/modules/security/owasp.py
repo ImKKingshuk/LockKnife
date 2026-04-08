@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses
 from typing import Any
 
-
 OWASP_MOBILE_MAPPINGS: dict[str, dict[str, Any]] = {
     "debuggable": {
         "mastg": ["MSTG-RESILIENCE-1", "MSTG-RESILIENCE-2"],
@@ -140,27 +139,88 @@ OWASP_MOBILE_MAPPINGS: dict[str, dict[str, Any]] = {
 
 MASVS_CHECKLIST = {
     "PLATFORM": [
-        {"id": "PLATFORM-ENTRYPOINTS", "title": "Exported components are protected", "fails_on": {"exported_components", "component_permission_gap", "live_component_permission_gap"}},
-        {"id": "PLATFORM-DEEPLINKS", "title": "Deep links are unambiguous and constrained", "fails_on": {"browsable_deeplinks", "intent_filter_overlap", "custom_scheme_collision", "live_deeplink_resolution"}},
-        {"id": "PLATFORM-PROVIDERS", "title": "Providers enforce authorities and caller restrictions", "fails_on": {"weak_exported_provider", "live_provider_resolution"}},
+        {
+            "id": "PLATFORM-ENTRYPOINTS",
+            "title": "Exported components are protected",
+            "fails_on": {
+                "exported_components",
+                "component_permission_gap",
+                "live_component_permission_gap",
+            },
+        },
+        {
+            "id": "PLATFORM-DEEPLINKS",
+            "title": "Deep links are unambiguous and constrained",
+            "fails_on": {
+                "browsable_deeplinks",
+                "intent_filter_overlap",
+                "custom_scheme_collision",
+                "live_deeplink_resolution",
+            },
+        },
+        {
+            "id": "PLATFORM-PROVIDERS",
+            "title": "Providers enforce authorities and caller restrictions",
+            "fails_on": {"weak_exported_provider", "live_provider_resolution"},
+        },
     ],
     "STORAGE": [
-        {"id": "STORAGE-BACKUP", "title": "Backups are disabled or justified", "fails_on": {"allow_backup_enabled", "allow_backup"}},
-        {"id": "STORAGE-ACCESS", "title": "Storage is not world-readable or world-writable", "fails_on": {"insecure_storage_world_readable"}},
-        {"id": "STORAGE-SECRETS", "title": "Secrets are not hard-coded into the app", "fails_on": {"hardcoded_secret"}},
+        {
+            "id": "STORAGE-BACKUP",
+            "title": "Backups are disabled or justified",
+            "fails_on": {"allow_backup_enabled", "allow_backup"},
+        },
+        {
+            "id": "STORAGE-ACCESS",
+            "title": "Storage is not world-readable or world-writable",
+            "fails_on": {"insecure_storage_world_readable"},
+        },
+        {
+            "id": "STORAGE-SECRETS",
+            "title": "Secrets are not hard-coded into the app",
+            "fails_on": {"hardcoded_secret"},
+        },
     ],
     "NETWORK": [
-        {"id": "NETWORK-CLEARTEXT", "title": "Cleartext transport is disabled", "fails_on": {"cleartext_traffic", "cleartext"}},
-        {"id": "NETWORK-TRUST", "title": "Trust configuration is tightly scoped", "fails_on": {"network_security_config"}},
+        {
+            "id": "NETWORK-CLEARTEXT",
+            "title": "Cleartext transport is disabled",
+            "fails_on": {"cleartext_traffic", "cleartext"},
+        },
+        {
+            "id": "NETWORK-TRUST",
+            "title": "Trust configuration is tightly scoped",
+            "fails_on": {"network_security_config"},
+        },
     ],
     "CRYPTO": [
-        {"id": "CRYPTO-SECRETS", "title": "Cryptographic keys and secrets are not embedded", "fails_on": {"hardcoded_secret"}},
-        {"id": "CRYPTO-MODES", "title": "Cryptography avoids ECB and static IV patterns", "fails_on": {"crypto_ecb_mode", "crypto_static_iv"}},
+        {
+            "id": "CRYPTO-SECRETS",
+            "title": "Cryptographic keys and secrets are not embedded",
+            "fails_on": {"hardcoded_secret"},
+        },
+        {
+            "id": "CRYPTO-MODES",
+            "title": "Cryptography avoids ECB and static IV patterns",
+            "fails_on": {"crypto_ecb_mode", "crypto_static_iv"},
+        },
     ],
     "RESILIENCE": [
-        {"id": "RESILIENCE-DEBUG", "title": "Debuggable posture is disabled in production", "fails_on": {"debuggable", "debuggable_app", "debug_or_test_signing"}},
-        {"id": "RESILIENCE-SEPOLICY", "title": "SELinux posture remains enforced for relevant domains", "fails_on": {"selinux_permissive", "selinux_permissive_domain"}},
-        {"id": "RESILIENCE-WEBVIEW", "title": "WebView bridges are minimized and reviewed", "fails_on": {"webview_js_bridge_exposed"}},
+        {
+            "id": "RESILIENCE-DEBUG",
+            "title": "Debuggable posture is disabled in production",
+            "fails_on": {"debuggable", "debuggable_app", "debug_or_test_signing"},
+        },
+        {
+            "id": "RESILIENCE-SEPOLICY",
+            "title": "SELinux posture remains enforced for relevant domains",
+            "fails_on": {"selinux_permissive", "selinux_permissive_domain"},
+        },
+        {
+            "id": "RESILIENCE-WEBVIEW",
+            "title": "WebView bridges are minimized and reviewed",
+            "fails_on": {"webview_js_bridge_exposed"},
+        },
     ],
 }
 
@@ -275,17 +335,25 @@ def _string_value(value: Any) -> str | None:
 
 
 def _review_focus(mappings: list[MastgMapping], scorecard: dict[str, Any]) -> list[str]:
-    failing_areas = [item["area"] for item in scorecard.get("areas") or [] if item.get("fail_count")]
+    failing_areas = [
+        item["area"] for item in scorecard.get("areas") or [] if item.get("fail_count")
+    ]
     if failing_areas:
         return failing_areas[:6]
-    families = sorted({mastg_id.split("-")[1] for item in mappings for mastg_id in item.mastg if "-" in mastg_id})
+    families = sorted(
+        {mastg_id.split("-")[1] for item in mappings for mastg_id in item.mastg if "-" in mastg_id}
+    )
     return families[:6]
 
 
 def _masvs_scorecard(findings: list[dict[str, Any]]) -> dict[str, Any]:
     finding_ids = {_normalize_finding_id(item.get("id")) for item in findings}
     finding_ids.discard(None)
-    evidence_map = {normalized: _extract_evidence(item) for item in findings if (normalized := _normalize_finding_id(item.get("id"))) is not None}
+    evidence_map = {
+        normalized: _extract_evidence(item)
+        for item in findings
+        if (normalized := _normalize_finding_id(item.get("id"))) is not None
+    }
     areas: list[dict[str, Any]] = []
     total_checks = 0
     total_pass = 0
@@ -308,14 +376,28 @@ def _masvs_scorecard(findings: list[dict[str, Any]]) -> dict[str, Any]:
                     "title": check["title"],
                     "status": status,
                     "triggered_by": matched,
-                    "evidence": [evidence for finding_id in matched for evidence in evidence_map.get(finding_id, [])][:5],
+                    "evidence": [
+                        evidence
+                        for finding_id in matched
+                        for evidence in evidence_map.get(finding_id, [])
+                    ][:5],
                 }
             )
         total_checks += len(checks)
         total_pass += pass_count
         total_fail += fail_count
         score = int(round((pass_count / len(checks)) * 100)) if checks else 100
-        areas.append({"area": area, "score": score, "check_total": len(checks), "pass_count": pass_count, "fail_count": fail_count, "status": "fail" if fail_count else "pass", "checks": rendered_checks})
+        areas.append(
+            {
+                "area": area,
+                "score": score,
+                "check_total": len(checks),
+                "pass_count": pass_count,
+                "fail_count": fail_count,
+                "status": "fail" if fail_count else "pass",
+                "checks": rendered_checks,
+            }
+        )
     overall_score = int(round((total_pass / total_checks) * 100)) if total_checks else 100
     return {
         "overall_score": overall_score,

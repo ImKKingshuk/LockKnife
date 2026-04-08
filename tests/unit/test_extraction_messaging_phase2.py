@@ -27,7 +27,9 @@ class _Devices:
     def has_root(self, _serial: str) -> bool:
         return self.rooted
 
-    def pull(self, _serial: str, remote: str, local: pathlib.Path, timeout_s: float = 120.0) -> None:
+    def pull(
+        self, _serial: str, remote: str, local: pathlib.Path, timeout_s: float = 120.0
+    ) -> None:
         payload = self.pull_payloads.get(remote)
         if payload is None:
             raise DeviceError("missing remote")
@@ -36,7 +38,9 @@ class _Devices:
     def shell(self, _serial: str, command: str, timeout_s: float = 20.0) -> str:
         if "cp '" in command and "/sdcard/lockknife-tmp-" in command:
             marker = command.split("cp '", 1)[1].split("' ", 1)[0]
-            tmp_remote = command.split(" > '", 1)[-1].split("'", 1)[0] if " > '" in command else None
+            tmp_remote = (
+                command.split(" > '", 1)[-1].split("'", 1)[0] if " > '" in command else None
+            )
             if tmp_remote and marker in self.pull_payloads:
                 self.pull_payloads[tmp_remote] = self.pull_payloads[marker]
             elif marker in self.pull_payloads:
@@ -77,7 +81,9 @@ def test_parse_whatsapp_and_signal_databases(tmp_path: pathlib.Path) -> None:
     assert signal_rows[0].body == "body"
 
 
-def test_messaging_root_pull_and_extractors(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
+def test_messaging_root_pull_and_extractors(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
     wa = tmp_path / "msgstore.db"
     con = sqlite3.connect(str(wa))
     try:
@@ -90,7 +96,9 @@ def test_messaging_root_pull_and_extractors(monkeypatch: pytest.MonkeyPatch, tmp
     tg = tmp_path / "cache4.db"
     con = sqlite3.connect(str(tg))
     try:
-        con.execute("CREATE TABLE messages (uid INTEGER, mid INTEGER, date INTEGER, out INTEGER, data BLOB)")
+        con.execute(
+            "CREATE TABLE messages (uid INTEGER, mid INTEGER, date INTEGER, out INTEGER, data BLOB)"
+        )
         con.execute("INSERT INTO messages VALUES (1, 2, 3, 0, X'0102')")
         con.commit()
     finally:
@@ -122,7 +130,16 @@ def test_messaging_root_pull_and_extractors(monkeypatch: pytest.MonkeyPatch, tmp
     }
 
     pulled = tmp_path / "root.bin"
-    assert _try_root_pull_file(devices, "SERIAL", "/data/data/com.whatsapp/databases/msgstore.db", pulled, timeout_s=1.0) is True
+    assert (
+        _try_root_pull_file(
+            devices,
+            "SERIAL",
+            "/data/data/com.whatsapp/databases/msgstore.db",
+            pulled,
+            timeout_s=1.0,
+        )
+        is True
+    )
     assert pulled.exists()
 
     assert extract_whatsapp_messages(devices, "SERIAL")[0].jid == "wa"
@@ -150,6 +167,10 @@ def test_signal_messages_root_and_encrypted_error(monkeypatch: pytest.MonkeyPatc
     import lockknife.modules.extraction.messaging as messaging_mod
 
     monkeypatch.setattr(messaging_mod, "_try_root_pull_file", lambda *_a, **_k: True)
-    monkeypatch.setattr(messaging_mod, "_parse_signal_db", lambda *_a, **_k: (_ for _ in ()).throw(sqlite3.DatabaseError("cipher")))
+    monkeypatch.setattr(
+        messaging_mod,
+        "_parse_signal_db",
+        lambda *_a, **_k: (_ for _ in ()).throw(sqlite3.DatabaseError("cipher")),
+    )
     with pytest.raises(DeviceError, match="encrypted or unreadable"):
         extract_signal_messages(types.SimpleNamespace(has_root=lambda _serial: True), "SERIAL")

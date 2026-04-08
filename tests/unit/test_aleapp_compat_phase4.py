@@ -2,7 +2,10 @@ import json
 import pathlib
 import sqlite3
 
-from lockknife.modules.forensics.aleapp_compat import import_aleapp_artifacts, looks_like_aleapp_output
+from lockknife.modules.forensics.aleapp_compat import (
+    import_aleapp_artifacts,
+    looks_like_aleapp_output,
+)
 
 
 def test_import_aleapp_artifacts_reads_lava_database(tmp_path: pathlib.Path) -> None:
@@ -22,7 +25,9 @@ def test_import_aleapp_artifacts_reads_lava_database(tmp_path: pathlib.Path) -> 
     db_path = tmp_path / "_lava_artifacts.db"
     conn = sqlite3.connect(db_path)
     conn.execute("CREATE TABLE wa_messages (ts INTEGER, body TEXT, jid TEXT)")
-    conn.execute("INSERT INTO wa_messages VALUES (?, ?, ?)", (1710000000000, "hello", "alice@example.com"))
+    conn.execute(
+        "INSERT INTO wa_messages VALUES (?, ?, ?)", (1710000000000, "hello", "alice@example.com")
+    )
     conn.commit()
     conn.close()
 
@@ -34,7 +39,9 @@ def test_import_aleapp_artifacts_reads_lava_database(tmp_path: pathlib.Path) -> 
     assert payload["artifacts"][0]["records"][0]["timestamp"] == 1710000000000
 
 
-def test_import_aleapp_artifacts_falls_back_to_tsv_and_preserves_invalid_json_strings(tmp_path: pathlib.Path) -> None:
+def test_import_aleapp_artifacts_falls_back_to_tsv_and_preserves_invalid_json_strings(
+    tmp_path: pathlib.Path,
+) -> None:
     (tmp_path / "_lava_data.json").write_text("{bad json}", encoding="utf-8")
     (tmp_path / "_lava_artifacts.db").write_bytes(b"not-a-db")
     tsv = tmp_path / "Messaging" / "messages.tsv"

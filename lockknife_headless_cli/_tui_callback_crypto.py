@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -159,7 +160,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             filename=f"crypto_wallet_{_safe_name(path.stem)}.json",
         )
         addrs = extract_wallet_addresses_from_sqlite(path, limit=limit)
-        payload = enrich_wallet_addresses(addrs) if do_lookup else [dataclasses.asdict(r) for r in addrs]
+        payload = (
+            enrich_wallet_addresses(addrs) if do_lookup else [dataclasses.asdict(r) for r in addrs]
+        )
         if output is not None:
             write_json(output, payload)
             _register_case_output(
@@ -168,7 +171,11 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 category="crypto-wallet",
                 source_command="crypto-wallet wallet",
                 input_paths=[str(path)],
-                metadata={"lookup": do_lookup, "address_count": len(addrs), "row_count": len(payload)},
+                metadata={
+                    "lookup": do_lookup,
+                    "address_count": len(addrs),
+                    "row_count": len(payload),
+                },
             )
             return _ok(payload, f"Wallets extracted: {len(payload)} to {output}")
         return _ok(payload, f"Wallets extracted: {len(payload)}")

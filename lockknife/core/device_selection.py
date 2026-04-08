@@ -39,7 +39,9 @@ def resolve_single_device_serial(
     preferred = _clean(preferred_serial)
     targets = normalize_target_serials(target_serials)
     handles = {handle.serial: handle for handle in devices.list_handles()}
-    authorized = [handle.serial for handle in handles.values() if handle.state == DeviceState.authorized]
+    authorized = [
+        handle.serial for handle in handles.values() if handle.state == DeviceState.authorized
+    ]
     report = build_device_readiness_report(
         devices,
         workflow=action_label,
@@ -67,7 +69,9 @@ def resolve_single_device_serial(
     if len(authorized) == 1:
         return authorized[0]
     if not handles:
-        raise DeviceError(report.guidance[0] if report.guidance else f"No devices are ready for {action_label}")
+        raise DeviceError(
+            report.guidance[0] if report.guidance else f"No devices are ready for {action_label}"
+        )
     if not authorized:
         raise DeviceError(
             report.guidance[0]

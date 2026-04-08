@@ -53,7 +53,9 @@ class LocationArtifacts:
 def extract_location_snapshot(devices: DeviceManager, serial: str) -> LocationSnapshot:
     if not devices.has_root(serial):
         raise DeviceError("Root required to query location services")
-    raw = devices.shell(serial, 'su -c "dumpsys location 2>/dev/null | head -n 200"', timeout_s=20.0)
+    raw = devices.shell(
+        serial, 'su -c "dumpsys location 2>/dev/null | head -n 200"', timeout_s=20.0
+    )
     lat = None
     lon = None
     provider = None
@@ -131,7 +133,21 @@ def _parse_cell_towers(raw: str, limit: int = 20) -> list[CellTower]:
         pci = None
         kind = "unknown"
 
-        for key in ["mMcc=", "mnc=", "mMnc=", "mLac=", "lac=", "mCid=", "cid=", "mTac=", "tac=", "mEci=", "eci=", "mPci=", "pci="]:
+        for key in [
+            "mMcc=",
+            "mnc=",
+            "mMnc=",
+            "mLac=",
+            "lac=",
+            "mCid=",
+            "cid=",
+            "mTac=",
+            "tac=",
+            "mEci=",
+            "eci=",
+            "mPci=",
+            "pci=",
+        ]:
             if key not in s:
                 continue
             val = s.split(key, 1)[1].split(",", 1)[0].split(" ", 1)[0].strip(")];")
@@ -160,7 +176,11 @@ def _parse_cell_towers(raw: str, limit: int = 20) -> list[CellTower]:
         elif "CellIdentityWcdma" in s or "WCDMA" in s or "UMTS" in s:
             kind = "wcdma"
 
-        out.append(CellTower(kind=kind, mcc=mcc, mnc=mnc, lac=lac, cid=cid, tac=tac, eci=eci, pci=pci, raw=s))
+        out.append(
+            CellTower(
+                kind=kind, mcc=mcc, mnc=mnc, lac=lac, cid=cid, tac=tac, eci=eci, pci=pci, raw=s
+            )
+        )
         if len(out) >= limit:
             break
     return out
@@ -172,9 +192,18 @@ def extract_location_artifacts(devices: DeviceManager, serial: str) -> LocationA
 
     location_raw = devices.shell(serial, 'su -c "dumpsys location 2>/dev/null"', timeout_s=40.0)
     wifi_raw = devices.shell(serial, 'su -c "dumpsys wifi 2>/dev/null"', timeout_s=40.0)
-    telephony_raw = devices.shell(serial, 'su -c "dumpsys telephony.registry 2>/dev/null"', timeout_s=40.0)
+    telephony_raw = devices.shell(
+        serial, 'su -c "dumpsys telephony.registry 2>/dev/null"', timeout_s=40.0
+    )
 
     snap = extract_location_snapshot(devices, serial)
     wifi = _parse_wifi_scan(wifi_raw)
     cell = _parse_cell_towers(telephony_raw)
-    return LocationArtifacts(snapshot=snap, wifi=wifi, cell=cell, location_raw=location_raw, wifi_raw=wifi_raw, telephony_raw=telephony_raw)
+    return LocationArtifacts(
+        snapshot=snap,
+        wifi=wifi,
+        cell=cell,
+        location_raw=location_raw,
+        wifi_raw=wifi_raw,
+        telephony_raw=telephony_raw,
+    )

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 SEVERITY_WEIGHTS = {"high": 28, "medium": 14, "low": 6, "info": 2}
 
 
@@ -21,7 +20,12 @@ def risk_summary(
         severity = str(finding.get("severity") or "info").lower()
         severity_counts[severity] = severity_counts.get(severity, 0) + 1
         severity_points += SEVERITY_WEIGHTS.get(severity, 1)
-    _add_factor(score_breakdown, "finding-severity", min(36, severity_points), "Static/live findings contribute baseline severity pressure.")
+    _add_factor(
+        score_breakdown,
+        "finding-severity",
+        min(36, severity_points),
+        "Static/live findings contribute baseline severity pressure.",
+    )
 
     static_summary = static_analysis.get("summary") or {}
     live_summary = live_analysis.get("summary") or {}
@@ -78,7 +82,9 @@ def risk_summary(
     else:
         level = "info"
 
-    exploitability, exploitability_reasons = _exploitability(static_analysis, live_analysis, severity_counts)
+    exploitability, exploitability_reasons = _exploitability(
+        static_analysis, live_analysis, severity_counts
+    )
     evidence_strength = _evidence_strength(live_analysis, severity_counts)
     attack_paths = _attack_paths(static_analysis, live_analysis)
     evidence_traces = _evidence_traces(findings, static_analysis, live_analysis)
@@ -92,7 +98,11 @@ def risk_summary(
         "severity_counts": severity_counts,
         "finding_count": len(findings),
         "top_findings": [
-            {"id": finding.get("id"), "severity": finding.get("severity"), "title": finding.get("title")}
+            {
+                "id": finding.get("id"),
+                "severity": finding.get("severity"),
+                "title": finding.get("title"),
+            }
             for finding in top_findings
         ],
         "score_breakdown": score_breakdown,
@@ -136,7 +146,9 @@ def _exploitability(
 
     if int(live_summary.get("provider_resolved_total") or 0) or severity_counts.get("high", 0):
         return "high", reasons[:5]
-    if int(live_summary.get("deeplink_resolved_total") or 0) or int(static_summary.get("provider_weak_permission_total") or 0):
+    if int(live_summary.get("deeplink_resolved_total") or 0) or int(
+        static_summary.get("provider_weak_permission_total") or 0
+    ):
         return "medium", reasons[:5]
     if any(severity_counts.values()):
         return "low", reasons[:5]
@@ -145,7 +157,11 @@ def _exploitability(
 
 def _evidence_strength(live_analysis: dict[str, Any], severity_counts: dict[str, int]) -> str:
     live_summary = live_analysis.get("summary") or {}
-    if (int(live_summary.get("provider_resolved_total") or 0) + int(live_summary.get("deeplink_resolved_total") or 0) + int(live_summary.get("component_resolved_total") or 0)) >= 2:
+    if (
+        int(live_summary.get("provider_resolved_total") or 0)
+        + int(live_summary.get("deeplink_resolved_total") or 0)
+        + int(live_summary.get("component_resolved_total") or 0)
+    ) >= 2:
         return "strong"
     if severity_counts.get("high", 0) or severity_counts.get("medium", 0):
         return "moderate"
@@ -156,12 +172,18 @@ def _attack_paths(static_analysis: dict[str, Any], live_analysis: dict[str, Any]
     paths: list[str] = []
     for provider in (static_analysis.get("weak_providers") or [])[:3]:
         authorities = ", ".join(str(item) for item in provider.get("authorities") or [])
-        paths.append(f"Exported provider {provider.get('name')} exposes authority {authorities or 'unknown'} without explicit read/write protection.")
+        paths.append(
+            f"Exported provider {provider.get('name')} exposes authority {authorities or 'unknown'} without explicit read/write protection."
+        )
     for deeplink in (static_analysis.get("browsable_deeplinks") or [])[:2]:
-        paths.append(f"Browsable deep link {deeplink.get('uri')} can be externally invoked through {deeplink.get('component') or 'an exported activity'}.")
+        paths.append(
+            f"Browsable deep link {deeplink.get('uri')} can be externally invoked through {deeplink.get('component') or 'an exported activity'}."
+        )
     for component in (live_analysis.get("components") or [])[:2]:
         if component.get("status") == "resolved":
-            paths.append(f"Live probe resolved exported {component.get('type')} {component.get('component')} on-device.")
+            paths.append(
+                f"Live probe resolved exported {component.get('type')} {component.get('component')} on-device."
+            )
     return paths[:6]
 
 
@@ -172,7 +194,12 @@ def _evidence_traces(
 ) -> list[dict[str, str]]:
     traces: list[dict[str, str]] = []
     for finding in findings[:4]:
-        traces.append({"source": "finding", "title": str(finding.get("title") or finding.get("id") or "finding")})
+        traces.append(
+            {
+                "source": "finding",
+                "title": str(finding.get("title") or finding.get("id") or "finding"),
+            }
+        )
     for component in (static_analysis.get("weak_providers") or [])[:2]:
         traces.append({"source": "provider", "title": str(component.get("name") or "provider")})
     for item in (live_analysis.get("deeplinks") or [])[:2]:
@@ -184,10 +211,16 @@ def _evidence_traces(
 def _next_steps(static_analysis: dict[str, Any], live_analysis: dict[str, Any]) -> list[str]:
     steps: list[str] = []
     if static_analysis.get("weak_providers"):
-        steps.append("Inspect exported providers for readable URI patterns, grants, and missing caller validation.")
+        steps.append(
+            "Inspect exported providers for readable URI patterns, grants, and missing caller validation."
+        )
     if static_analysis.get("browsable_deeplinks"):
-        steps.append("Exercise browsable deep links and review auth/session assumptions around each route.")
+        steps.append(
+            "Exercise browsable deep links and review auth/session assumptions around each route."
+        )
     if any(item.get("status") == "resolved" for item in live_analysis.get("components") or []):
-        steps.append("Pivot from resolved components into OWASP mapping and runtime validation for the confirmed entry points.")
+        steps.append(
+            "Pivot from resolved components into OWASP mapping and runtime validation for the confirmed entry points."
+        )
     steps.append("Capture the scoped findings in reporting once the reachable surface is triaged.")
     return steps[:4]

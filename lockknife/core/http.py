@@ -8,8 +8,8 @@ import os
 import pathlib
 import random
 import ssl
-import time
 import threading
+import time
 from typing import Any
 from urllib.parse import urlparse
 
@@ -52,7 +52,13 @@ def _cache_root() -> pathlib.Path:
 
 def _cache_key(url: str, headers: dict[str, str] | None) -> str:
     hdrs = headers or {}
-    norm = url + "\n" + "\n".join(f"{k.lower()}:{v}" for k, v in sorted(hdrs.items(), key=lambda kv: kv[0].lower()))
+    norm = (
+        url
+        + "\n"
+        + "\n".join(
+            f"{k.lower()}:{v}" for k, v in sorted(hdrs.items(), key=lambda kv: kv[0].lower())
+        )
+    )
     return hashlib.sha256(norm.encode("utf-8", errors="ignore")).hexdigest()
 
 
@@ -115,7 +121,9 @@ def _cache_get(url: str, headers: dict[str, str] | None, *, ttl_s: float) -> byt
         return None
 
 
-def _cache_put(url: str, headers: dict[str, str] | None, data: bytes, *, ttl_s: float, encrypt: bool = True) -> None:
+def _cache_put(
+    url: str, headers: dict[str, str] | None, data: bytes, *, ttl_s: float, encrypt: bool = True
+) -> None:
     if ttl_s <= 0:
         return
     key = _cache_key(url, headers)
@@ -153,7 +161,9 @@ def _parse_retry_after(v: str | None) -> float | None:
         return None
 
 
-def _sleep_backoff(attempt: int, *, base_s: float = 0.5, max_s: float = 10.0, retry_after_s: float | None = None) -> None:
+def _sleep_backoff(
+    attempt: int, *, base_s: float = 0.5, max_s: float = 10.0, retry_after_s: float | None = None
+) -> None:
     if retry_after_s is not None and retry_after_s > 0:
         time.sleep(min(float(retry_after_s), max_s))
         return
@@ -223,7 +233,13 @@ def http_get(
             if resp.status == 429 or resp.status >= 500:
                 if attempt < max_attempts:
                     ra = _parse_retry_after(resp.getheader("Retry-After"))
-                    log.warning("http_retry", url=url, status=resp.status, attempt=attempt, max_attempts=max_attempts)
+                    log.warning(
+                        "http_retry",
+                        url=url,
+                        status=resp.status,
+                        attempt=attempt,
+                        max_attempts=max_attempts,
+                    )
                     _sleep_backoff(attempt, retry_after_s=ra)
                     continue
             if resp.status >= 400:
@@ -236,7 +252,13 @@ def http_get(
         except Exception as e:
             if attempt >= max_attempts:
                 raise HttpError(f"HTTP GET failed: {host}{path}") from e
-            log.warning("http_retry_exception", exc_info=True, url=url, attempt=attempt, max_attempts=max_attempts)
+            log.warning(
+                "http_retry_exception",
+                exc_info=True,
+                url=url,
+                attempt=attempt,
+                max_attempts=max_attempts,
+            )
             _sleep_backoff(attempt)
         finally:
             conn.close()
@@ -313,7 +335,13 @@ def http_post_json(
             if resp.status == 429 or resp.status >= 500:
                 if attempt < max_attempts:
                     ra = _parse_retry_after(resp.getheader("Retry-After"))
-                    log.warning("http_retry", url=url, status=resp.status, attempt=attempt, max_attempts=max_attempts)
+                    log.warning(
+                        "http_retry",
+                        url=url,
+                        status=resp.status,
+                        attempt=attempt,
+                        max_attempts=max_attempts,
+                    )
                     _sleep_backoff(attempt, retry_after_s=ra)
                     continue
             if resp.status >= 400:
@@ -327,7 +355,13 @@ def http_post_json(
         except Exception as e:
             if attempt >= max_attempts:
                 raise HttpError(f"HTTP POST failed: {host}{path}") from e
-            log.warning("http_retry_exception", exc_info=True, url=url, attempt=attempt, max_attempts=max_attempts)
+            log.warning(
+                "http_retry_exception",
+                exc_info=True,
+                url=url,
+                attempt=attempt,
+                max_attempts=max_attempts,
+            )
             _sleep_backoff(attempt)
         finally:
             conn.close()

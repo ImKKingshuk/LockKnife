@@ -6,12 +6,13 @@ import pytest
 
 from tests.unit.test_tui_callback import DummyApp, DummyFridaManager, build_tui_callback
 
+
 def test_tui_callback_runtime_session_actions_route_outputs_into_case_dir(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    import lockknife_headless_cli.tui_callback as cb
-    import lockknife.modules.runtime.session_manager as runtime_sessions
     import lockknife.modules.runtime._session_manager_shared as runtime_shared
+    import lockknife.modules.runtime.session_manager as runtime_sessions
+    import lockknife_headless_cli.tui_callback as cb
     from lockknife.core.case import create_case_workspace
 
     registered: list[dict[str, object]] = []
@@ -31,14 +32,22 @@ def test_tui_callback_runtime_session_actions_route_outputs_into_case_dir(
     callback = build_tui_callback(DummyApp())
 
     case_dir = tmp_path / "case"
-    create_case_workspace(case_dir=case_dir, case_id="CASE-RT", examiner="Examiner", title="Runtime")
+    create_case_workspace(
+        case_dir=case_dir, case_id="CASE-RT", examiner="Examiner", title="Runtime"
+    )
     script_path = tmp_path / "hook.js"
     script_path.write_text("send('hook');", encoding="utf-8")
 
     for action, payload in [
         (
             "runtime.hook",
-            {"app_id": "com.example.app", "script": str(script_path), "case_dir": str(case_dir), "output": "", "timeout": "0"},
+            {
+                "app_id": "com.example.app",
+                "script": str(script_path),
+                "case_dir": str(case_dir),
+                "output": "",
+                "timeout": "0",
+            },
         ),
         (
             "runtime.bypass_ssl",
@@ -50,26 +59,59 @@ def test_tui_callback_runtime_session_actions_route_outputs_into_case_dir(
         ),
         (
             "runtime.trace",
-            {"app_id": "com.example.app", "class": "com.example.Class", "method": "run", "case_dir": str(case_dir), "output": "", "timeout": "0"},
+            {
+                "app_id": "com.example.app",
+                "class": "com.example.Class",
+                "method": "run",
+                "case_dir": str(case_dir),
+                "output": "",
+                "timeout": "0",
+            },
         ),
         (
             "runtime.load_builtin_script",
-            {"app_id": "com.example.app", "builtin_script": "debug_bypass", "case_dir": str(case_dir), "output": "", "timeout": "0"},
+            {
+                "app_id": "com.example.app",
+                "builtin_script": "debug_bypass",
+                "case_dir": str(case_dir),
+                "output": "",
+                "timeout": "0",
+            },
         ),
     ]:
         result = callback(action, payload)
         assert result["ok"] is True
 
-    runtime_script_paths = [pathlib.Path(entry["path"]) for entry in registered if entry["category"] == "runtime-script"]
-    runtime_log_paths = [pathlib.Path(entry["path"]) for entry in registered if entry["category"] == "runtime-session-log"]
-    runtime_session_paths = [pathlib.Path(entry["path"]) for entry in registered if entry["category"] == "runtime-session"]
+    runtime_script_paths = [
+        pathlib.Path(entry["path"]) for entry in registered if entry["category"] == "runtime-script"
+    ]
+    runtime_log_paths = [
+        pathlib.Path(entry["path"])
+        for entry in registered
+        if entry["category"] == "runtime-session-log"
+    ]
+    runtime_session_paths = [
+        pathlib.Path(entry["path"])
+        for entry in registered
+        if entry["category"] == "runtime-session"
+    ]
 
     assert len(runtime_script_paths) == 5
     assert len(runtime_log_paths) == 5
     assert len(runtime_session_paths) == 5
-    assert all(path.name.startswith("runtime_rt-") and path.suffix == ".js" for path in runtime_script_paths)
-    assert all(path.parent == case_dir / "logs" / "runtime" and path.suffix == ".jsonl" for path in runtime_log_paths)
-    assert all(path.parent == case_dir / "derived" / "runtime" and path.suffix == ".json" for path in runtime_session_paths)
+    assert all(
+        path.name.startswith("runtime_rt-") and path.suffix == ".js"
+        for path in runtime_script_paths
+    )
+    assert all(
+        path.parent == case_dir / "logs" / "runtime" and path.suffix == ".jsonl"
+        for path in runtime_log_paths
+    )
+    assert all(
+        path.parent == case_dir / "derived" / "runtime" and path.suffix == ".json"
+        for path in runtime_session_paths
+    )
+
 
 def test_tui_callback_runtime_session_messages_use_session_terminology(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
@@ -83,7 +125,9 @@ def test_tui_callback_runtime_session_messages_use_session_terminology(
 
     callback = build_tui_callback(DummyApp())
     case_dir = tmp_path / "case"
-    create_case_workspace(case_dir=case_dir, case_id="CASE-SESSION", examiner="Examiner", title="Runtime")
+    create_case_workspace(
+        case_dir=case_dir, case_id="CASE-SESSION", examiner="Examiner", title="Runtime"
+    )
     script_path = tmp_path / "hook.js"
     script_path.write_text("send('hook');", encoding="utf-8")
 
@@ -91,12 +135,12 @@ def test_tui_callback_runtime_session_messages_use_session_terminology(
         "runtime.hook",
         {"app_id": "app", "script": str(script_path), "timeout": "0", "case_dir": str(case_dir)},
     )["message"].startswith("Managed runtime session saved to ")
-    assert callback("runtime.bypass_ssl", {"app_id": "app", "timeout": "0", "case_dir": str(case_dir)})[
-        "message"
-    ].startswith("Managed SSL bypass session saved to ")
-    assert callback("runtime.bypass_root", {"app_id": "app", "timeout": "0", "case_dir": str(case_dir)})[
-        "message"
-    ].startswith("Managed root bypass session saved to ")
+    assert callback(
+        "runtime.bypass_ssl", {"app_id": "app", "timeout": "0", "case_dir": str(case_dir)}
+    )["message"].startswith("Managed SSL bypass session saved to ")
+    assert callback(
+        "runtime.bypass_root", {"app_id": "app", "timeout": "0", "case_dir": str(case_dir)}
+    )["message"].startswith("Managed root bypass session saved to ")
     assert callback(
         "runtime.trace",
         {
@@ -109,10 +153,18 @@ def test_tui_callback_runtime_session_messages_use_session_terminology(
     )["message"].startswith("Managed trace session saved to ")
     assert callback(
         "runtime.load_builtin_script",
-        {"app_id": "app", "builtin_script": "crypto_intercept", "timeout": "0", "case_dir": str(case_dir)},
+        {
+            "app_id": "app",
+            "builtin_script": "crypto_intercept",
+            "timeout": "0",
+            "case_dir": str(case_dir),
+        },
     )["message"].startswith("Managed built-in runtime session saved to ")
 
-def test_tui_callback_runtime_session_management_actions_work(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+
+def test_tui_callback_runtime_session_management_actions_work(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     import lockknife_headless_cli.tui_callback as cb
     from lockknife.core.case import create_case_workspace
 
@@ -121,7 +173,9 @@ def test_tui_callback_runtime_session_management_actions_work(tmp_path: pathlib.
     monkeypatch.setattr(cb.time, "sleep", lambda *_a, **_k: None)
 
     case_dir = tmp_path / "case"
-    create_case_workspace(case_dir=case_dir, case_id="CASE-300", examiner="Examiner", title="Runtime Sessions")
+    create_case_workspace(
+        case_dir=case_dir, case_id="CASE-300", examiner="Examiner", title="Runtime Sessions"
+    )
     callback = build_tui_callback(DummyApp())
     script_path = tmp_path / "hook.js"
     reload_path = tmp_path / "reload.js"
@@ -159,7 +213,11 @@ def test_tui_callback_runtime_session_management_actions_work(tmp_path: pathlib.
 
     detail_after_cursor = callback(
         "runtime.session",
-        {"case_dir": str(case_dir), "session_id": session_id, "event_cursor": str(detail_payload["session"]["event_stream"]["next_cursor"])},
+        {
+            "case_dir": str(case_dir),
+            "session_id": session_id,
+            "event_cursor": str(detail_payload["session"]["event_stream"]["next_cursor"]),
+        },
     )
     assert detail_after_cursor["ok"] is True
     detail_after_payload = json.loads(detail_after_cursor["data_json"])
@@ -167,7 +225,12 @@ def test_tui_callback_runtime_session_management_actions_work(tmp_path: pathlib.
 
     reload = callback(
         "runtime.session_reload",
-        {"case_dir": str(case_dir), "session_id": session_id, "script": str(reload_path), "timeout": "0"},
+        {
+            "case_dir": str(case_dir),
+            "session_id": session_id,
+            "script": str(reload_path),
+            "timeout": "0",
+        },
     )
     assert reload["ok"] is True
     reload_payload = json.loads(reload["data_json"])
@@ -177,7 +240,12 @@ def test_tui_callback_runtime_session_management_actions_work(tmp_path: pathlib.
 
     reconnect = callback(
         "runtime.session_reconnect",
-        {"case_dir": str(case_dir), "session_id": session_id, "timeout": "0", "attach_mode": "attach"},
+        {
+            "case_dir": str(case_dir),
+            "session_id": session_id,
+            "timeout": "0",
+            "attach_mode": "attach",
+        },
     )
     assert reconnect["ok"] is True
     reconnect_payload = json.loads(reconnect["data_json"])
@@ -192,21 +260,28 @@ def test_tui_callback_runtime_session_management_actions_work(tmp_path: pathlib.
     assert stop_payload["runtime_dashboard"]["mode"] == "session-detail"
 
 
-def test_runtime_session_detach_is_recorded(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import lockknife_headless_cli.tui_callback as cb
+def test_runtime_session_detach_is_recorded(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     import lockknife.modules.runtime._session_manager_live as runtime_live
+    import lockknife_headless_cli.tui_callback as cb
     from lockknife.core.case import create_case_workspace
 
     monkeypatch.setattr(cb, "FridaManager", DummyFridaManager)
     monkeypatch.setattr(cb.time, "sleep", lambda *_a, **_k: None)
 
     case_dir = tmp_path / "case"
-    create_case_workspace(case_dir=case_dir, case_id="CASE-DETACH", examiner="Examiner", title="Runtime Detach")
+    create_case_workspace(
+        case_dir=case_dir, case_id="CASE-DETACH", examiner="Examiner", title="Runtime Detach"
+    )
     callback = build_tui_callback(DummyApp())
     script_path = tmp_path / "hook.js"
     script_path.write_text("send('hook');", encoding="utf-8")
 
-    started = callback("runtime.hook", {"app_id": "app", "script": str(script_path), "timeout": "0", "case_dir": str(case_dir)})
+    started = callback(
+        "runtime.hook",
+        {"app_id": "app", "script": str(script_path), "timeout": "0", "case_dir": str(case_dir)},
+    )
     session_id = json.loads(started["data_json"])["session"]["session_id"]
 
     with runtime_live._LIVE_SESSIONS_LOCK:

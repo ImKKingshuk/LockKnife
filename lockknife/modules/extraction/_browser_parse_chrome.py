@@ -1,18 +1,10 @@
 from __future__ import annotations
 
-
-
 import base64
-
 import json
-
 import pathlib
-
 import sqlite3
-
 from typing import Any
-
-
 
 from lockknife.modules.extraction._browser_models import (
     BrowserBookmarkEntry,
@@ -21,7 +13,6 @@ from lockknife.modules.extraction._browser_models import (
     BrowserHistoryEntry,
     BrowserLoginEntry,
 )
-
 
 
 def _parse_chrome_history(db_path: pathlib.Path, limit: int) -> list[BrowserHistoryEntry]:
@@ -50,6 +41,7 @@ LIMIT ?
         return out
     finally:
         con.close()
+
 
 def _parse_chrome_downloads(db_path: pathlib.Path, limit: int) -> list[BrowserDownloadEntry]:
     con = sqlite3.connect(str(db_path))
@@ -86,6 +78,7 @@ def _parse_chrome_downloads(db_path: pathlib.Path, limit: int) -> list[BrowserDo
         return out
     finally:
         con.close()
+
 
 def _parse_chrome_cookies(db_path: pathlib.Path, limit: int) -> list[BrowserCookieEntry]:
     con = sqlite3.connect(str(db_path))
@@ -126,6 +119,7 @@ def _parse_chrome_cookies(db_path: pathlib.Path, limit: int) -> list[BrowserCook
         return out
     finally:
         con.close()
+
 
 def _parse_chrome_logins(db_path: pathlib.Path, limit: int) -> list[BrowserLoginEntry]:
     con = sqlite3.connect(str(db_path))
@@ -174,6 +168,7 @@ def _parse_chrome_logins(db_path: pathlib.Path, limit: int) -> list[BrowserLogin
         return out
     finally:
         con.close()
+
 
 def _parse_chrome_bookmarks(bookmarks_path: pathlib.Path, limit: int) -> list[BrowserBookmarkEntry]:
     raw = json.loads(bookmarks_path.read_text(encoding="utf-8", errors="ignore") or "{}")

@@ -4,9 +4,9 @@ import dataclasses
 import pathlib
 from typing import Any
 
+from lockknife.modules.apk._risk_summary import build_apk_risk_summary
 from lockknife.modules.apk.decompile import parse_apk_manifest
 from lockknife.modules.apk.permissions import score_permissions
-from lockknife.modules.apk._risk_summary import build_apk_risk_summary
 from lockknife.modules.security.owasp import mastg_summary
 
 
@@ -47,7 +47,9 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
     findings: list[Finding] = []
 
     if info.get("debuggable") is True:
-        findings.append(Finding(id="debuggable", severity="high", title="App is debuggable", details={}))
+        findings.append(
+            Finding(id="debuggable", severity="high", title="App is debuggable", details={})
+        )
 
     if info.get("uses_cleartext_traffic") in {"true", True}:
         findings.append(
@@ -93,7 +95,9 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
 
     component_summary = info.get("component_summary") or {}
     components = info.get("components") or {}
-    interactions = (components.get("interaction_analysis") if isinstance(components, dict) else None) or {}
+    interactions = (
+        components.get("interaction_analysis") if isinstance(components, dict) else None
+    ) or {}
     exported_total = int(component_summary.get("exported_total") or 0)
     if exported_total:
         findings.append(
@@ -112,7 +116,10 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
                 id="browsable_deeplinks",
                 severity="medium",
                 title="Browsable deep links are present",
-                details={"browsable_deeplink_total": browsable_total, "deeplinks": info.get("deeplinks") or []},
+                details={
+                    "browsable_deeplink_total": browsable_total,
+                    "deeplinks": info.get("deeplinks") or [],
+                },
             )
         )
 
@@ -170,14 +177,17 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
         )
 
     strings = info.get("string_analysis") or {}
-    secret_count = int(((strings.get("stats") or {}).get("secret_indicator_count") or 0))
+    secret_count = int((strings.get("stats") or {}).get("secret_indicator_count") or 0)
     if secret_count:
         findings.append(
             Finding(
                 id="hardcoded_secret",
                 severity="high",
                 title="Archive contains hardcoded secret indicators",
-                details={"count": secret_count, "matches": strings.get("hardcoded_secret_indicators") or []},
+                details={
+                    "count": secret_count,
+                    "matches": strings.get("hardcoded_secret_indicators") or [],
+                },
             )
         )
 
@@ -188,12 +198,19 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
                 id="test_keys",
                 severity="high",
                 title="Debug or test signing indicators detected",
-                details={"certificates": signing.get("certificates") or [], "meta_inf_signers": signing.get("meta_inf_signers")},
+                details={
+                    "certificates": signing.get("certificates") or [],
+                    "meta_inf_signers": signing.get("meta_inf_signers"),
+                },
             )
         )
 
     strict_signing = signing.get("strict_verification") or {}
-    if any(item.get("id") == "legacy-v1-only-signing" for item in strict_signing.get("findings") or [] if isinstance(item, dict)):
+    if any(
+        item.get("id") == "legacy-v1-only-signing"
+        for item in strict_signing.get("findings") or []
+        if isinstance(item, dict)
+    ):
         findings.append(
             Finding(
                 id="legacy_v1_only_signing",
@@ -215,7 +232,11 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
         )
 
     code_signals = strings.get("code_signals") or []
-    dynamic_loading = [item for item in code_signals if isinstance(item, dict) and item.get("id") == "dynamic-code-loading"]
+    dynamic_loading = [
+        item
+        for item in code_signals
+        if isinstance(item, dict) and item.get("id") == "dynamic-code-loading"
+    ]
     if dynamic_loading:
         findings.append(
             Finding(
@@ -226,7 +247,11 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
             )
         )
 
-    webview_bridge = [item for item in code_signals if isinstance(item, dict) and item.get("id") == "webview-js-bridge"]
+    webview_bridge = [
+        item
+        for item in code_signals
+        if isinstance(item, dict) and item.get("id") == "webview-js-bridge"
+    ]
     if webview_bridge:
         findings.append(
             Finding(
@@ -237,7 +262,11 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
             )
         )
 
-    insecure_storage = [item for item in code_signals if isinstance(item, dict) and item.get("id") == "insecure-storage-world-readable"]
+    insecure_storage = [
+        item
+        for item in code_signals
+        if isinstance(item, dict) and item.get("id") == "insecure-storage-world-readable"
+    ]
     if insecure_storage:
         findings.append(
             Finding(
@@ -248,7 +277,11 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
             )
         )
 
-    crypto_ecb = [item for item in code_signals if isinstance(item, dict) and item.get("id") == "crypto-ecb-mode"]
+    crypto_ecb = [
+        item
+        for item in code_signals
+        if isinstance(item, dict) and item.get("id") == "crypto-ecb-mode"
+    ]
     if crypto_ecb:
         findings.append(
             Finding(
@@ -259,7 +292,11 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
             )
         )
 
-    crypto_static_iv = [item for item in code_signals if isinstance(item, dict) and item.get("id") == "crypto-static-iv"]
+    crypto_static_iv = [
+        item
+        for item in code_signals
+        if isinstance(item, dict) and item.get("id") == "crypto-static-iv"
+    ]
     if crypto_static_iv:
         findings.append(
             Finding(
@@ -280,12 +317,14 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
                 details={
                     "count": len(native_libraries),
                     "libraries": native_libraries[:8],
-                    "jni_entry_point_count": int(((strings.get("stats") or {}).get("jni_entry_point_count") or 0)),
+                    "jni_entry_point_count": int(
+                        (strings.get("stats") or {}).get("jni_entry_point_count") or 0
+                    ),
                 },
             )
         )
 
-    if int(((strings.get("stats") or {}).get("certificate_pin_indicator_count") or 0)):
+    if int((strings.get("stats") or {}).get("certificate_pin_indicator_count") or 0):
         findings.append(
             Finding(
                 id="certificate_pinning_indicators",
@@ -302,7 +341,11 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
                 id="sms_privilege_surface",
                 severity="medium",
                 title="SMS-related dangerous permissions present",
-                details={"permissions": sorted(permission for permission in permissions if "SMS" in permission)},
+                details={
+                    "permissions": sorted(
+                        permission for permission in permissions if "SMS" in permission
+                    )
+                },
             )
         )
 
@@ -317,7 +360,14 @@ def findings_from_manifest(info: dict[str, Any]) -> list[Finding]:
         )
 
     if not info.get("permissions"):
-        findings.append(Finding(id="no_permissions", severity="low", title="No runtime permissions declared", details={}))
+        findings.append(
+            Finding(
+                id="no_permissions",
+                severity="low",
+                title="No runtime permissions declared",
+                details={},
+            )
+        )
 
     return findings
 
@@ -340,4 +390,3 @@ def analyze_apk(apk_path: pathlib.Path) -> ApkAnalysisReport:
         risk_summary=risk_summary,
         mastg=mastg,
     )
-

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import dataclasses
 import pathlib
 import sqlite3
-import dataclasses
 
 from lockknife.core.device import DeviceManager
 from lockknife.core.exceptions import DeviceError
@@ -47,7 +47,9 @@ def _extract_sha1_from_password_key(path: pathlib.Path) -> str | None:
     return sha1.hex()
 
 
-def pull_locksettings_db(devices: DeviceManager, serial: str, out_dir: pathlib.Path) -> pathlib.Path:
+def pull_locksettings_db(
+    devices: DeviceManager, serial: str, out_dir: pathlib.Path
+) -> pathlib.Path:
     target = out_dir / "locksettings.db"
     devices.pull(serial, "/data/system/locksettings.db", target, timeout_s=60.0)
     return target
@@ -66,7 +68,7 @@ def recover_pin(devices: DeviceManager, serial: str, length: int) -> str:
         raise DeviceError("Root required to access lock credentials data")
 
     try:
-        import lockknife.lockknife_core as lockknife_core
+        pass
     except Exception as e:
         raise DeviceError("lockknife_core extension is not available") from e
 
@@ -74,7 +76,9 @@ def recover_pin(devices: DeviceManager, serial: str, length: int) -> str:
         return export_pin_recovery(devices, serial, length, d).pin
 
 
-def export_pin_recovery(devices: DeviceManager, serial: str, length: int, output_dir: pathlib.Path) -> PinRecovery:
+def export_pin_recovery(
+    devices: DeviceManager, serial: str, length: int, output_dir: pathlib.Path
+) -> PinRecovery:
     if length <= 0 or length > 12:
         raise DeviceError("length must be between 1 and 12")
     if not devices.has_root(serial):

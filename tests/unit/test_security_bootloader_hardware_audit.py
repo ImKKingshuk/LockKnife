@@ -69,7 +69,9 @@ def test_analyze_hardware_security_detects_strongbox() -> None:
 
 
 def test_run_device_audit_includes_root_and_test_keys() -> None:
-    dev = _FakeDevices({"ro.build.tags": "release-keys,test-keys", "ro.build.version.sdk": "30"}, root=True)
+    dev = _FakeDevices(
+        {"ro.build.tags": "release-keys,test-keys", "ro.build.version.sdk": "30"}, root=True
+    )
     findings = [dataclasses.asdict(f) for f in run_device_audit(dev, "SERIAL")]  # type: ignore[arg-type]
     ids = {f["id"] for f in findings}
     assert "test_keys" in ids

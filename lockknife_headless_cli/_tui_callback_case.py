@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -223,7 +224,12 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
     if action == "case.export":
         case_dir = pathlib.Path(_require(params, "case_dir"))
         output = pathlib.Path(
-            str(params.get("output") or case_output_path(case_dir, area="exports", filename=f"{case_dir.name}_bundle.zip"))
+            str(
+                params.get("output")
+                or case_output_path(
+                    case_dir, area="exports", filename=f"{case_dir.name}_bundle.zip"
+                )
+            )
         )
         payload = export_case_bundle(
             case_dir=case_dir,
@@ -250,7 +256,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
 
     if action == "case.register":
         case_dir = pathlib.Path(_require(params, "case_dir"))
-        device_serial = _opt(params.get("device_serial")) or _opt(getattr(app, "selected_device_serial", None))
+        device_serial = _opt(params.get("device_serial")) or _opt(
+            getattr(app, "selected_device_serial", None)
+        )
         metadata = _json_dict_param(params.get("metadata_json"))
         result = register_case_artifact_with_status(
             case_dir=case_dir,
@@ -292,7 +300,11 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         session_id = _opt(params.get("session_id"))
         limit = _int_param(params.get("limit"))
         # Using query_case_runtime_sessions
-        payload = {"sessions": query_case_runtime_sessions(case_dir, session_id=session_id) if session_id else query_case_runtime_sessions(case_dir)[:limit]}
+        payload = {
+            "sessions": query_case_runtime_sessions(case_dir, session_id=session_id)
+            if session_id
+            else query_case_runtime_sessions(case_dir)[:limit]
+        }
         return _ok(payload, f"Runtime sessions ready for {case_dir}")
 
     if action == "case.chain_of_custody":
@@ -307,7 +319,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 area="reports",
                 filename=f"chain_of_custody_report.{suffix}",
             )
-        
+
         payload = generate_case_chain_of_custody(case_dir)
         if output is not None:
             if suffix == "json":
@@ -330,7 +342,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 area="reports",
                 filename=f"integrity_report.{suffix}",
             )
-        
+
         report_payload = case_integrity_report(case_dir)
         if output is not None:
             if suffix == "json":

@@ -7,7 +7,6 @@ import pathlib
 import re
 from typing import Any
 
-
 WINDOWS_EPOCH_OFFSET_MS = 11644473600000
 WINDOWS_EPOCH_OFFSET_US = 11644473600000000
 
@@ -77,7 +76,7 @@ def media_filename_ts_ms(path_value: str | None) -> int | None:
             int(match.group("hour")),
             int(match.group("minute")),
             int(match.group("second")),
-            tzinfo=dt.timezone.utc,
+            tzinfo=dt.UTC,
         )
     except ValueError:
         return None
@@ -100,9 +99,20 @@ def family_from_category_or_name(category: str | None, path: pathlib.Path) -> st
         return "sms"
     if "call" in category_l or name_l in {"call_logs.json", "calls.json"}:
         return "call_logs"
-    if "browser" in category_l or name_l in {"browser.json", "history.json", "bookmarks.json", "downloads.json"}:
+    if "browser" in category_l or name_l in {
+        "browser.json",
+        "history.json",
+        "bookmarks.json",
+        "downloads.json",
+    }:
         return "browser"
-    if "messaging" in category_l or name_l in {"messaging.json", "messages.json", "whatsapp.json", "telegram.json", "signal.json"}:
+    if "messaging" in category_l or name_l in {
+        "messaging.json",
+        "messages.json",
+        "whatsapp.json",
+        "telegram.json",
+        "signal.json",
+    }:
         return "messaging"
     if "media" in category_l or name_l in {"media.json", "photos.json"}:
         return "media"
@@ -213,7 +223,7 @@ def _parse_datetime(text: str) -> int | None:
             else:
                 parsed = dt.datetime.strptime(candidate, "%Y-%m-%dT%H:%M:%S")
             if parsed.tzinfo is None:
-                parsed = parsed.replace(tzinfo=dt.timezone.utc)
+                parsed = parsed.replace(tzinfo=dt.UTC)
             return int(parsed.timestamp() * 1000)
         except ValueError:
             continue

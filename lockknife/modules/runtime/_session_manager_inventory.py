@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from lockknife.modules.runtime.hooks import list_builtin_runtime_scripts, suggest_builtin_runtime_scripts
 from lockknife.modules.runtime._session_manager_events import (
     build_runtime_event_summary,
     build_runtime_failure_context,
+)
+from lockknife.modules.runtime.hooks import (
+    list_builtin_runtime_scripts,
+    suggest_builtin_runtime_scripts,
 )
 
 
@@ -22,8 +25,12 @@ def enrich_runtime_session_payload(payload: dict[str, Any], *, live: bool) -> di
     failure_context = build_runtime_failure_context(session, preflight)
     compatibility = preflight.get("compatibility") if isinstance(preflight, dict) else None
     compatibility_status = compatibility.get("status") if isinstance(compatibility, dict) else None
-    compatibility_warning_count = compatibility.get("warning_count") if isinstance(compatibility, dict) else 0
-    compatibility_fail_count = compatibility.get("fail_count") if isinstance(compatibility, dict) else 0
+    compatibility_warning_count = (
+        compatibility.get("warning_count") if isinstance(compatibility, dict) else 0
+    )
+    compatibility_fail_count = (
+        compatibility.get("fail_count") if isinstance(compatibility, dict) else 0
+    )
     preflight_status = preflight.get("status") if isinstance(preflight, dict) else None
     dashboard = {
         "mode": "session-detail",
@@ -41,7 +48,9 @@ def enrich_runtime_session_payload(payload: dict[str, Any], *, live: bool) -> di
         "compatibility_status": compatibility_status,
         "compatibility_warning_count": compatibility_warning_count,
         "compatibility_fail_count": compatibility_fail_count,
-        "recommended_next_action": _session_recommended_next(session, live, preflight, failure_context),
+        "recommended_next_action": _session_recommended_next(
+            session, live, preflight, failure_context
+        ),
         "latest_event": event_summary.get("latest"),
         "active_script_label": script_summary.get("active_label"),
     }
@@ -72,11 +81,7 @@ def enrich_runtime_inventory_payload(payload: dict[str, Any]) -> dict[str, Any]:
     sessions = payload.get("sessions") or []
     if not isinstance(sessions, list):
         return payload
-    live_ids = {
-        str(item)
-        for item in payload.get("live_session_ids") or []
-        if str(item).strip()
-    }
+    live_ids = {str(item) for item in payload.get("live_session_ids") or [] if str(item).strip()}
     active_count = 0
     failed_count = 0
     compatibility_warning_count = 0
@@ -162,7 +167,9 @@ def build_script_inventory_summary(
     }
 
 
-def _preflight_from_session(session: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any] | None:
+def _preflight_from_session(
+    session: dict[str, Any], payload: dict[str, Any]
+) -> dict[str, Any] | None:
     payload_preflight = payload.get("preflight")
     if isinstance(payload_preflight, dict):
         return payload_preflight
@@ -181,8 +188,13 @@ def _session_recommended_next(
     failure_context: dict[str, Any] | None,
 ) -> str:
     if failure_context is not None:
-        recovery_hint = failure_context.get("recovery_hint") if isinstance(failure_context, dict) else None
-        return str(recovery_hint or "Review the failed checks and reconnect only after the target is ready.")
+        recovery_hint = (
+            failure_context.get("recovery_hint") if isinstance(failure_context, dict) else None
+        )
+        return str(
+            recovery_hint
+            or "Review the failed checks and reconnect only after the target is ready."
+        )
     if live:
         return "Inspect recent runtime events and keep reload/reconnect controls ready while the session stays live."
     if isinstance(preflight, dict) and preflight.get("readiness", {}).get("recommended_action"):

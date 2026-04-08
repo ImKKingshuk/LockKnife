@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import dataclasses
 import base64
+import dataclasses
 import ipaddress
 import json
 import re
-from urllib.parse import urlencode, urljoin
 from typing import Any
+from urllib.parse import urlencode, urljoin
 
 from lockknife.core.http import http_get, http_get_json
 
@@ -26,23 +26,61 @@ _RE_SHA256 = re.compile(r"\b[a-fA-F0-9]{64}\b")
 _RE_URL = re.compile(r"\bhttps?://[a-zA-Z0-9._~:/?#\[\]@!$&'()*+,;=%-]+")
 
 
-def detect_iocs(data: Any, *, location: str = "text", composite_rules: list[dict[str, Any]] | None = None) -> list[IocMatch]:
+def detect_iocs(
+    data: Any, *, location: str = "text", composite_rules: list[dict[str, Any]] | None = None
+) -> list[IocMatch]:
     out: list[IocMatch] = []
     seen: set[tuple[str, str, str]] = set()
     for frag_location, text in _iter_text_fragments(data, location=location):
         for match in _RE_SHA256.finditer(text):
-            _append_match(out, seen, IocMatch(ioc=match.group(0).lower(), kind="sha256", location=frag_location, confidence=_confidence_for_match("sha256", frag_location)))
+            _append_match(
+                out,
+                seen,
+                IocMatch(
+                    ioc=match.group(0).lower(),
+                    kind="sha256",
+                    location=frag_location,
+                    confidence=_confidence_for_match("sha256", frag_location),
+                ),
+            )
         for match in _RE_URL.finditer(text):
-            _append_match(out, seen, IocMatch(ioc=match.group(0), kind="url", location=frag_location, confidence=_confidence_for_match("url", frag_location)))
+            _append_match(
+                out,
+                seen,
+                IocMatch(
+                    ioc=match.group(0),
+                    kind="url",
+                    location=frag_location,
+                    confidence=_confidence_for_match("url", frag_location),
+                ),
+            )
         for match in _RE_IPV4.finditer(text):
             candidate = match.group(0)
             if _is_valid_ipv4(candidate):
-                _append_match(out, seen, IocMatch(ioc=candidate, kind="ipv4", location=frag_location, confidence=_confidence_for_match("ipv4", frag_location)))
+                _append_match(
+                    out,
+                    seen,
+                    IocMatch(
+                        ioc=candidate,
+                        kind="ipv4",
+                        location=frag_location,
+                        confidence=_confidence_for_match("ipv4", frag_location),
+                    ),
+                )
         for match in _RE_DOMAIN.finditer(text):
             candidate = match.group(0).lower().strip(".")
             if candidate.startswith("http"):
                 continue
-            _append_match(out, seen, IocMatch(ioc=candidate, kind="domain", location=frag_location, confidence=_confidence_for_match("domain", frag_location)))
+            _append_match(
+                out,
+                seen,
+                IocMatch(
+                    ioc=candidate,
+                    kind="domain",
+                    location=frag_location,
+                    confidence=_confidence_for_match("domain", frag_location),
+                ),
+            )
     if composite_rules:
         for composite in evaluate_composite_iocs(out, composite_rules):
             _append_match(out, seen, composite)
@@ -50,7 +88,9 @@ def detect_iocs(data: Any, *, location: str = "text", composite_rules: list[dict
 
 
 def load_stix_indicators_from_url(url: str) -> list[IocMatch]:
-    raw = http_get(url, timeout_s=20.0, max_attempts=4, cache_ttl_s=6 * 3600).decode("utf-8", errors="ignore")
+    raw = http_get(url, timeout_s=20.0, max_attempts=4, cache_ttl_s=6 * 3600).decode(
+        "utf-8", errors="ignore"
+    )
     try:
         parsed = json.loads(raw)
         return parse_stix_bundle_for_iocs(parsed, location=url)
@@ -58,7 +98,9 @@ def load_stix_indicators_from_url(url: str) -> list[IocMatch]:
         return detect_iocs(raw, location=url)
 
 
-_RE_STIX_VALUE = re.compile(r"(?P<type>domain-name|ipv4-addr|url|file:hashes\.\'SHA-256\'|file:hashes\.\"SHA-256\"):[^=]+=\s*'(?P<val>[^']+)'")
+_RE_STIX_VALUE = re.compile(
+    r"(?P<type>domain-name|ipv4-addr|url|file:hashes\.\'SHA-256\'|file:hashes\.\"SHA-256\"):[^=]+=\s*'(?P<val>[^']+)'"
+)
 
 
 def parse_stix_pattern(pattern: str, *, location: str) -> list[IocMatch]:
@@ -81,7 +123,9 @@ def parse_stix_pattern(pattern: str, *, location: str) -> list[IocMatch]:
                 ioc=f"{operator}:{' '.join(sorted(match.ioc for match in out))}",
                 kind=f"composite_{operator.lower()}",
                 location=location,
-                confidence=min(0.99, round(sum(match.confidence for match in out) / len(out) + 0.05, 3)),
+                confidence=min(
+                    0.99, round(sum(match.confidence for match in out) / len(out) + 0.05, 3)
+                ),
                 evidence=tuple(match.ioc for match in out),
             )
         )
@@ -120,7 +164,7 @@ def _taxii_headers(
     if token:
         headers["Authorization"] = f"Bearer {token}"
     if username and password:
-        auth = (f"{username}:{password}").encode("utf-8")
+        auth = (f"{username}:{password}").encode()
         headers["Authorization"] = "Basic " + base64.b64encode(auth).decode("ascii")
     return headers
 
@@ -167,9 +211,7 @@ def load_taxii_indicators(
         max_attempts=4,
         cache_ttl_s=10 * 60,
         rate_limit_per_s=1.0,
-    ).decode(
-        "utf-8", errors="ignore"
-    )
+    ).decode("utf-8", errors="ignore")
     try:
         parsed = json.loads(raw)
         return parse_stix_bundle_for_iocs(parsed, location=objects_url)
@@ -191,7 +233,9 @@ def evaluate_composite_iocs(matches: list[IocMatch], rules: list[dict[str, Any]]
             if not isinstance(condition, dict):
                 matched_sets.append([])
                 continue
-            matched_sets.append([match for match in matches if _condition_matches(match, condition)])
+            matched_sets.append(
+                [match for match in matches if _condition_matches(match, condition)]
+            )
         success = all(matched_sets) if operator == "and" else any(matched_sets)
         if not success:
             continue

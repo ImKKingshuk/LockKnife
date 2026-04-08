@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-
-
 import json
-
 import pathlib
-
 import sqlite3
 
-
-
-from lockknife.modules.extraction._browser_models import BrowserBookmarkEntry, BrowserHistoryEntry, BrowserLoginEntry
-
+from lockknife.modules.extraction._browser_models import (
+    BrowserBookmarkEntry,
+    BrowserHistoryEntry,
+    BrowserLoginEntry,
+)
 
 
 def _parse_firefox_places_history(db_path: pathlib.Path, limit: int) -> list[BrowserHistoryEntry]:
@@ -49,7 +46,10 @@ def _parse_firefox_places_history(db_path: pathlib.Path, limit: int) -> list[Bro
     finally:
         con.close()
 
-def _parse_firefox_places_bookmarks(db_path: pathlib.Path, limit: int) -> list[BrowserBookmarkEntry]:
+
+def _parse_firefox_places_bookmarks(
+    db_path: pathlib.Path, limit: int
+) -> list[BrowserBookmarkEntry]:
     con = sqlite3.connect(str(db_path))
     try:
         cur = con.cursor()
@@ -86,6 +86,7 @@ def _parse_firefox_places_bookmarks(db_path: pathlib.Path, limit: int) -> list[B
         return out
     finally:
         con.close()
+
 
 def _parse_firefox_logins(path: pathlib.Path, limit: int) -> list[BrowserLoginEntry]:
     raw = json.loads(path.read_text(encoding="utf-8", errors="ignore") or "{}")

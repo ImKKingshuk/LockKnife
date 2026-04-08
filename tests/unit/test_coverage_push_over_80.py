@@ -1,6 +1,3 @@
-import os
-import pathlib
-
 import click
 import pytest
 
@@ -42,7 +39,12 @@ def test_cli_types_reject_invalid_values(tmp_path) -> None:
 
 
 def test_core_security_temp_and_delete(tmp_path) -> None:
-    from lockknife.core.security import CryptoError, decrypt_bytes_aes256gcm, secure_delete, secure_temp_dir
+    from lockknife.core.security import (
+        CryptoError,
+        decrypt_bytes_aes256gcm,
+        secure_delete,
+        secure_temp_dir,
+    )
 
     with secure_temp_dir() as d:
         mode = (d.stat().st_mode) & 0o777
@@ -126,7 +128,16 @@ def test_device_audit_expanded_checks() -> None:
 
     findings = run_device_audit(_Dev(), "SER")  # type: ignore[arg-type]
     ids = {f.id for f in findings}
-    assert {"test_keys", "sdk", "encryption", "security_patch", "adb_debug", "developer_options", "unknown_sources", "play_protect"} <= ids
+    assert {
+        "test_keys",
+        "sdk",
+        "encryption",
+        "security_patch",
+        "adb_debug",
+        "developer_options",
+        "unknown_sources",
+        "play_protect",
+    } <= ids
 
 
 def test_malware_scan_patterns_errors_without_extension(tmp_path, monkeypatch) -> None:

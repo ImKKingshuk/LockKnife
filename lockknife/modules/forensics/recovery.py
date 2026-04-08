@@ -5,7 +5,6 @@ import re
 from collections import Counter
 from typing import Any
 
-
 _RE_URL = re.compile(r"https?://[^\s\"'<>]+")
 _RE_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _RE_PHONE = re.compile(r"\+?\d[\d -]{7,}\d")
@@ -29,18 +28,32 @@ def recover_deleted_records(db_path: pathlib.Path, *, max_fragments: int = 500) 
         "summary": {
             "fragment_count": len(unique),
             "page_size": page_size,
-            "high_confidence_count": sum(1 for fragment in unique if fragment.get("confidence") == "high"),
+            "high_confidence_count": sum(
+                1 for fragment in unique if fragment.get("confidence") == "high"
+            ),
             "source_counts": dict(sorted(source_counts.items())),
         },
         "page_analysis": {
             "page_size": page_size,
             "total_pages": len(raw) // page_size if page_size else 0,
-            "freelist_pages": [entry["page_number"] for entry in sources if entry.get("source_kind") == "freelist-page"],
-            "overflow_pages": [entry["page_number"] for entry in sources if entry.get("source_kind") == "overflow-page"],
-            "rollback_journal_present": any(entry.get("source_kind") == "rollback-journal" for entry in sources),
+            "freelist_pages": [
+                entry["page_number"]
+                for entry in sources
+                if entry.get("source_kind") == "freelist-page"
+            ],
+            "overflow_pages": [
+                entry["page_number"]
+                for entry in sources
+                if entry.get("source_kind") == "overflow-page"
+            ],
+            "rollback_journal_present": any(
+                entry.get("source_kind") == "rollback-journal" for entry in sources
+            ),
             "wal_present": any(entry.get("source_kind") == "wal-frame" for entry in sources),
         },
-        "sources": [{key: value for key, value in source.items() if key != "blob"} for source in sources],
+        "sources": [
+            {key: value for key, value in source.items() if key != "blob"} for source in sources
+        ],
         "fragments": unique,
     }
 
@@ -53,18 +66,43 @@ def _recovery_sources(db_path: pathlib.Path, raw: bytes, *, page_size: int) -> l
         start = (page_number - 1) * page_size
         end = start + page_size
         if end <= len(raw):
-            sources.append({"source_kind": "freelist-page", "origin": str(db_path), "page_number": page_number, "offset": start, "blob": raw[start:end]})
+            sources.append(
+                {
+                    "source_kind": "freelist-page",
+                    "origin": str(db_path),
+                    "page_number": page_number,
+                    "offset": start,
+                    "blob": raw[start:end],
+                }
+            )
     for page_number in _overflow_candidates(raw, page_size=page_size):
         start = (page_number - 1) * page_size
         end = start + page_size
         if end <= len(raw):
-            sources.append({"source_kind": "overflow-page", "origin": str(db_path), "page_number": page_number, "offset": start, "blob": raw[start:end]})
+            sources.append(
+                {
+                    "source_kind": "overflow-page",
+                    "origin": str(db_path),
+                    "page_number": page_number,
+                    "offset": start,
+                    "blob": raw[start:end],
+                }
+            )
     journal_path = db_path.with_name(db_path.name + "-journal")
     if journal_path.exists():
-        sources.append({"source_kind": "rollback-journal", "origin": str(journal_path), "offset": 0, "blob": journal_path.read_bytes()})
+        sources.append(
+            {
+                "source_kind": "rollback-journal",
+                "origin": str(journal_path),
+                "offset": 0,
+                "blob": journal_path.read_bytes(),
+            }
+        )
     wal_path = db_path.with_name(db_path.name + "-wal")
     if wal_path.exists():
-        sources.extend(_wal_frames(wal_path.read_bytes(), page_size=page_size, origin=str(wal_path)))
+        sources.extend(
+            _wal_frames(wal_path.read_bytes(), page_size=page_size, origin=str(wal_path))
+        )
     return sources
 
 
@@ -78,14 +116,18 @@ def _fragments_from_blob(source: dict[str, Any], *, limit: int) -> list[dict[str
         if not fragments:
             continue
         for fragment_text, relative_offset in fragments:
-            out.append({
-                "text": fragment_text,
-                "offset": base_offset + match.start() + relative_offset,
-                "page_number": source.get("page_number"),
-                "source_kind": source.get("source_kind"),
-                "origin": source.get("origin"),
-                "confidence": _confidence(fragment_text, source_kind=str(source.get("source_kind") or "main-db")),
-            })
+            out.append(
+                {
+                    "text": fragment_text,
+                    "offset": base_offset + match.start() + relative_offset,
+                    "page_number": source.get("page_number"),
+                    "source_kind": source.get("source_kind"),
+                    "origin": source.get("origin"),
+                    "confidence": _confidence(
+                        fragment_text, source_kind=str(source.get("source_kind") or "main-db")
+                    ),
+                }
+            )
             if len(out) >= limit:
                 return out
     return out
@@ -95,7 +137,11 @@ def _dedupe_fragments(fragments: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[tuple[str, str, int | None]] = set()
     out: list[dict[str, Any]] = []
     for fragment in fragments:
-        key = (str(fragment.get("text") or ""), str(fragment.get("source_kind") or ""), fragment.get("page_number"))
+        key = (
+            str(fragment.get("text") or ""),
+            str(fragment.get("source_kind") or ""),
+            fragment.get("page_number"),
+        )
         if key in seen:
             continue
         seen.add(key)
@@ -105,7 +151,9 @@ def _dedupe_fragments(fragments: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _interesting(text: str) -> bool:
     lowered = text.lower()
-    return any(token in lowered for token in ("http", "@", "session", "chat", "token", "login", "message"))
+    return any(
+        token in lowered for token in ("http", "@", "session", "chat", "token", "login", "message")
+    )
 
 
 def _extract_interesting_fragments(text: str) -> list[tuple[str, int]]:
@@ -171,7 +219,11 @@ def _overflow_candidates(raw: bytes, *, page_size: int) -> list[int]:
         page_type = page[0]
         next_page = int.from_bytes(page[:4], "big")
         ascii_hits = len(re.findall(rb"[\x20-\x7e]{6,}", page))
-        if page_type not in {0x02, 0x05, 0x0A, 0x0D} and 0 < next_page <= total_pages and ascii_hits:
+        if (
+            page_type not in {0x02, 0x05, 0x0A, 0x0D}
+            and 0 < next_page <= total_pages
+            and ascii_hits
+        ):
             out.append(page_number)
     return out
 
@@ -188,14 +240,16 @@ def _wal_frames(wal: bytes, *, page_size: int, origin: str) -> list[dict[str, An
     while offset + 24 + frame_page_size <= len(wal):
         header = wal[offset : offset + 24]
         data_start = offset + 24
-        out.append({
-            "source_kind": "wal-frame",
-            "origin": origin,
-            "page_number": int.from_bytes(header[0:4], "big"),
-            "frame_index": frame_index,
-            "offset": data_start,
-            "blob": wal[data_start : data_start + frame_page_size],
-        })
+        out.append(
+            {
+                "source_kind": "wal-frame",
+                "origin": origin,
+                "page_number": int.from_bytes(header[0:4], "big"),
+                "frame_index": frame_index,
+                "offset": data_start,
+                "blob": wal[data_start : data_start + frame_page_size],
+            }
+        )
         offset = data_start + frame_page_size
         frame_index += 1
     return out

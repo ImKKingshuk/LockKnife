@@ -13,7 +13,10 @@ from lockknife.core.cli_instrumentation import LockKnifeGroup
 from lockknife.core.cli_types import READABLE_FILE
 from lockknife.core.output import console
 from lockknife.core.serialize import write_json
-from lockknife.modules._case_enrichment_payloads import api_discovery_payload, network_summary_payload
+from lockknife.modules._case_enrichment_payloads import (
+    api_discovery_payload,
+    network_summary_payload,
+)
 from lockknife.modules.network.api_discovery import extract_api_endpoints_from_pcap, summarize_pcap
 from lockknife.modules.network.capture import capture_pcap
 from lockknife.modules.network.parser import parse_ipv4_header
@@ -24,7 +27,9 @@ def network() -> None:
     pass
 
 
-def _resolve_case_output(output: pathlib.Path | None, case_dir: pathlib.Path | None, *, area: str, filename: str) -> tuple[pathlib.Path | None, bool]:
+def _resolve_case_output(
+    output: pathlib.Path | None, case_dir: pathlib.Path | None, *, area: str, filename: str
+) -> tuple[pathlib.Path | None, bool]:
     if output is not None:
         return output, False
     if case_dir is None:
@@ -59,10 +64,14 @@ def _register_network_output(
 @click.argument("packet_hex")
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def parse_ipv4_cmd(packet_hex: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def parse_ipv4_cmd(
+    packet_hex: str, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
     data = bytes.fromhex(packet_hex)
     parsed = parse_ipv4_header(data)
-    output, derived = _resolve_case_output(output, case_dir, area="derived", filename="network_parse_ipv4.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, area="derived", filename="network_parse_ipv4.json"
+    )
     if output:
         write_json(output, parsed)
         _register_network_output(
@@ -95,10 +104,14 @@ def capture_cmd(
     output: pathlib.Path | None,
     case_dir: pathlib.Path | None,
 ) -> None:
-    output, _derived = _resolve_case_output(output, case_dir, area="evidence", filename=f"network_capture_{serial}.pcap")
+    output, _derived = _resolve_case_output(
+        output, case_dir, area="evidence", filename=f"network_capture_{serial}.pcap"
+    )
     if output is None:
         raise click.ClickException("Either --output or --case-dir is required")
-    with Progress(SpinnerColumn(), BarColumn(), TextColumn("{task.description}"), transient=True) as progress:
+    with Progress(
+        SpinnerColumn(), BarColumn(), TextColumn("{task.description}"), transient=True
+    ) as progress:
         task = progress.add_task(description="Capturing packets", total=None)
 
         def _on_progress(event: dict[str, Any]) -> None:
@@ -132,9 +145,15 @@ def capture_cmd(
 @click.argument("pcap_path", type=READABLE_FILE)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def analyze_cmd(pcap_path: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
-    output, derived = _resolve_case_output(output, case_dir, area="derived", filename=f"network_analyze_{pcap_path.stem}.json")
-    payload = network_summary_payload(summarize_pcap(pcap_path), input_path=pcap_path, case_dir=case_dir, output=output)
+def analyze_cmd(
+    pcap_path: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
+    output, derived = _resolve_case_output(
+        output, case_dir, area="derived", filename=f"network_analyze_{pcap_path.stem}.json"
+    )
+    payload = network_summary_payload(
+        summarize_pcap(pcap_path), input_path=pcap_path, case_dir=case_dir, output=output
+    )
     if output:
         write_json(output, payload)
         _register_network_output(
@@ -155,9 +174,18 @@ def analyze_cmd(pcap_path: pathlib.Path, output: pathlib.Path | None, case_dir: 
 @click.argument("pcap_path", type=READABLE_FILE)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def api_discovery_cmd(pcap_path: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
-    output, derived = _resolve_case_output(output, case_dir, area="derived", filename=f"network_api_discovery_{pcap_path.stem}.json")
-    payload = api_discovery_payload(extract_api_endpoints_from_pcap(pcap_path), input_path=pcap_path, case_dir=case_dir, output=output)
+def api_discovery_cmd(
+    pcap_path: pathlib.Path, output: pathlib.Path | None, case_dir: pathlib.Path | None
+) -> None:
+    output, derived = _resolve_case_output(
+        output, case_dir, area="derived", filename=f"network_api_discovery_{pcap_path.stem}.json"
+    )
+    payload = api_discovery_payload(
+        extract_api_endpoints_from_pcap(pcap_path),
+        input_path=pcap_path,
+        case_dir=case_dir,
+        output=output,
+    )
     if output:
         write_json(output, payload)
         _register_network_output(

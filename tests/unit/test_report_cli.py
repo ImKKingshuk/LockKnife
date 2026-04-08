@@ -3,13 +3,15 @@ import pathlib
 
 from click.testing import CliRunner
 
-from lockknife_headless_cli.report import report
 from lockknife.core.case import create_case_workspace, load_case_manifest, register_case_artifact
+from lockknife_headless_cli.report import report
 
 
 def _seed_case(tmp_path: pathlib.Path) -> pathlib.Path:
     case_dir = tmp_path / "case"
-    create_case_workspace(case_dir=case_dir, case_id="CASE-200", examiner="Examiner", title="Reporting")
+    create_case_workspace(
+        case_dir=case_dir, case_id="CASE-200", examiner="Examiner", title="Reporting"
+    )
     evidence_path = case_dir / "evidence" / "sms.json"
     evidence_path.write_text("[]", encoding="utf-8")
     register_case_artifact(
@@ -45,7 +47,9 @@ def test_report_chain_of_custody_and_integrity_use_case_defaults(tmp_path: pathl
     case_dir = _seed_case(tmp_path)
 
     custody = runner.invoke(report, ["chain-of-custody", "--case-dir", str(case_dir)])
-    integrity = runner.invoke(report, ["integrity", "--case-dir", str(case_dir), "--format", "text"])
+    integrity = runner.invoke(
+        report, ["integrity", "--case-dir", str(case_dir), "--format", "text"]
+    )
 
     assert custody.exit_code == 0, custody.output
     assert integrity.exit_code == 0, integrity.output
@@ -68,7 +72,9 @@ def test_report_chain_of_custody_supports_html_output(tmp_path: pathlib.Path) ->
     runner = CliRunner()
     case_dir = _seed_case(tmp_path)
 
-    result = runner.invoke(report, ["chain-of-custody", "--case-dir", str(case_dir), "--format", "html"])
+    result = runner.invoke(
+        report, ["chain-of-custody", "--case-dir", str(case_dir), "--format", "html"]
+    )
 
     assert result.exit_code == 0, result.output
     custody_path = case_dir / "reports" / "chain_of_custody_CASE-200.html"

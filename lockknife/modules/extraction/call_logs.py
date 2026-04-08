@@ -76,7 +76,9 @@ def extract_call_logs(devices: DeviceManager, serial: str, limit: int = 200) -> 
             try:
                 return _parse_calls_db(local, limit)
             except sqlite3.Error:
-                log.debug("call_log_parse_failed", exc_info=True, serial=serial, local_path=str(local))
+                log.debug(
+                    "call_log_parse_failed", exc_info=True, serial=serial, local_path=str(local)
+                )
                 continue
 
     raise DeviceError("Unable to extract call logs")

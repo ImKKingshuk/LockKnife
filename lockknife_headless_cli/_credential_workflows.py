@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 import pathlib
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from lockknife.core.device_selection import resolve_single_device_serial
 from lockknife.core.device_targeting import build_device_readiness_report
@@ -123,7 +124,13 @@ def run_gesture_recovery_workflow(
         register_case_artifact,
         source_command,
         serial,
-        [(recovery.key_path, "crack-gesture-key", {"remote_path": recovery.source_remote_path, "size": recovery.key_size})],
+        [
+            (
+                recovery.key_path,
+                "crack-gesture-key",
+                {"remote_path": recovery.source_remote_path, "size": recovery.key_size},
+            )
+        ],
     )
     manifest_artifact_id = _register_manifest(
         case_dir,
@@ -166,7 +173,12 @@ def run_wifi_workflow(
     readiness = _readiness(devices, serial, source_command, requires_root=True)
     if output_dir is None and case_dir is None:
         rows = [dataclasses.asdict(row) for row in extract_wifi_passwords(devices, serial)]
-        return {"serial": serial, "credentials": rows, "credential_count": len(rows), "readiness": readiness}
+        return {
+            "serial": serial,
+            "credentials": rows,
+            "credential_count": len(rows),
+            "readiness": readiness,
+        }
 
     output_dir = _workflow_dir(output_dir, case_dir, f"wifi_{serial}")
     extraction = export_wifi_credentials(devices, serial, output_dir)
@@ -187,7 +199,13 @@ def run_wifi_workflow(
         register_case_artifact,
         source_command,
         serial,
-        [(extraction.source_local_path, "crack-wifi-config", {"remote_path": extraction.source_remote_path})],
+        [
+            (
+                extraction.source_local_path,
+                "crack-wifi-config",
+                {"remote_path": extraction.source_remote_path},
+            )
+        ],
     )
     manifest_artifact_id = _register_manifest(
         case_dir,
@@ -197,7 +215,10 @@ def run_wifi_workflow(
         source_command=source_command,
         serial=serial,
         parent_artifact_ids=parent_ids,
-        metadata={"credential_count": len(rows), "source_remote_path": extraction.source_remote_path},
+        metadata={
+            "credential_count": len(rows),
+            "source_remote_path": extraction.source_remote_path,
+        },
     )
     payload.update(_artifact_payload(manifest_path, case_dir, manifest_artifact_id, parent_ids))
     return payload
@@ -230,7 +251,12 @@ def run_keystore_workflow(
     readiness = _readiness(devices, serial, source_command, requires_root=True)
     if output_dir is None and case_dir is None:
         rows = [dataclasses.asdict(row) for row in list_keystore(devices, serial)]
-        return {"serial": serial, "listings": rows, "listing_count": len(rows), "readiness": readiness}
+        return {
+            "serial": serial,
+            "listings": rows,
+            "listing_count": len(rows),
+            "readiness": readiness,
+        }
 
     output_dir = _workflow_dir(output_dir, case_dir, f"keystore_{serial}")
     inventory = inspect_keystore(devices, serial)
@@ -288,7 +314,9 @@ def run_passkey_workflow(
     output_dir = _workflow_dir(output_dir, case_dir, f"passkeys_{serial}")
     items = pull_passkey_artifacts(devices, serial, output_dir=output_dir, limit=limit)
     rows = [
-        dataclasses.asdict(item) if dataclasses.is_dataclass(item) and not isinstance(item, type) else dict(item)
+        dataclasses.asdict(item)
+        if dataclasses.is_dataclass(item) and not isinstance(item, type)
+        else dict(item)
         for item in items
     ]
     success_count = sum(1 for item in rows if item.get("local_path"))
@@ -356,7 +384,9 @@ def _resolve_serial(
     )
 
 
-def _readiness(devices: Any, serial: str, source_command: str, *, requires_root: bool) -> dict[str, Any]:
+def _readiness(
+    devices: Any, serial: str, source_command: str, *, requires_root: bool
+) -> dict[str, Any]:
     return dataclasses.asdict(
         build_device_readiness_report(
             devices,
@@ -367,7 +397,9 @@ def _readiness(devices: Any, serial: str, source_command: str, *, requires_root:
     )
 
 
-def _workflow_dir(output_dir: pathlib.Path | None, case_dir: pathlib.Path | None, name: str) -> pathlib.Path:
+def _workflow_dir(
+    output_dir: pathlib.Path | None, case_dir: pathlib.Path | None, name: str
+) -> pathlib.Path:
     if output_dir is not None:
         target = output_dir
     else:
@@ -434,7 +466,10 @@ def _artifact_payload(
     manifest_artifact_id: str | None,
     parent_artifact_ids: list[str],
 ) -> dict[str, Any]:
-    payload: dict[str, Any] = {"manifest_path": str(manifest_path), "parent_artifact_ids": parent_artifact_ids}
+    payload: dict[str, Any] = {
+        "manifest_path": str(manifest_path),
+        "parent_artifact_ids": parent_artifact_ids,
+    }
     if case_dir is not None:
         payload["case_dir"] = str(case_dir)
     if manifest_artifact_id:

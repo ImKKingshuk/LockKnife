@@ -1,8 +1,7 @@
 import pathlib
+import subprocess
 import sys
 import types
-
-import subprocess
 
 from lockknife.modules.reporting.chain_of_custody import (
     EvidenceItem,
@@ -15,7 +14,9 @@ from lockknife.modules.reporting.chain_of_custody import (
 )
 
 
-def test_chain_of_custody_helpers_handle_resolution_and_verification(monkeypatch, tmp_path: pathlib.Path) -> None:
+def test_chain_of_custody_helpers_handle_resolution_and_verification(
+    monkeypatch, tmp_path: pathlib.Path
+) -> None:
     evidence_path = tmp_path / "evidence.txt"
     evidence_path.write_text("hello", encoding="utf-8")
     payload = build_chain_of_custody_payload(
@@ -28,16 +29,23 @@ def test_chain_of_custody_helpers_handle_resolution_and_verification(monkeypatch
     broken = [dict(payload["entries"][0], previous_hash="bad")]
     assert verify_chain_of_custody(broken)["status"] == "invalid"
 
-    monkeypatch.setattr("lockknife.modules.reporting.chain_of_custody._sha256_file", lambda _path: (_ for _ in ()).throw(OSError("no read")))
+    monkeypatch.setattr(
+        "lockknife.modules.reporting.chain_of_custody._sha256_file",
+        lambda _path: (_ for _ in ()).throw(OSError("no read")),
+    )
     monkeypatch.setattr(pathlib.Path, "exists", lambda self: True)
     monkeypatch.setattr(pathlib.Path, "is_file", lambda self: True)
-    monkeypatch.setattr(pathlib.Path, "stat", lambda self: (_ for _ in ()).throw(OSError("no stat")))
+    monkeypatch.setattr(
+        pathlib.Path, "stat", lambda self: (_ for _ in ()).throw(OSError("no stat"))
+    )
     resolved = _resolved_evidence(EvidenceItem(name="sample", path=str(evidence_path)))
     assert resolved.sha256 is None
     assert resolved.size_bytes is None
 
 
-def test_sign_report_file_returns_unavailable_without_gpg(monkeypatch, tmp_path: pathlib.Path) -> None:
+def test_sign_report_file_returns_unavailable_without_gpg(
+    monkeypatch, tmp_path: pathlib.Path
+) -> None:
     report = tmp_path / "report.txt"
     report.write_text("hello", encoding="utf-8")
     monkeypatch.setattr("shutil.which", lambda _name: None)

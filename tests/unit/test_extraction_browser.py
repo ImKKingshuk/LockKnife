@@ -4,6 +4,7 @@ import types
 
 import pytest
 
+from lockknife.core.exceptions import DeviceError
 from lockknife.modules.extraction.browser import (
     _parse_chrome_bookmarks,
     _parse_chrome_cookies,
@@ -22,14 +23,15 @@ from lockknife.modules.extraction.browser import (
     extract_firefox_history,
     extract_firefox_saved_logins,
 )
-from lockknife.core.exceptions import DeviceError
 
 
 def test_parse_chrome_history(tmp_path: pathlib.Path) -> None:
     db = tmp_path / "History"
     con = sqlite3.connect(str(db))
     try:
-        con.execute("CREATE TABLE urls (url TEXT, title TEXT, last_visit_time INTEGER, visit_count INTEGER)")
+        con.execute(
+            "CREATE TABLE urls (url TEXT, title TEXT, last_visit_time INTEGER, visit_count INTEGER)"
+        )
         con.execute("INSERT INTO urls VALUES ('https://a', 'A', 2, 1)")
         con.execute("INSERT INTO urls VALUES ('https://b', 'B', 3, 2)")
         con.commit()
@@ -91,8 +93,12 @@ def test_parse_firefox_places(tmp_path: pathlib.Path) -> None:
     db = tmp_path / "places.sqlite"
     con = sqlite3.connect(str(db))
     try:
-        con.execute("CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT, title TEXT, last_visit_date INTEGER, visit_count INTEGER)")
-        con.execute("INSERT INTO moz_places(id,url,title,last_visit_date,visit_count) VALUES (1,'https://a','A',2,1)")
+        con.execute(
+            "CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT, title TEXT, last_visit_date INTEGER, visit_count INTEGER)"
+        )
+        con.execute(
+            "INSERT INTO moz_places(id,url,title,last_visit_date,visit_count) VALUES (1,'https://a','A',2,1)"
+        )
         con.execute("CREATE TABLE moz_bookmarks (fk INTEGER, title TEXT, dateAdded INTEGER)")
         con.execute("INSERT INTO moz_bookmarks VALUES (1,'B',3)")
         con.commit()
@@ -106,7 +112,10 @@ def test_parse_firefox_places(tmp_path: pathlib.Path) -> None:
 
 def test_parse_firefox_logins(tmp_path: pathlib.Path) -> None:
     p = tmp_path / "logins.json"
-    p.write_text('{"logins":[{"hostname":"https://x","encryptedUsername":"EU","encryptedPassword":"EP"}]}', encoding="utf-8")
+    p.write_text(
+        '{"logins":[{"hostname":"https://x","encryptedUsername":"EU","encryptedPassword":"EP"}]}',
+        encoding="utf-8",
+    )
     rows = _parse_firefox_logins(p, 10)
     assert rows[0].origin_url == "https://x"
 
@@ -117,7 +126,9 @@ def test_extract_chromium_variant_uses_variant_paths(monkeypatch, tmp_path: path
     db = tmp_path / "History"
     con = sqlite3.connect(str(db))
     try:
-        con.execute("CREATE TABLE urls (url TEXT, title TEXT, last_visit_time INTEGER, visit_count INTEGER)")
+        con.execute(
+            "CREATE TABLE urls (url TEXT, title TEXT, last_visit_time INTEGER, visit_count INTEGER)"
+        )
         con.execute("INSERT INTO urls VALUES ('https://edge.example', 'Edge', 3, 1)")
         con.commit()
     finally:
@@ -133,7 +144,9 @@ def test_extract_chromium_variant_uses_variant_paths(monkeypatch, tmp_path: path
         return False
 
     monkeypatch.setattr(chrome_extract, "_try_root_pull_file", _pull)
-    rows = extract_chrome_history(types.SimpleNamespace(has_root=lambda _serial: True), "SERIAL", browser="edge")
+    rows = extract_chrome_history(
+        types.SimpleNamespace(has_root=lambda _serial: True), "SERIAL", browser="edge"
+    )
     assert rows[0].url == "https://edge.example"
     assert any("com.microsoft.emmx" in path for path in seen)
 
@@ -143,7 +156,9 @@ def test_extract_chrome_history_requires_root() -> None:
         extract_chrome_history(types.SimpleNamespace(has_root=lambda _serial: False), "SERIAL")
 
 
-def test_extract_chrome_bookmarks_retries_parse_failures(monkeypatch, tmp_path: pathlib.Path) -> None:
+def test_extract_chrome_bookmarks_retries_parse_failures(
+    monkeypatch, tmp_path: pathlib.Path
+) -> None:
     import lockknife.modules.extraction._browser_extract_chrome as chrome_extract
 
     local_copy = tmp_path / "Bookmarks"
@@ -156,10 +171,16 @@ def test_extract_chrome_bookmarks_retries_parse_failures(monkeypatch, tmp_path: 
         return True
 
     monkeypatch.setattr(chrome_extract, "_try_root_pull_file", _pull)
-    monkeypatch.setattr(chrome_extract, "_parse_chrome_bookmarks", lambda *_a, **_k: (_ for _ in ()).throw(ValueError("bad json")))
+    monkeypatch.setattr(
+        chrome_extract,
+        "_parse_chrome_bookmarks",
+        lambda *_a, **_k: (_ for _ in ()).throw(ValueError("bad json")),
+    )
 
     with pytest.raises(DeviceError):
-        extract_chrome_bookmarks(types.SimpleNamespace(has_root=lambda _serial: True), "SERIAL", browser="opera")
+        extract_chrome_bookmarks(
+            types.SimpleNamespace(has_root=lambda _serial: True), "SERIAL", browser="opera"
+        )
     assert any("com.opera.browser" in path for path in attempts)
 
 
@@ -167,8 +188,14 @@ def test_extract_chrome_downloads_returns_empty_on_sqlite_errors(monkeypatch) ->
     import lockknife.modules.extraction._browser_extract_chrome as chrome_extract
 
     monkeypatch.setattr(chrome_extract, "_try_root_pull_file", lambda *_a, **_k: True)
-    monkeypatch.setattr(chrome_extract, "_parse_chrome_downloads", lambda *_a, **_k: (_ for _ in ()).throw(sqlite3.Error("bad db")))
-    rows = extract_chrome_downloads(types.SimpleNamespace(has_root=lambda _serial: True), "SERIAL", browser="brave")
+    monkeypatch.setattr(
+        chrome_extract,
+        "_parse_chrome_downloads",
+        lambda *_a, **_k: (_ for _ in ()).throw(sqlite3.Error("bad db")),
+    )
+    rows = extract_chrome_downloads(
+        types.SimpleNamespace(has_root=lambda _serial: True), "SERIAL", browser="brave"
+    )
     assert rows == []
 
 
@@ -181,13 +208,17 @@ def test_extract_chrome_cookies_returns_empty_when_no_items(monkeypatch) -> None
     assert rows == []
 
 
-def test_extract_chrome_saved_logins_uses_default_package_fallback(monkeypatch, tmp_path: pathlib.Path) -> None:
+def test_extract_chrome_saved_logins_uses_default_package_fallback(
+    monkeypatch, tmp_path: pathlib.Path
+) -> None:
     import lockknife.modules.extraction._browser_extract_chrome as chrome_extract
 
     db = tmp_path / "Login Data"
     con = sqlite3.connect(str(db))
     try:
-        con.execute("CREATE TABLE logins (origin_url TEXT, username_value TEXT, encrypted_password BLOB)")
+        con.execute(
+            "CREATE TABLE logins (origin_url TEXT, username_value TEXT, encrypted_password BLOB)"
+        )
         con.execute("INSERT INTO logins VALUES ('https://site.example','u',X'0A0B')")
         con.commit()
     finally:
@@ -201,7 +232,9 @@ def test_extract_chrome_saved_logins_uses_default_package_fallback(monkeypatch, 
         return True
 
     monkeypatch.setattr(chrome_extract, "_try_root_pull_file", _pull)
-    rows = extract_chrome_saved_logins(types.SimpleNamespace(has_root=lambda _serial: True), "SERIAL", browser="unknown")
+    rows = extract_chrome_saved_logins(
+        types.SimpleNamespace(has_root=lambda _serial: True), "SERIAL", browser="unknown"
+    )
     assert rows[0].origin_url == "https://site.example"
     assert any("com.android.chrome" in path for path in seen)
 
@@ -217,8 +250,12 @@ def test_extract_firefox_history_reads_profile_db(monkeypatch, tmp_path: pathlib
     db = tmp_path / "places.sqlite"
     con = sqlite3.connect(str(db))
     try:
-        con.execute("CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT, title TEXT, last_visit_date INTEGER, visit_count INTEGER)")
-        con.execute("INSERT INTO moz_places(id,url,title,last_visit_date,visit_count) VALUES (1,'https://firefox.example','F',2,1)")
+        con.execute(
+            "CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT, title TEXT, last_visit_date INTEGER, visit_count INTEGER)"
+        )
+        con.execute(
+            "INSERT INTO moz_places(id,url,title,last_visit_date,visit_count) VALUES (1,'https://firefox.example','F',2,1)"
+        )
         con.commit()
     finally:
         con.close()
@@ -228,7 +265,10 @@ def test_extract_firefox_history_reads_profile_db(monkeypatch, tmp_path: pathlib
         return True
 
     monkeypatch.setattr(firefox_extract, "_try_root_pull_file", _pull)
-    devices = types.SimpleNamespace(has_root=lambda _serial: True, shell=lambda *_a, **_k: "/data/data/org.mozilla.firefox/files/mozilla/abc.default\n")
+    devices = types.SimpleNamespace(
+        has_root=lambda _serial: True,
+        shell=lambda *_a, **_k: "/data/data/org.mozilla.firefox/files/mozilla/abc.default\n",
+    )
 
     rows = extract_firefox_history(devices, "SERIAL")
     assert rows[0].url == "https://firefox.example"
@@ -246,7 +286,11 @@ def test_extract_firefox_bookmarks_ignores_shell_and_sqlite_errors(monkeypatch) 
         return "/data/data/org.mozilla.fenix/files/mozilla/abc.default\n"
 
     monkeypatch.setattr(firefox_extract, "_try_root_pull_file", lambda *_a, **_k: True)
-    monkeypatch.setattr(firefox_extract, "_parse_firefox_places_bookmarks", lambda *_a, **_k: (_ for _ in ()).throw(sqlite3.Error("bad db")))
+    monkeypatch.setattr(
+        firefox_extract,
+        "_parse_firefox_places_bookmarks",
+        lambda *_a, **_k: (_ for _ in ()).throw(sqlite3.Error("bad db")),
+    )
     devices = types.SimpleNamespace(has_root=lambda _serial: True, shell=_shell)
 
     rows = extract_firefox_bookmarks(devices, "SERIAL")
@@ -254,11 +298,16 @@ def test_extract_firefox_bookmarks_ignores_shell_and_sqlite_errors(monkeypatch) 
     assert attempts["count"] >= 2
 
 
-def test_extract_firefox_saved_logins_retries_after_parse_failure(monkeypatch, tmp_path: pathlib.Path) -> None:
+def test_extract_firefox_saved_logins_retries_after_parse_failure(
+    monkeypatch, tmp_path: pathlib.Path
+) -> None:
     import lockknife.modules.extraction._browser_extract_firefox as firefox_extract
 
     login_file = tmp_path / "logins.json"
-    login_file.write_text('{"logins":[{"hostname":"https://retry.example","encryptedUsername":"U","encryptedPassword":"P"}]}', encoding="utf-8")
+    login_file.write_text(
+        '{"logins":[{"hostname":"https://retry.example","encryptedUsername":"U","encryptedPassword":"P"}]}',
+        encoding="utf-8",
+    )
     original_parse = firefox_extract._parse_firefox_logins
     attempts = {"count": 0}
 
@@ -276,7 +325,9 @@ def test_extract_firefox_saved_logins_retries_after_parse_failure(monkeypatch, t
     monkeypatch.setattr(firefox_extract, "_parse_firefox_logins", _parse)
     devices = types.SimpleNamespace(
         has_root=lambda _serial: True,
-        shell=lambda *_a, **_k: "/data/data/org.mozilla.firefox/files/mozilla/a.default\n/data/data/org.mozilla.fenix/files/mozilla/b.default\n",
+        shell=lambda *_a, **_k: (
+            "/data/data/org.mozilla.firefox/files/mozilla/a.default\n/data/data/org.mozilla.fenix/files/mozilla/b.default\n"
+        ),
     )
 
     rows = extract_firefox_saved_logins(devices, "SERIAL")
@@ -299,13 +350,17 @@ def test_extract_firefox_validates_limit_and_root(func, message: str) -> None:
         func(types.SimpleNamespace(has_root=lambda _serial: False), "SERIAL")
 
 
-def test_extract_firefox_bookmarks_retries_after_empty_parse(monkeypatch, tmp_path: pathlib.Path) -> None:
+def test_extract_firefox_bookmarks_retries_after_empty_parse(
+    monkeypatch, tmp_path: pathlib.Path
+) -> None:
     import lockknife.modules.extraction._browser_extract_firefox as firefox_extract
 
     db = tmp_path / "places.sqlite"
     con = sqlite3.connect(str(db))
     try:
-        con.execute("CREATE TABLE moz_bookmarks (id INTEGER PRIMARY KEY, fk INTEGER, title TEXT, type INTEGER)")
+        con.execute(
+            "CREATE TABLE moz_bookmarks (id INTEGER PRIMARY KEY, fk INTEGER, title TEXT, type INTEGER)"
+        )
         con.execute("CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT)")
         con.execute("INSERT INTO moz_places(id,url) VALUES (1,'https://bookmark.example')")
         con.execute("INSERT INTO moz_bookmarks(id,fk,title,type) VALUES (1,1,'Bookmark',1)")
@@ -330,7 +385,9 @@ def test_extract_firefox_bookmarks_retries_after_empty_parse(monkeypatch, tmp_pa
     monkeypatch.setattr(firefox_extract, "_parse_firefox_places_bookmarks", _parse)
     devices = types.SimpleNamespace(
         has_root=lambda _serial: True,
-        shell=lambda *_a, **_k: "/data/data/org.mozilla.firefox/files/mozilla/a.default\n/data/data/org.mozilla.fenix/files/mozilla/b.default\n",
+        shell=lambda *_a, **_k: (
+            "/data/data/org.mozilla.firefox/files/mozilla/a.default\n/data/data/org.mozilla.fenix/files/mozilla/b.default\n"
+        ),
     )
 
     rows = extract_firefox_bookmarks(devices, "SERIAL")
@@ -338,11 +395,16 @@ def test_extract_firefox_bookmarks_retries_after_empty_parse(monkeypatch, tmp_pa
     assert calls["count"] == 2
 
 
-def test_extract_firefox_saved_logins_retries_after_pull_failure(monkeypatch, tmp_path: pathlib.Path) -> None:
+def test_extract_firefox_saved_logins_retries_after_pull_failure(
+    monkeypatch, tmp_path: pathlib.Path
+) -> None:
     import lockknife.modules.extraction._browser_extract_firefox as firefox_extract
 
     login_file = tmp_path / "logins.json"
-    login_file.write_text('{"logins":[{"hostname":"https://fallback.example","encryptedUsername":"U","encryptedPassword":"P"}]}', encoding="utf-8")
+    login_file.write_text(
+        '{"logins":[{"hostname":"https://fallback.example","encryptedUsername":"U","encryptedPassword":"P"}]}',
+        encoding="utf-8",
+    )
     attempts = {"count": 0}
 
     def _pull(_devices, _serial, _remote, local, timeout_s=120.0):
@@ -355,7 +417,9 @@ def test_extract_firefox_saved_logins_retries_after_pull_failure(monkeypatch, tm
     monkeypatch.setattr(firefox_extract, "_try_root_pull_file", _pull)
     devices = types.SimpleNamespace(
         has_root=lambda _serial: True,
-        shell=lambda *_a, **_k: "/data/data/org.mozilla.firefox/files/mozilla/a.default\n/data/data/org.mozilla.fenix/files/mozilla/b.default\n",
+        shell=lambda *_a, **_k: (
+            "/data/data/org.mozilla.firefox/files/mozilla/a.default\n/data/data/org.mozilla.fenix/files/mozilla/b.default\n"
+        ),
     )
 
     rows = extract_firefox_saved_logins(devices, "SERIAL")

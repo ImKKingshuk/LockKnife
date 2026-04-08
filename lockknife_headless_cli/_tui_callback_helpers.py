@@ -8,8 +8,6 @@ from typing import Any
 from lockknife.core.case import (
     case_chain_of_custody_items,
     case_output_path,
-    complete_case_job,
-    fail_case_job,
     find_case_artifact,
     load_case_manifest,
     register_case_artifact,
@@ -18,6 +16,7 @@ from lockknife.core.case import (
 from lockknife.core.device import DeviceManager
 from lockknife.core.path_safety import validate_user_path_text
 from lockknife.modules.reporting.chain_of_custody import EvidenceItem
+
 
 @dataclasses.dataclass
 class _CaseJobTracker:
@@ -38,6 +37,7 @@ _JOB_MANAGED_ACTION_PREFIXES = (
     "security.",
 )
 
+
 def _asdict(obj: Any) -> Any:
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
         return dataclasses.asdict(obj)
@@ -49,6 +49,7 @@ def _asdict(obj: Any) -> Any:
         return str(obj)
     return obj
 
+
 def _current_job_tracker() -> _CaseJobTracker | None:
     return _JOB_TRACKER_STACK[-1] if _JOB_TRACKER_STACK else None
 
@@ -56,13 +57,20 @@ def _current_job_tracker() -> _CaseJobTracker | None:
 def _job_action_label(action_id: str) -> str:
     return action_id.replace(".", " ").replace("_", " ").title()
 
+
 def _should_track_case_job(action_id: str, params: dict[str, Any]) -> bool:
     return _path_param(params.get("case_dir")) is not None and (
         action_id.startswith(_JOB_MANAGED_ACTION_PREFIXES) or action_id == "case.enrich"
     )
 
+
 def _job_device_serial(params: dict[str, Any]) -> str | None:
-    return _opt(params.get("device_serial")) or _opt(params.get("serial")) or _opt(params.get("device_id"))
+    return (
+        _opt(params.get("device_serial"))
+        or _opt(params.get("serial"))
+        or _opt(params.get("device_id"))
+    )
+
 
 def _maybe_start_case_job(action_id: str, params: dict[str, Any]) -> _CaseJobTracker | None:
     if not _should_track_case_job(action_id, params):
@@ -70,7 +78,6 @@ def _maybe_start_case_job(action_id: str, params: dict[str, Any]) -> _CaseJobTra
     case_dir = _path_param(params.get("case_dir"))
     if case_dir is None or not (case_dir / "case_manifest.json").exists():
         return None
-    from lockknife.core.case import start_case_job
 
     job = start_case_job(
         case_dir,
@@ -81,6 +88,7 @@ def _maybe_start_case_job(action_id: str, params: dict[str, Any]) -> _CaseJobTra
         existing_job_id=_opt(params.get("resume_job_id")) or _opt(params.get("retry_job_id")),
     )
     return _CaseJobTracker(case_dir=case_dir, action_id=action_id, job_id=job.job_id)
+
 
 def _payload_has_partial_signal(payload: Any) -> bool:
     if isinstance(payload, dict):
@@ -100,6 +108,7 @@ def _payload_has_partial_signal(payload: Any) -> bool:
         return any(_payload_has_partial_signal(item) for item in payload)
     return False
 
+
 def _job_recovery_hint(action_id: str, message: str | None = None) -> str | None:
     if action_id.startswith("runtime."):
         return "Check device connectivity, target package/process values, and Frida/server availability before retrying."
@@ -112,6 +121,7 @@ def _job_recovery_hint(action_id: str, message: str | None = None) -> str | None
     if message and "Unsupported action" in message:
         return "Choose a supported workflow or refresh the TUI action catalog."
     return None
+
 
 def _job_json_payload(job: Any, *, case_dir: pathlib.Path | None = None) -> dict[str, Any]:
     payload = {
@@ -136,6 +146,7 @@ def _job_json_payload(job: Any, *, case_dir: pathlib.Path | None = None) -> dict
         payload["case_dir"] = str(case_dir)
     return payload
 
+
 def _ok(payload: Any, message: str) -> dict[str, Any]:
     payload_data = _asdict(payload)
     result: dict[str, Any] = {
@@ -147,7 +158,9 @@ def _ok(payload: Any, message: str) -> dict[str, Any]:
     tracker = _current_job_tracker()
     if tracker is not None and not tracker.finalized:
         status = "partial" if _payload_has_partial_signal(payload_data) else "succeeded"
-        recovery_hint = _job_recovery_hint(tracker.action_id, message) if status == "partial" else None
+        recovery_hint = (
+            _job_recovery_hint(tracker.action_id, message) if status == "partial" else None
+        )
         from lockknife.core.case import complete_case_job
 
         job = complete_case_job(
@@ -159,28 +172,46 @@ def _ok(payload: Any, message: str) -> dict[str, Any]:
             status=status,
         )
         tracker.finalized = True
-        result["job_json"] = json.dumps(_job_json_payload(job, case_dir=tracker.case_dir), default=str)
+        result["job_json"] = json.dumps(
+            _job_json_payload(job, case_dir=tracker.case_dir), default=str
+        )
         if recovery_hint:
             result["logs"].append({"level": "warn", "message": recovery_hint})
     return result
 
+
 def _err(message: str) -> dict[str, Any]:
-    result: dict[str, Any] = {"ok": False, "error": message, "logs": [{"level": "error", "message": message}]}
+    result: dict[str, Any] = {
+        "ok": False,
+        "error": message,
+        "logs": [{"level": "error", "message": message}],
+    }
     tracker = _current_job_tracker()
     if tracker is not None and not tracker.finalized:
         recovery_hint = _job_recovery_hint(tracker.action_id, message)
         from lockknife.core.case import fail_case_job
 
-        job = fail_case_job(tracker.case_dir, job_id=tracker.job_id, error_message=message, recovery_hint=recovery_hint)
+        job = fail_case_job(
+            tracker.case_dir,
+            job_id=tracker.job_id,
+            error_message=message,
+            recovery_hint=recovery_hint,
+        )
         tracker.finalized = True
-        result["job_json"] = json.dumps(_job_json_payload(job, case_dir=tracker.case_dir), default=str)
+        result["job_json"] = json.dumps(
+            _job_json_payload(job, case_dir=tracker.case_dir), default=str
+        )
         result["data_json"] = json.dumps(
-            {"case_dir": str(tracker.case_dir), "job": _job_json_payload(job, case_dir=tracker.case_dir)},
+            {
+                "case_dir": str(tracker.case_dir),
+                "job": _job_json_payload(job, case_dir=tracker.case_dir),
+            },
             default=str,
         )
         if recovery_hint:
             result["logs"].append({"level": "warn", "message": recovery_hint})
     return result
+
 
 def _require(params: dict[str, Any], key: str) -> str:
     value = params.get(key)
@@ -188,11 +219,13 @@ def _require(params: dict[str, Any], key: str) -> str:
         raise ValueError(f"Missing required parameter: {key}")
     return str(value)
 
+
 def _opt(value: Any) -> str | None:
     if value is None:
         return None
     v = str(value).strip()
     return v if v else None
+
 
 def _path_param(value: Any) -> pathlib.Path | None:
     raw = _opt(value)
@@ -200,11 +233,13 @@ def _path_param(value: Any) -> pathlib.Path | None:
         return None
     return pathlib.Path(validate_user_path_text(raw, label="path"))
 
+
 def _csv_list(value: Any) -> list[str]:
     raw = _opt(value)
     if raw is None:
         return []
     return [item.strip() for item in raw.split(",") if item.strip()]
+
 
 def _int_param(value: Any) -> int | None:
     raw = _opt(value)
@@ -212,11 +247,13 @@ def _int_param(value: Any) -> int | None:
         return None
     return int(raw)
 
+
 def _bool_param(value: Any) -> bool:
     raw = _opt(value)
     if raw is None:
         return False
     return raw.lower() in {"1", "true", "yes", "on"}
+
 
 def _json_dict_param(value: Any) -> dict[str, Any]:
     raw = _opt(value)
@@ -226,6 +263,7 @@ def _json_dict_param(value: Any) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ValueError("metadata_json must decode to an object")
     return parsed
+
 
 def _resolve_case_output(
     output: pathlib.Path | None,
@@ -239,6 +277,7 @@ def _resolve_case_output(
     if case_dir is None:
         return None, False
     return case_output_path(case_dir, area=area, filename=filename), True
+
 
 def _register_case_output(
     case_dir: pathlib.Path | None,
@@ -265,9 +304,11 @@ def _register_case_output(
     )
     return getattr(artifact, "artifact_id", None)
 
+
 def _safe_name(value: str) -> str:
     cleaned = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in value)
     return cleaned.strip("_") or "item"
+
 
 def _require_runtime_case_dir(params: dict[str, Any]) -> pathlib.Path:
     case_dir = _path_param(params.get("case_dir"))
@@ -275,8 +316,10 @@ def _require_runtime_case_dir(params: dict[str, Any]) -> pathlib.Path:
         raise ValueError("Case directory is required for managed runtime sessions")
     return case_dir
 
+
 def _runtime_session_name(params: dict[str, Any], *, default: str) -> str:
     return _opt(params.get("session_name")) or default
+
 
 def _case_filter_kwargs(params: dict[str, Any]) -> dict[str, list[str]]:
     return {
@@ -286,12 +329,14 @@ def _case_filter_kwargs(params: dict[str, Any]) -> dict[str, list[str]]:
         "device_serials": _csv_list(params.get("device_serials")),
     }
 
+
 def _case_job_filter_kwargs(params: dict[str, Any]) -> dict[str, list[str]]:
     return {
         "statuses": _csv_list(params.get("statuses")),
         "workflow_kinds": _csv_list(params.get("workflow_kinds")),
         "action_ids": _csv_list(params.get("action_ids")),
     }
+
 
 def _artifact_ref_from_params(params: dict[str, Any]) -> dict[str, Any]:
     artifact_id = _opt(params.get("artifact_id"))
@@ -301,6 +346,7 @@ def _artifact_ref_from_params(params: dict[str, Any]) -> dict[str, Any]:
     if artifact_path:
         return {"artifact_id": None, "path": pathlib.Path(artifact_path)}
     raise ValueError("Provide artifact_id or path")
+
 
 def _template_path(template: str) -> pathlib.Path:
     template_l = template.lower()
@@ -312,6 +358,7 @@ def _template_path(template: str) -> pathlib.Path:
         name = "technical_report.html"
     return pathlib.Path(__file__).resolve().parents[1] / "lockknife" / "templates" / name
 
+
 def _resolve_report_case_id(params: dict[str, Any], case_dir: pathlib.Path | None) -> str:
     if _opt(params.get("case_id")):
         return _require(params, "case_id")
@@ -319,12 +366,14 @@ def _resolve_report_case_id(params: dict[str, Any], case_dir: pathlib.Path | Non
         return str(load_case_manifest(case_dir).case_id)
     raise ValueError("case_id is required when case_dir is not provided")
 
+
 def _resolve_report_examiner(params: dict[str, Any], case_dir: pathlib.Path | None) -> str:
     if _opt(params.get("examiner")):
         return _require(params, "examiner")
     if case_dir is not None:
         return str(load_case_manifest(case_dir).examiner)
     raise ValueError("examiner is required when case_dir is not provided")
+
 
 def _report_rows(artifacts: Any, context: dict[str, Any]) -> list[dict[str, Any]]:
     if isinstance(artifacts, list) and all(isinstance(row, dict) for row in artifacts):
@@ -336,7 +385,10 @@ def _report_rows(artifacts: Any, context: dict[str, Any]) -> list[dict[str, Any]
         return [artifacts]
     return [{"artifact": "data", "value": json.dumps(artifacts)}]
 
-def _custody_evidence_items(case_dir: pathlib.Path | None, evidence_paths: list[str]) -> list[EvidenceItem]:
+
+def _custody_evidence_items(
+    case_dir: pathlib.Path | None, evidence_paths: list[str]
+) -> list[EvidenceItem]:
     if case_dir is None:
         return [EvidenceItem(name=pathlib.Path(path).name, path=path) for path in evidence_paths]
     items: list[EvidenceItem] = []
@@ -347,6 +399,7 @@ def _custody_evidence_items(case_dir: pathlib.Path | None, evidence_paths: list[
         else:
             items.append(EvidenceItem(name=pathlib.Path(path).name, path=path))
     return items
+
 
 def _render_integrity_text(report: dict[str, Any]) -> str:
     summary = report["summary"]
@@ -378,6 +431,7 @@ def _render_integrity_text(report: dict[str, Any]) -> str:
     ]
     return "\n".join(lines)
 
+
 def _json_from_param(value: Any) -> Any:
     if value is None:
         return {}
@@ -387,6 +441,7 @@ def _json_from_param(value: Any) -> Any:
         except Exception:
             return {}
     return value
+
 
 def _load_config_text(devices: DeviceManager) -> tuple[str, str | None]:
     try:

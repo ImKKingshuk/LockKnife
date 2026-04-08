@@ -19,4 +19,3 @@ def test_analyze_sqlite_tables(tmp_path: pathlib.Path) -> None:
     assert table.columns[0].name == "id"
     assert analysis.summary["table_count"] == 1
     assert analysis.wal["exists"] is False
-

@@ -1,16 +1,10 @@
 from __future__ import annotations
 
-
-
 import dataclasses
-
 import json
-
 import pathlib
-
-from typing import Any, Iterable, Sequence
-
-
+from collections.abc import Iterable, Sequence
+from typing import Any
 
 from lockknife.core._case_common import (
     _job_log_path,
@@ -19,19 +13,19 @@ from lockknife.core._case_common import (
     load_case_manifest,
     save_case_manifest,
 )
-
 from lockknife.core._case_models import CaseJob, CaseJobStep, CaseManifest
-
 
 
 def _next_job_id(manifest: CaseManifest) -> str:
     return f"job-{len(manifest.jobs) + 1:04d}"
+
 
 def _find_job_index(manifest: CaseManifest, job_id: str) -> int | None:
     for index, job in enumerate(manifest.jobs):
         if job.job_id == job_id:
             return index
     return None
+
 
 def _job_step(step_id: str, label: str, status: str, *, message: str | None = None) -> CaseJobStep:
     now = _utc_now()
@@ -43,6 +37,7 @@ def _job_step(step_id: str, label: str, status: str, *, message: str | None = No
         ended_at_utc=None if status == "running" else now,
         message=message,
     )
+
 
 def _replace_job_step_status(
     steps: Iterable[CaseJobStep],
@@ -67,7 +62,10 @@ def _replace_job_step_status(
         )
     return updated_steps
 
-def _job_log_event(case_dir: pathlib.Path, job_id: str, *, level: str, message: str, step_id: str | None = None) -> None:
+
+def _job_log_event(
+    case_dir: pathlib.Path, job_id: str, *, level: str, message: str, step_id: str | None = None
+) -> None:
     payload = {
         "timestamp_utc": _utc_now(),
         "level": level,
@@ -77,6 +75,7 @@ def _job_log_event(case_dir: pathlib.Path, job_id: str, *, level: str, message: 
         payload["step_id"] = step_id
     with _job_log_path(case_dir, job_id).open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(payload) + "\n")
+
 
 def _job_summary_payload(job: CaseJob) -> dict[str, Any]:
     return {
@@ -98,7 +97,10 @@ def _job_summary_payload(job: CaseJob) -> dict[str, Any]:
         "ended_at_utc": job.ended_at_utc,
     }
 
-def _job_logs_tail(case_dir: pathlib.Path, job: CaseJob, *, limit: int = 20) -> list[dict[str, Any]]:
+
+def _job_logs_tail(
+    case_dir: pathlib.Path, job: CaseJob, *, limit: int = 20
+) -> list[dict[str, Any]]:
     if not job.logs_path:
         return []
     path = pathlib.Path(job.logs_path)
@@ -113,6 +115,7 @@ def _job_logs_tail(case_dir: pathlib.Path, job: CaseJob, *, limit: int = 20) -> 
             tail.append({"timestamp_utc": _utc_now(), "level": "info", "message": line})
     return tail
 
+
 def _job_detail_payload(case_dir: pathlib.Path, job: CaseJob) -> dict[str, Any]:
     payload = _job_summary_payload(job)
     payload.update(
@@ -124,15 +127,19 @@ def _job_detail_payload(case_dir: pathlib.Path, job: CaseJob) -> dict[str, Any]:
     )
     return payload
 
+
 def _workflow_kind_for_action(action_id: str) -> str:
     prefix, _, _rest = action_id.partition(".")
     return prefix or "workflow"
 
+
 def _job_terminal(job: CaseJob) -> bool:
     return job.status in {"succeeded", "partial", "failed", "cancelled"}
 
+
 def _job_resumable_status(job: CaseJob) -> bool:
     return job.resumable and job.status in {"failed", "partial", "cancelled"}
+
 
 def _job_artifact_ids_from_payload(payload: Any) -> list[str]:
     found: list[str] = []
@@ -155,6 +162,7 @@ def _job_artifact_ids_from_payload(payload: Any) -> list[str]:
 
     visit(payload)
     return found
+
 
 def start_case_job(
     case_dir: pathlib.Path,
@@ -191,7 +199,14 @@ def start_case_job(
         steps = []
         result_artifact_ids = []
 
-    steps.append(_job_step(f"attempt-{attempt_count}-dispatch", "Dispatch workflow", "completed", message=action_label))
+    steps.append(
+        _job_step(
+            f"attempt-{attempt_count}-dispatch",
+            "Dispatch workflow",
+            "completed",
+            message=action_label,
+        )
+    )
     steps.append(_job_step(f"attempt-{attempt_count}-execute", "Execute workflow", "running"))
     job = CaseJob(
         job_id=job_id,
@@ -229,6 +244,7 @@ def start_case_job(
     )
     return job
 
+
 def complete_case_job(
     case_dir: pathlib.Path,
     *,
@@ -250,7 +266,9 @@ def complete_case_job(
         status="completed" if status != "failed" else "failed",
         message=message,
     )
-    steps.append(_job_step(f"attempt-{attempt}-finalize", "Persist results", "completed", message=message))
+    steps.append(
+        _job_step(f"attempt-{attempt}-finalize", "Persist results", "completed", message=message)
+    )
     now = _utc_now()
     job = dataclasses.replace(
         existing,
@@ -260,14 +278,18 @@ def complete_case_job(
         latest_message=message,
         error_message=None if status != "failed" else existing.error_message,
         recovery_hint=recovery_hint,
-        result_artifact_ids=_job_artifact_ids_from_payload(payload) or list(existing.result_artifact_ids),
+        result_artifact_ids=_job_artifact_ids_from_payload(payload)
+        or list(existing.result_artifact_ids),
         steps=steps,
     )
     manifest.jobs[job_index] = job
     manifest.updated_at_utc = now
     save_case_manifest(case_dir, manifest)
-    _job_log_event(case_dir, job_id, level="info", message=message or f"{existing.action_label} completed")
+    _job_log_event(
+        case_dir, job_id, level="info", message=message or f"{existing.action_label} completed"
+    )
     return job
+
 
 def fail_case_job(
     case_dir: pathlib.Path,
@@ -288,7 +310,14 @@ def fail_case_job(
         status="failed",
         message=error_message,
     )
-    steps.append(_job_step(f"attempt-{attempt}-finalize", "Persist failure", "completed", message=recovery_hint or error_message))
+    steps.append(
+        _job_step(
+            f"attempt-{attempt}-finalize",
+            "Persist failure",
+            "completed",
+            message=recovery_hint or error_message,
+        )
+    )
     now = _utc_now()
     job = dataclasses.replace(
         existing,
@@ -307,6 +336,7 @@ def fail_case_job(
     if recovery_hint:
         _job_log_event(case_dir, job_id, level="warn", message=recovery_hint)
     return job
+
 
 def query_case_jobs(
     case_dir: pathlib.Path,
@@ -361,6 +391,7 @@ def query_case_jobs(
         "jobs": [_job_summary_payload(job) for job in jobs],
     }
 
+
 def case_job_details(case_dir: pathlib.Path, *, job_id: str) -> dict[str, Any] | None:
     manifest = load_case_manifest(case_dir)
     job_index = _find_job_index(manifest, job_id)
@@ -372,7 +403,10 @@ def case_job_details(case_dir: pathlib.Path, *, job_id: str) -> dict[str, Any] |
         "job": _job_detail_payload(case_dir, manifest.jobs[job_index]),
     }
 
-def case_job_rerun_context(case_dir: pathlib.Path, *, job_id: str, mode: str) -> dict[str, Any] | None:
+
+def case_job_rerun_context(
+    case_dir: pathlib.Path, *, job_id: str, mode: str
+) -> dict[str, Any] | None:
     manifest = load_case_manifest(case_dir)
     job_index = _find_job_index(manifest, job_id)
     if job_index is None:

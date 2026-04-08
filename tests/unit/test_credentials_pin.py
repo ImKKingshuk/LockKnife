@@ -1,7 +1,10 @@
 import pathlib
 import sqlite3
 
-from lockknife.modules.credentials.pin import _extract_salt_from_locksettings_db, _extract_sha1_from_password_key
+from lockknife.modules.credentials.pin import (
+    _extract_salt_from_locksettings_db,
+    _extract_sha1_from_password_key,
+)
 
 
 def test_extract_salt_from_locksettings_db(tmp_path: pathlib.Path) -> None:
@@ -23,4 +26,3 @@ def test_extract_sha1_from_password_key(tmp_path: pathlib.Path) -> None:
     key = tmp_path / "password.key"
     key.write_bytes(bytes.fromhex("00" * 20) + b"rest")
     assert _extract_sha1_from_password_key(key) == "00" * 20
-

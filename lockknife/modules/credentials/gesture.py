@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import pathlib
 import dataclasses
+import pathlib
 
 from lockknife.core.device import DeviceManager
 from lockknife.core.exceptions import DeviceError
@@ -40,7 +40,9 @@ def recover_gesture_from_keyfile(path: pathlib.Path) -> str:
     return recover_pattern_from_keyfile(path)
 
 
-def export_gesture_recovery(devices: DeviceManager, serial: str, output_dir: pathlib.Path) -> GestureRecovery:
+def export_gesture_recovery(
+    devices: DeviceManager, serial: str, output_dir: pathlib.Path
+) -> GestureRecovery:
     output_dir.mkdir(parents=True, exist_ok=True)
     key_path = pull_gesture_key(devices, serial, output_dir)
     pattern = recover_gesture_from_keyfile(key_path)

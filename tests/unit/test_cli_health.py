@@ -14,7 +14,9 @@ def test_health_command_text_output(monkeypatch) -> None:
     from lockknife_headless_cli import health as health_cli
 
     monkeypatch.setattr(health_cli, "console", _Console())
-    monkeypatch.setattr(health_cli, "health_status", lambda: {"ok": True, "checks": {"adb": {"ok": True}}})
+    monkeypatch.setattr(
+        health_cli, "health_status", lambda: {"ok": True, "checks": {"adb": {"ok": True}}}
+    )
 
     result = CliRunner().invoke(health_cli.health_cmd, [])
     assert result.exit_code == 0
@@ -29,7 +31,12 @@ def test_doctor_command_json_output(monkeypatch) -> None:
     monkeypatch.setattr(
         health_cli,
         "doctor_status",
-        lambda: {"ok": True, "full_ok": False, "checks": {"adb": {"ok": True}}, "optional": {"vt": {"ok": False}}},
+        lambda: {
+            "ok": True,
+            "full_ok": False,
+            "checks": {"adb": {"ok": True}},
+            "optional": {"vt": {"ok": False}},
+        },
     )
 
     result = CliRunner().invoke(health_cli.doctor_cmd, ["--format", "json"])

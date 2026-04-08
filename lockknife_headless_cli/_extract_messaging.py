@@ -13,14 +13,39 @@ from lockknife.core.serialize import write_csv, write_json
 def register(extract: Any, cli: Any) -> None:
     @extract.command("messaging")
     @click.option("-s", "--serial", required=True)
-    @click.option("--app", "app_name", type=click.Choice(["whatsapp", "telegram", "signal"], case_sensitive=False), default="whatsapp")
-    @click.option("--mode", type=click.Choice(["messages", "artifacts"], case_sensitive=False), default="messages")
+    @click.option(
+        "--app",
+        "app_name",
+        type=click.Choice(["whatsapp", "telegram", "signal"], case_sensitive=False),
+        default="whatsapp",
+    )
+    @click.option(
+        "--mode",
+        type=click.Choice(["messages", "artifacts"], case_sensitive=False),
+        default="messages",
+    )
     @click.option("--limit", type=int, default=500)
-    @click.option("--format", "out_format", type=click.Choice(["json", "csv"], case_sensitive=False), default="json")
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["json", "csv"], case_sensitive=False),
+        default="json",
+    )
     @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
+    @click.option(
+        "--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path)
+    )
     @click.pass_obj
-    def extract_messaging_cmd(app: Any, serial: str, app_name: str, mode: str, limit: int, out_format: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+    def extract_messaging_cmd(
+        app: Any,
+        serial: str,
+        app_name: str,
+        mode: str,
+        limit: int,
+        out_format: str,
+        output: pathlib.Path | None,
+        case_dir: pathlib.Path | None,
+    ) -> None:
         app_l = app_name.lower()
         mode_l = mode.lower()
         ext = "csv" if out_format.lower() == "csv" else "json"

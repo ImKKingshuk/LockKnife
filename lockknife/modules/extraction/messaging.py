@@ -4,7 +4,6 @@ import base64
 import dataclasses
 import pathlib
 import sqlite3
-from typing import Any
 
 from lockknife.core.device import DeviceManager
 from lockknife.core.exceptions import DeviceError, LockKnifeError
@@ -45,14 +44,21 @@ class MessagingArtifacts:
 
 log = get_logger()
 
-_DEVICE_IO_ERRORS: tuple[type[BaseException], ...] = (LockKnifeError, OSError, RuntimeError, ValueError)
+_DEVICE_IO_ERRORS: tuple[type[BaseException], ...] = (
+    LockKnifeError,
+    OSError,
+    RuntimeError,
+    ValueError,
+)
 
 
 def _sh_quote(s: str) -> str:
     return "'" + s.replace("'", "'\"'\"'") + "'"
 
 
-def _try_root_pull_file(devices: DeviceManager, serial: str, remote: str, local: pathlib.Path, *, timeout_s: float) -> bool:
+def _try_root_pull_file(
+    devices: DeviceManager, serial: str, remote: str, local: pathlib.Path, *, timeout_s: float
+) -> bool:
     try:
         devices.pull(serial, remote, local, timeout_s=timeout_s)
         return local.exists() and local.stat().st_size > 0
@@ -72,9 +78,16 @@ def _try_root_pull_file(devices: DeviceManager, serial: str, remote: str, local:
         return False
     finally:
         try:
-            devices.shell(serial, f'su -c "rm -f {_sh_quote(tmp_remote)} 2>/dev/null"', timeout_s=10.0)
+            devices.shell(
+                serial, f'su -c "rm -f {_sh_quote(tmp_remote)} 2>/dev/null"', timeout_s=10.0
+            )
         except _DEVICE_IO_ERRORS:
-            log.warning("messaging_root_pull_cleanup_failed", exc_info=True, serial=serial, remote=tmp_remote)
+            log.warning(
+                "messaging_root_pull_cleanup_failed",
+                exc_info=True,
+                serial=serial,
+                remote=tmp_remote,
+            )
     return local.exists() and local.stat().st_size > 0
 
 
@@ -199,7 +212,9 @@ def _parse_signal_db(db_path: pathlib.Path, limit: int) -> list[SignalMessage]:
         con.close()
 
 
-def extract_whatsapp_messages(devices: DeviceManager, serial: str, limit: int = 500) -> list[WhatsAppMessage]:
+def extract_whatsapp_messages(
+    devices: DeviceManager, serial: str, limit: int = 500
+) -> list[WhatsAppMessage]:
     if limit <= 0:
         raise ValueError("limit must be > 0")
     if not devices.has_root(serial):
@@ -220,7 +235,9 @@ def extract_whatsapp_messages(devices: DeviceManager, serial: str, limit: int = 
             try:
                 return _parse_whatsapp_msgstore(local, limit)
             except sqlite3.Error:
-                log.debug("whatsapp_db_parse_failed", exc_info=True, serial=serial, local_path=str(local))
+                log.debug(
+                    "whatsapp_db_parse_failed", exc_info=True, serial=serial, local_path=str(local)
+                )
                 continue
 
     raise DeviceError("Unable to extract WhatsApp msgstore.db")
@@ -251,10 +268,14 @@ def extract_whatsapp_artifacts(devices: DeviceManager, serial: str) -> Messaging
                 db_paths.append(f"{c}/{ln}" if not c.endswith("key") else c)
     if encrypted:
         note = "Encrypted msgstore variants detected; exported paths include key (if accessible)."
-    return MessagingArtifacts(app="whatsapp", db_paths=sorted(set(db_paths)), encrypted=encrypted, note=note)
+    return MessagingArtifacts(
+        app="whatsapp", db_paths=sorted(set(db_paths)), encrypted=encrypted, note=note
+    )
 
 
-def extract_telegram_messages(devices: DeviceManager, serial: str, limit: int = 500) -> list[TelegramMessage]:
+def extract_telegram_messages(
+    devices: DeviceManager, serial: str, limit: int = 500
+) -> list[TelegramMessage]:
     if limit <= 0:
         raise ValueError("limit must be > 0")
     if not devices.has_root(serial):
@@ -301,10 +322,14 @@ def extract_telegram_artifacts(devices: DeviceManager, serial: str) -> Messaging
         for ln in [x.strip() for x in out.splitlines() if x.strip()]:
             if ln.startswith("cache") and ln.endswith(".db"):
                 paths.append(f"{d}/{ln}")
-    return MessagingArtifacts(app="telegram", db_paths=sorted(set(paths)), encrypted=False, note=None)
+    return MessagingArtifacts(
+        app="telegram", db_paths=sorted(set(paths)), encrypted=False, note=None
+    )
 
 
-def extract_signal_messages(devices: DeviceManager, serial: str, limit: int = 500) -> list[SignalMessage]:
+def extract_signal_messages(
+    devices: DeviceManager, serial: str, limit: int = 500
+) -> list[SignalMessage]:
     if limit <= 0:
         raise ValueError("limit must be > 0")
     if not devices.has_root(serial):
@@ -357,4 +382,6 @@ def extract_signal_artifacts(devices: DeviceManager, serial: str) -> MessagingAr
         if p.endswith("signal.db"):
             encrypted = True
             note = "Signal database may be SQLCipher-encrypted; extracted paths include shared_prefs for key material."
-    return MessagingArtifacts(app="signal", db_paths=sorted(set(paths)), encrypted=encrypted, note=note)
+    return MessagingArtifacts(
+        app="signal", db_paths=sorted(set(paths)), encrypted=encrypted, note=note
+    )

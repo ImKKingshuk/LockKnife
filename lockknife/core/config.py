@@ -95,4 +95,3 @@ def _load_from_path(path: pathlib.Path) -> LockKnifeConfig:
 
     data = _parse_legacy_kv(path.read_text(encoding="utf-8"))
     return LockKnifeConfig.model_validate(data)
-

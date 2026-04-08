@@ -12,7 +12,10 @@ from lockknife.core.cli_instrumentation import LockKnifeGroup
 from lockknife.core.cli_types import READABLE_FILE
 from lockknife.core.output import console
 from lockknife.core.serialize import write_json
-from lockknife.modules.crypto_wallet.wallet import enrich_wallet_addresses, extract_wallet_addresses_from_sqlite
+from lockknife.modules.crypto_wallet.wallet import (
+    enrich_wallet_addresses,
+    extract_wallet_addresses_from_sqlite,
+)
 
 
 @click.group(help="Crypto wallet forensics.", cls=LockKnifeGroup)
@@ -24,7 +27,9 @@ def _safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._") or "wallet"
 
 
-def _resolve_case_output(output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str) -> tuple[pathlib.Path | None, bool]:
+def _resolve_case_output(
+    output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str
+) -> tuple[pathlib.Path | None, bool]:
     if output is not None:
         return output, False
     if case_dir is None:
@@ -56,13 +61,20 @@ def _register_wallet_output(
 @click.option("--lookup", "do_lookup", is_flag=True, default=False)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def wallet_cmd(db_path: pathlib.Path, do_lookup: bool, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def wallet_cmd(
+    db_path: pathlib.Path,
+    do_lookup: bool,
+    output: pathlib.Path | None,
+    case_dir: pathlib.Path | None,
+) -> None:
     addrs = extract_wallet_addresses_from_sqlite(db_path)
     if do_lookup:
         rows = enrich_wallet_addresses(addrs)
     else:
         rows = [dataclasses.asdict(r) for r in addrs]
-    output, derived = _resolve_case_output(output, case_dir, filename=f"crypto_wallet_{_safe_name(db_path.stem)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"crypto_wallet_{_safe_name(db_path.stem)}.json"
+    )
     if output:
         write_json(output, rows)
         _register_wallet_output(

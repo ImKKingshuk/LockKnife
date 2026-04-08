@@ -1,35 +1,33 @@
 from __future__ import annotations
 
-
-
 import pathlib
-
 import re
-
 import threading
-
 from dataclasses import dataclass
-
 from typing import Any
 
-
-
 from lockknife.core._case_common import _utc_now
-from lockknife.core.case import case_output_path, case_runtime_session_details, record_case_runtime_session_event, register_case_artifact
-
+from lockknife.core.case import (
+    case_output_path,
+    case_runtime_session_details,
+    record_case_runtime_session_event,
+    register_case_artifact,
+)
 from lockknife.modules.runtime.frida_manager import FridaManager
 from lockknife.modules.runtime.hooks import get_builtin_runtime_script
-
 
 
 def _safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._") or "runtime"
 
+
 def _runtime_now() -> str:
     return _utc_now()
 
+
 def _artifact_id(value: Any) -> str | None:
     return getattr(value, "artifact_id", None)
+
 
 def _recovery_hint(exc: Exception) -> str:
     text = str(exc).lower()
@@ -40,8 +38,11 @@ def _recovery_hint(exc: Exception) -> str:
     if "process not found" in text or "unable to find process" in text:
         return "Use spawn mode or launch the target app before attaching."
     if "protocol" in text or "incompatible" in text or "version" in text:
-        return "Check the Frida client/server versions and ABI compatibility on the host and device."
+        return (
+            "Check the Frida client/server versions and ABI compatibility on the host and device."
+        )
     return "Re-run runtime preflight, confirm the app/process state, and retry the session action."
+
 
 @dataclass
 class LiveRuntimeSession:
@@ -51,6 +52,7 @@ class LiveRuntimeSession:
     handle: Any
     session: Any
     script: Any
+
 
 def _register_runtime_artifact(
     *,
@@ -75,6 +77,7 @@ def _register_runtime_artifact(
     )
     return _artifact_id(artifact)
 
+
 def _read_session_payload(case_dir: pathlib.Path, session_id: str) -> dict[str, Any]:
     payload = case_runtime_session_details(case_dir, session_id=session_id, event_limit=100)
     if payload is None:
@@ -83,6 +86,7 @@ def _read_session_payload(case_dir: pathlib.Path, session_id: str) -> dict[str, 
     if not isinstance(session, dict):
         raise ValueError(f"Runtime session {session_id} payload missing session details")
     return session
+
 
 def _snapshot_script(
     *,
@@ -95,6 +99,7 @@ def _snapshot_script(
     path = case_output_path(case_dir, area="derived", filename=filename)
     path.write_text(source, encoding="utf-8")
     return path
+
 
 def _write_event(
     case_dir: pathlib.Path,
@@ -114,6 +119,7 @@ def _write_event(
     }
     record_case_runtime_session_event(case_dir, session_id=session_id, event=event)
 
+
 def _close_live_session(live: LiveRuntimeSession | None) -> None:
     if live is None:
         return
@@ -125,6 +131,7 @@ def _close_live_session(live: LiveRuntimeSession | None) -> None:
         detach = getattr(live.session, "detach", None)
         if callable(detach):
             detach()
+
 
 def _resolve_script_source(
     session_payload: dict[str, Any],
@@ -157,8 +164,13 @@ def _resolve_script_source(
         raise ValueError("Runtime session does not have a saved script to reconnect or reload")
     latest = inventory[-1]
     latest_path = pathlib.Path(str(latest["path"]))
-    return latest_path.read_text(encoding="utf-8"), str(latest.get("label") or latest_path.name), latest_path, "snapshot", {}
-
+    return (
+        latest_path.read_text(encoding="utf-8"),
+        str(latest.get("label") or latest_path.name),
+        latest_path,
+        "snapshot",
+        {},
+    )
 
 
 _LIVE_SESSIONS: dict[str, LiveRuntimeSession] = {}

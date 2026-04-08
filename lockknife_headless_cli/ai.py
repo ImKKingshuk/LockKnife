@@ -26,7 +26,9 @@ def _safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._") or "ai"
 
 
-def _resolve_case_output(output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str) -> tuple[pathlib.Path | None, bool]:
+def _resolve_case_output(
+    output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str
+) -> tuple[pathlib.Path | None, bool]:
     if output is not None:
         return output, False
     if case_dir is None:
@@ -60,10 +62,24 @@ def _register_ai_output(
 @click.option("--feature", "features", multiple=True)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def anomaly_cmd(input_path: pathlib.Path, features: tuple[str, ...], output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def anomaly_cmd(
+    input_path: pathlib.Path,
+    features: tuple[str, ...],
+    output: pathlib.Path | None,
+    case_dir: pathlib.Path | None,
+) -> None:
     rows = json.loads(input_path.read_text(encoding="utf-8"))
-    output, derived = _resolve_case_output(output, case_dir, filename=f"ai_anomaly_{_safe_name(input_path.stem)}.json")
-    out = anomaly_payload(rows, list(features), anomaly_scores(rows, list(features)), input_path=input_path, case_dir=case_dir, output=output)
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"ai_anomaly_{_safe_name(input_path.stem)}.json"
+    )
+    out = anomaly_payload(
+        rows,
+        list(features),
+        anomaly_scores(rows, list(features)),
+        input_path=input_path,
+        case_dir=case_dir,
+        output=output,
+    )
     if output:
         write_json(output, out)
         _register_ai_output(
@@ -72,7 +88,11 @@ def anomaly_cmd(input_path: pathlib.Path, features: tuple[str, ...], output: pat
             category="ai-anomaly",
             source_command="ai anomaly",
             input_paths=[str(input_path)],
-            metadata={"feature_keys": list(features), "row_count": len(rows), **(out.get("summary") or {})},
+            metadata={
+                "feature_keys": list(features),
+                "row_count": len(rows),
+                **(out.get("summary") or {}),
+            },
         )
         if derived:
             console.print(str(output))
@@ -96,7 +116,11 @@ def train_cmd(
     if model_path is None:
         if case_dir is None:
             raise click.ClickException("Either --model or --case-dir is required")
-        model_path = case_output_path(case_dir, area="derived", filename=f"ai_malware_model_{_safe_name(input_path.stem)}.joblib")
+        model_path = case_output_path(
+            case_dir,
+            area="derived",
+            filename=f"ai_malware_model_{_safe_name(input_path.stem)}.joblib",
+        )
     rows = json.loads(input_path.read_text(encoding="utf-8"))
     out = train_classifier(rows, list(features), label_key, model_path)
     _register_ai_output(
@@ -123,7 +147,9 @@ def classify_cmd(
 ) -> None:
     rows = json.loads(input_path.read_text(encoding="utf-8"))
     out = predict_classifier(rows, model_path)
-    output, derived = _resolve_case_output(output, case_dir, filename=f"ai_classify_malware_{_safe_name(input_path.stem)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"ai_classify_malware_{_safe_name(input_path.stem)}.json"
+    )
     if output:
         write_json(output, out)
         _register_ai_output(
@@ -162,10 +188,18 @@ def predict_password_cmd(
     case_dir: pathlib.Path | None,
 ) -> None:
     model = PasswordPredictor.train_from_wordlist(corpus, order=markov_order)
-    source_words = [line.strip() for line in corpus.read_text(encoding="utf-8", errors="ignore").splitlines() if line.strip()]
+    source_words = [
+        line.strip()
+        for line in corpus.read_text(encoding="utf-8", errors="ignore").splitlines()
+        if line.strip()
+    ]
     personal_payload = load_personal_data(personal_data) if personal_data is not None else None
-    generated = model.generate(count=count, min_len=min_len, max_len=max_len, seed=seed, personal_data=personal_payload)
-    output, derived = _resolve_case_output(output, case_dir, filename=f"ai_predict_password_{_safe_name(corpus.stem)}.json")
+    generated = model.generate(
+        count=count, min_len=min_len, max_len=max_len, seed=seed, personal_data=personal_payload
+    )
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"ai_predict_password_{_safe_name(corpus.stem)}.json"
+    )
     out = password_payload(
         generated,
         wordlist_path=corpus,
@@ -173,7 +207,10 @@ def predict_password_cmd(
         min_len=min_len,
         max_len=max_len,
         seed=seed,
-        metadata={"markov_order": markov_order, "personal_data_path": str(personal_data) if personal_data else None},
+        metadata={
+            "markov_order": markov_order,
+            "personal_data_path": str(personal_data) if personal_data else None,
+        },
         case_dir=case_dir,
         output=output,
     )
@@ -185,7 +222,14 @@ def predict_password_cmd(
             category="ai-password-predictions",
             source_command="ai predict-password",
             input_paths=[str(corpus)] + ([str(personal_data)] if personal_data is not None else []),
-            metadata={"count": count, "min_len": min_len, "max_len": max_len, "seed": seed, "markov_order": markov_order, **(out.get("summary") or {})},
+            metadata={
+                "count": count,
+                "min_len": min_len,
+                "max_len": max_len,
+                "seed": seed,
+                "markov_order": markov_order,
+                **(out.get("summary") or {}),
+            },
         )
         if derived:
             console.print(str(output))

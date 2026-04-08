@@ -19,14 +19,19 @@ from lockknife.modules.security.malware import scan_with_patterns
 def analyze() -> None:
     pass
 
+
 log = get_logger()
 
 
 @analyze.command("evidence")
-@click.option("--dir", "input_dir", type=click.Path(file_okay=False, path_type=pathlib.Path), required=True)
+@click.option(
+    "--dir", "input_dir", type=click.Path(file_okay=False, path_type=pathlib.Path), required=True
+)
 @click.option("--pattern", "patterns", multiple=True)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-def evidence_cmd(input_dir: pathlib.Path, patterns: tuple[str, ...], output: pathlib.Path | None) -> None:
+def evidence_cmd(
+    input_dir: pathlib.Path, patterns: tuple[str, ...], output: pathlib.Path | None
+) -> None:
     artifacts = parse_directory_as_aleapp(input_dir)
     all_records = []
     for a in artifacts:
@@ -39,7 +44,11 @@ def evidence_cmd(input_dir: pathlib.Path, patterns: tuple[str, ...], output: pat
         except Exception:
             log.debug("evidence_dex_scan_failed", exc_info=True, path=str(p))
             continue
-    payload = {"artifacts": [dataclasses.asdict(a) for a in artifacts], "iocs": iocs, "pattern_hits": pat_hits}
+    payload = {
+        "artifacts": [dataclasses.asdict(a) for a in artifacts],
+        "iocs": iocs,
+        "pattern_hits": pat_hits,
+    }
     if output:
         write_json(output, payload)
         return

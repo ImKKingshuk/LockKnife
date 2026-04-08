@@ -6,7 +6,7 @@ import subprocess  # nosec B404
 from typing import Any
 
 from lockknife.modules.apk._decompile_archive import output_directory_overview, unpack_archive
-from lockknife.modules.apk._decompile_shared import ApkError, SUPPORTED_DECOMPILE_MODES
+from lockknife.modules.apk._decompile_shared import SUPPORTED_DECOMPILE_MODES, ApkError
 
 
 def available_decompile_tools() -> dict[str, Any]:
@@ -37,7 +37,9 @@ def selected_decompile_mode(requested_mode: str, tools: dict[str, Any]) -> str:
     return requested_mode
 
 
-def run_decompile_pipeline(apk_path: pathlib.Path, output_dir: pathlib.Path, *, requested_mode: str) -> dict[str, Any]:
+def run_decompile_pipeline(
+    apk_path: pathlib.Path, output_dir: pathlib.Path, *, requested_mode: str
+) -> dict[str, Any]:
     tools = available_decompile_tools()
     selected_mode = selected_decompile_mode(requested_mode, tools)
     pipelines: list[dict[str, Any]] = []
@@ -54,7 +56,13 @@ def run_decompile_pipeline(apk_path: pathlib.Path, output_dir: pathlib.Path, *, 
         output_dirs["unpack"] = str(output_dir)
     elif selected_mode == "apktool":
         apktool_dir = output_dir / "apktool"
-        pipelines.append(_stage("apktool", ["apktool", "d", "-f", "-o", str(apktool_dir), str(apk_path)], apktool_dir))
+        pipelines.append(
+            _stage(
+                "apktool",
+                ["apktool", "d", "-f", "-o", str(apktool_dir), str(apk_path)],
+                apktool_dir,
+            )
+        )
         output_dirs["apktool"] = str(apktool_dir)
     elif selected_mode == "jadx" and requested_mode != "auto":
         jadx_dir = output_dir / "jadx"
@@ -65,9 +73,17 @@ def run_decompile_pipeline(apk_path: pathlib.Path, output_dir: pathlib.Path, *, 
         apktool_dir = output_dir / "apktool"
         jadx_dir = output_dir / "jadx"
         pipelines.append(unpack_archive(apk_path, unpack_dir))
-        pipelines.append(_stage("apktool", ["apktool", "d", "-f", "-o", str(apktool_dir), str(apk_path)], apktool_dir))
+        pipelines.append(
+            _stage(
+                "apktool",
+                ["apktool", "d", "-f", "-o", str(apktool_dir), str(apk_path)],
+                apktool_dir,
+            )
+        )
         pipelines.append(_stage("jadx", ["jadx", "-d", str(jadx_dir), str(apk_path)], jadx_dir))
-        output_dirs.update({"unpack": str(unpack_dir), "apktool": str(apktool_dir), "jadx": str(jadx_dir)})
+        output_dirs.update(
+            {"unpack": str(unpack_dir), "apktool": str(apktool_dir), "jadx": str(jadx_dir)}
+        )
 
     if requested_mode == "auto" and selected_mode == "jadx":
         try:
@@ -81,7 +97,13 @@ def run_decompile_pipeline(apk_path: pathlib.Path, output_dir: pathlib.Path, *, 
             output_dirs = {}
             if tools["apktool"]["available"]:
                 apktool_dir = output_dir / "apktool"
-                pipelines.append(_stage("apktool", ["apktool", "d", "-f", "-o", str(apktool_dir), str(apk_path)], apktool_dir))
+                pipelines.append(
+                    _stage(
+                        "apktool",
+                        ["apktool", "d", "-f", "-o", str(apktool_dir), str(apk_path)],
+                        apktool_dir,
+                    )
+                )
                 output_dirs["apktool"] = str(apktool_dir)
                 effective_mode = "apktool"
             else:
@@ -157,10 +179,22 @@ def _run_external_stage(name: str, command: list[str], output_dir: pathlib.Path)
     }
 
 
-def _build_source_inventory(output_dir: pathlib.Path, output_dirs: dict[str, str], effective_mode: str) -> dict[str, Any]:
-    scan_root = pathlib.Path(output_dirs.get("jadx") or output_dirs.get("apktool") or output_dirs.get("unpack") or output_dir)
+def _build_source_inventory(
+    output_dir: pathlib.Path, output_dirs: dict[str, str], effective_mode: str
+) -> dict[str, Any]:
+    scan_root = pathlib.Path(
+        output_dirs.get("jadx")
+        or output_dirs.get("apktool")
+        or output_dirs.get("unpack")
+        or output_dir
+    )
     if not scan_root.exists():
-        return {"root": str(scan_root), "file_count": 0, "java_like_count": 0, "interesting_files": []}
+        return {
+            "root": str(scan_root),
+            "file_count": 0,
+            "java_like_count": 0,
+            "interesting_files": [],
+        }
     interesting_suffixes = {".java", ".kt", ".smali", ".xml", ".json"}
     counts = {"java": 0, "kt": 0, "smali": 0, "xml": 0, "json": 0}
     interesting_files: list[str] = []

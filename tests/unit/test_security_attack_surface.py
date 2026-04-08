@@ -25,11 +25,25 @@ def test_assess_attack_surface_from_artifacts_builds_static_surface(tmp_path: pa
                 "manifest": {
                     "package": "com.example.app",
                     "components": {
-                        "activities": [{"name": "DeepLinkActivity", "exported": True, "permission": None}],
+                        "activities": [
+                            {"name": "DeepLinkActivity", "exported": True, "permission": None}
+                        ],
                         "interaction_analysis": {
-                            "overlaps": [{"scheme": "myapp", "components": ["DeepLinkActivity", "DeepLinkSecondary"]}],
-                            "permission_gaps": [{"component": "DeepLinkActivity", "bucket": "activities"}],
-                            "custom_scheme_overlaps": [{"scheme": "myapp", "components": ["DeepLinkActivity", "DeepLinkSecondary"]}],
+                            "overlaps": [
+                                {
+                                    "scheme": "myapp",
+                                    "components": ["DeepLinkActivity", "DeepLinkSecondary"],
+                                }
+                            ],
+                            "permission_gaps": [
+                                {"component": "DeepLinkActivity", "bucket": "activities"}
+                            ],
+                            "custom_scheme_overlaps": [
+                                {
+                                    "scheme": "myapp",
+                                    "components": ["DeepLinkActivity", "DeepLinkSecondary"],
+                                }
+                            ],
                         },
                         "providers": [
                             {
@@ -42,7 +56,9 @@ def test_assess_attack_surface_from_artifacts_builds_static_surface(tmp_path: pa
                                 "grant_uri_permissions": True,
                             }
                         ],
-                        "deeplinks": [{"component": "DeepLinkActivity", "uri": "myapp://example/path"}],
+                        "deeplinks": [
+                            {"component": "DeepLinkActivity", "uri": "myapp://example/path"}
+                        ],
                         "summary": {
                             "exported_total": 2,
                             "browsable_deeplink_total": 1,
@@ -105,8 +121,14 @@ def test_assess_attack_surface_runs_safe_live_probes(tmp_path: pathlib.Path) -> 
                                 "probe_uri": "myapp://example/path",
                             }
                         ],
-                        "deeplinks": [{"component": "DeepLinkActivity", "uri": "myapp://example/path"}],
-                        "interaction_analysis": {"permission_gaps": [{"component": "DeepLinkActivity", "bucket": "activities"}]},
+                        "deeplinks": [
+                            {"component": "DeepLinkActivity", "uri": "myapp://example/path"}
+                        ],
+                        "interaction_analysis": {
+                            "permission_gaps": [
+                                {"component": "DeepLinkActivity", "bucket": "activities"}
+                            ]
+                        },
                     },
                 }
             }

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 import click
 
@@ -13,7 +13,7 @@ from lockknife.core.plugin_loader import plugin_inventory
 def _dict_items(value: object) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
-    return [item for item in value if isinstance(item, dict)]
+    return [cast(dict[str, Any], item) for item in value if isinstance(item, dict)]
 
 
 def _render_text(payload: dict[str, object]) -> str:
@@ -28,7 +28,11 @@ def _render_text(payload: dict[str, object]) -> str:
         metadata_obj = item.get("metadata")
         metadata = metadata_obj if isinstance(metadata_obj, dict) else {}
         commands_obj = item.get("commands")
-        commands = ", ".join(str(command) for command in commands_obj) if isinstance(commands_obj, list) else ""
+        commands = (
+            ", ".join(str(command) for command in commands_obj)
+            if isinstance(commands_obj, list)
+            else ""
+        )
         lines.append(
             f"- {metadata.get('name')} v{metadata.get('version')} [{item.get('source')}]"
             f" commands={commands or '-'}"
@@ -45,8 +49,18 @@ def plugins_group() -> None:
 
 
 @plugins_group.command("list", cls=LockKnifeCommand)
-@click.option("--format", "out_format", type=click.Choice(["text", "json"], case_sensitive=False), default="text")
-@click.option("--reload", is_flag=True, default=False, help="Re-discover plugins before rendering the inventory.")
+@click.option(
+    "--format",
+    "out_format",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+    default="text",
+)
+@click.option(
+    "--reload",
+    is_flag=True,
+    default=False,
+    help="Re-discover plugins before rendering the inventory.",
+)
 def plugins_list(out_format: str, reload: bool) -> None:
     payload = plugin_inventory(reload=reload)
     if out_format.lower() == "json":

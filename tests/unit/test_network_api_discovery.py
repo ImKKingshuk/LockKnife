@@ -1,6 +1,10 @@
 import pathlib
 
-from lockknife.modules.network.api_discovery import discover_api_endpoints_from_text, extract_api_endpoints_from_pcap, summarize_pcap
+from lockknife.modules.network.api_discovery import (
+    discover_api_endpoints_from_text,
+    extract_api_endpoints_from_pcap,
+    summarize_pcap,
+)
 
 
 def test_discover_api_endpoints_from_text_urls() -> None:

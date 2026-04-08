@@ -1,20 +1,10 @@
 from __future__ import annotations
 
-
-
 import dataclasses
-
 import json
-
 import pathlib
-
-from typing import Any, Sequence
-
-
-
-from lockknife.core.serialize import write_json
-
-
+from collections.abc import Sequence
+from typing import Any
 
 from lockknife.core._case_common import (
     _json_safe_value,
@@ -25,13 +15,13 @@ from lockknife.core._case_common import (
     load_case_manifest,
     save_case_manifest,
 )
-
-from lockknife.core._case_models import CaseRuntimeScript, CaseRuntimeSession, CaseManifest
-
+from lockknife.core._case_models import CaseManifest, CaseRuntimeScript, CaseRuntimeSession
+from lockknife.core.serialize import write_json
 
 
 def _next_runtime_session_id(manifest: CaseManifest) -> str:
     return f"rt-{len(manifest.runtime_sessions) + 1:04d}"
+
 
 def _find_runtime_session_index(manifest: CaseManifest, session_id: str) -> int | None:
     for index, session in enumerate(manifest.runtime_sessions):
@@ -39,11 +29,14 @@ def _find_runtime_session_index(manifest: CaseManifest, session_id: str) -> int 
             return index
     return None
 
+
 def _next_runtime_script_id(session: CaseRuntimeSession) -> str:
     return f"{session.session_id}-script-{len(session.script_inventory) + 1:03d}"
 
+
 def _runtime_script_payload(script: CaseRuntimeScript) -> dict[str, Any]:
     return dataclasses.asdict(script)
+
 
 def _runtime_session_summary_payload(session: CaseRuntimeSession) -> dict[str, Any]:
     metadata = session.metadata if isinstance(session.metadata, dict) else {}
@@ -80,6 +73,7 @@ def _runtime_session_summary_payload(session: CaseRuntimeSession) -> dict[str, A
         "ended_at_utc": session.ended_at_utc,
     }
 
+
 def _runtime_session_logs_tail(
     case_dir: pathlib.Path,
     session: CaseRuntimeSession,
@@ -89,6 +83,7 @@ def _runtime_session_logs_tail(
     offset = max(session.event_count - max(limit, 0), 0)
     events = _runtime_session_events(case_dir, session, offset=offset, limit=limit)
     return [entry["event"] for entry in events]
+
 
 def _runtime_session_events(
     case_dir: pathlib.Path,
@@ -116,6 +111,7 @@ def _runtime_session_events(
         events.append({"cursor": index + 1, "event": parsed})
     return events
 
+
 def _runtime_session_detail_payload(
     case_dir: pathlib.Path,
     session: CaseRuntimeSession,
@@ -124,12 +120,16 @@ def _runtime_session_detail_payload(
     event_cursor: int | None = None,
 ) -> dict[str, Any]:
     stream_offset = max(event_cursor or 0, 0)
-    stream_events = _runtime_session_events(case_dir, session, offset=stream_offset, limit=event_limit)
+    stream_events = _runtime_session_events(
+        case_dir, session, offset=stream_offset, limit=event_limit
+    )
     payload = _runtime_session_summary_payload(session)
     payload.update(
         {
             "metadata": _json_safe_value(session.metadata),
-            "script_inventory": [_runtime_script_payload(script) for script in session.script_inventory],
+            "script_inventory": [
+                _runtime_script_payload(script) for script in session.script_inventory
+            ],
             "events_tail": _runtime_session_logs_tail(case_dir, session, limit=event_limit),
             "event_stream": {
                 "requested_cursor": event_cursor,
@@ -142,11 +142,13 @@ def _runtime_session_detail_payload(
     )
     return payload
 
+
 def _write_runtime_session_summary(case_dir: pathlib.Path, session: CaseRuntimeSession) -> None:
     if not session.summary_path:
         return
     path = pathlib.Path(session.summary_path)
     write_json(path, _runtime_session_detail_payload(case_dir, session, event_limit=200))
+
 
 def start_case_runtime_session(
     case_dir: pathlib.Path,
@@ -197,6 +199,7 @@ def start_case_runtime_session(
     _write_runtime_session_summary(case_dir, session)
     return session
 
+
 def add_case_runtime_session_script(
     case_dir: pathlib.Path,
     *,
@@ -218,7 +221,9 @@ def add_case_runtime_session_script(
         script_text = pathlib.Path(path).read_text(encoding="utf-8", errors="ignore")
     except Exception:
         script_text = ""
-    preview = next((line.strip() for line in script_text.splitlines() if line.strip()), "")[:120] or None
+    preview = (
+        next((line.strip() for line in script_text.splitlines() if line.strip()), "")[:120] or None
+    )
     script = CaseRuntimeScript(
         script_id=_next_runtime_script_id(existing),
         label=label,
@@ -247,6 +252,7 @@ def add_case_runtime_session_script(
     save_case_manifest(case_dir, manifest)
     _write_runtime_session_summary(case_dir, session)
     return session
+
 
 def update_case_runtime_session(
     case_dir: pathlib.Path,
@@ -280,14 +286,18 @@ def update_case_runtime_session(
         pid=pid if pid is not None else existing.pid,
         attach_mode=attach_mode or existing.attach_mode,
         latest_message=latest_message or existing.latest_message,
-        error_message=None if clear_error else (error_message if error_message is not None else existing.error_message),
+        error_message=None
+        if clear_error
+        else (error_message if error_message is not None else existing.error_message),
         recovery_hint=recovery_hint if recovery_hint is not None else existing.recovery_hint,
         connect_count=existing.connect_count + max(connect_increment, 0),
         reload_count=existing.reload_count + max(reload_increment, 0),
         result_artifact_ids=[*existing.result_artifact_ids, *(result_artifact_ids_append or [])],
         metadata={
             **existing.metadata,
-            **{str(key): _json_safe_value(value) for key, value in (metadata_updates or {}).items()},
+            **{
+                str(key): _json_safe_value(value) for key, value in (metadata_updates or {}).items()
+            },
         },
     )
     manifest.runtime_sessions[index] = session
@@ -295,6 +305,7 @@ def update_case_runtime_session(
     save_case_manifest(case_dir, manifest)
     _write_runtime_session_summary(case_dir, session)
     return session
+
 
 def record_case_runtime_session_event(
     case_dir: pathlib.Path,
@@ -315,8 +326,15 @@ def record_case_runtime_session_event(
         existing,
         updated_at_utc=now,
         event_count=existing.event_count + 1,
-        last_event_at_utc=event.get("timestamp_utc") if isinstance(event.get("timestamp_utc"), str) else now,
-        latest_message=str(event.get("message") or event.get("event_type") or existing.latest_message or "Runtime event"),
+        last_event_at_utc=event.get("timestamp_utc")
+        if isinstance(event.get("timestamp_utc"), str)
+        else now,
+        latest_message=str(
+            event.get("message")
+            or event.get("event_type")
+            or existing.latest_message
+            or "Runtime event"
+        ),
         logs_path=str(path),
     )
     manifest.runtime_sessions[index] = session
@@ -324,6 +342,7 @@ def record_case_runtime_session_event(
     save_case_manifest(case_dir, manifest)
     _write_runtime_session_summary(case_dir, session)
     return session
+
 
 def query_case_runtime_sessions(
     case_dir: pathlib.Path,
@@ -378,6 +397,7 @@ def query_case_runtime_sessions(
         "sessions": [_runtime_session_summary_payload(session) for session in sessions],
     }
 
+
 def case_runtime_session_details(
     case_dir: pathlib.Path,
     *,
@@ -393,5 +413,7 @@ def case_runtime_session_details(
     return {
         "case_dir": str(case_dir),
         "case_id": manifest.case_id,
-        "session": _runtime_session_detail_payload(case_dir, session, event_limit=event_limit, event_cursor=event_cursor),
+        "session": _runtime_session_detail_payload(
+            case_dir, session, event_limit=event_limit, event_cursor=event_cursor
+        ),
     }

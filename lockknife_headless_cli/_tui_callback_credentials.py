@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 from lockknife_headless_cli._credential_workflows import (
     run_gesture_recovery_workflow,
@@ -93,7 +94,10 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
             register_case_artifact=cb.register_case_artifact,
             load_case_manifest=cb.load_case_manifest,
         )
-        return _ok(payload, f"Exported {payload['artifact_count']} passkey artifacts from {payload['serial']}")
+        return _ok(
+            payload,
+            f"Exported {payload['artifact_count']} passkey artifacts from {payload['serial']}",
+        )
 
     if action == "credentials.offline_pin":
         target_hash = cb._require(params, "hash")
@@ -102,11 +106,14 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
         case_dir = cb._path_param(params.get("case_dir"))
         output = cb._path_param(params.get("output"))
         import time
+
         started = time.time()
         pin = cb.lockknife_core.bruteforce_numeric_pin(target_hash, algo.lower(), int(length))
         elapsed = time.time() - started
         if pin is None:
-            return _ok({"found": False, "elapsed_s": elapsed}, f"No PIN found (elapsed={elapsed:.2f}s)")
+            return _ok(
+                {"found": False, "elapsed_s": elapsed}, f"No PIN found (elapsed={elapsed:.2f}s)"
+            )
         result = {"found": True, "pin": pin, "elapsed_s": elapsed}
         if output is not None:
             cb.write_json(output, result)
@@ -150,7 +157,10 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
         case_dir = cb._path_param(params.get("case_dir"))
         output = cb._path_param(params.get("output"))
         from lockknife.modules.credentials.password import crack_password_with_rules
-        found = crack_password_with_rules(target_hash, algo, cb._path_param(wordlist), max_suffix=max_suffix)
+
+        found = crack_password_with_rules(
+            target_hash, algo, cb._path_param(wordlist), max_suffix=max_suffix
+        )
         if found is None:
             return _ok({"found": False}, "No password found with rules")
         result = {"found": True, "password": found}

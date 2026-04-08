@@ -1,5 +1,3 @@
-import pathlib
-
 from lockknife.modules.credentials.wifi import _parse_wpa_supplicant
 
 
@@ -13,4 +11,3 @@ network={
     creds = _parse_wpa_supplicant(text)
     assert creds[0].ssid == "HomeWiFi"
     assert creds[0].psk == "secret"
-

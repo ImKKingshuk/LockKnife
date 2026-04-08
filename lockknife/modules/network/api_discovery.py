@@ -20,7 +20,9 @@ class ApiEndpoint:
 
 _RE_URL = re.compile(r"\bhttps?://[a-zA-Z0-9._:-]+(?:/[^\s\"'<>)]*)?\b")
 _RE_HOST = re.compile(r"(?im)^\s*host:\s*([^\s:]+)(?::\d+)?\s*$")
-_RE_PATH = re.compile(r"(?im)^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+([^\s]+)\s+HTTP/\d\.\d\s*$")
+_RE_PATH = re.compile(
+    r"(?im)^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+([^\s]+)\s+HTTP/\d\.\d\s*$"
+)
 
 log = get_logger()
 
@@ -38,7 +40,9 @@ def discover_api_endpoints_from_text(text: str, *, source: str) -> list[ApiEndpo
                 if p.startswith("http://") or p.startswith("https://"):
                     out[p] = ApiEndpoint(endpoint=p, kind="url", source=source)
                 else:
-                    out[f"{h}{p}"] = ApiEndpoint(endpoint=f"{h}{p}", kind="host+path", source=source)
+                    out[f"{h}{p}"] = ApiEndpoint(
+                        endpoint=f"{h}{p}", kind="host+path", source=source
+                    )
     return list(out.values())
 
 
@@ -48,13 +52,19 @@ def extract_api_endpoints_from_pcap(path: pathlib.Path) -> dict[str, Any]:
     endpoints = discover_api_endpoints_from_text("\n".join(texts[:20]), source=str(path))
     endpoint_rows = [dataclasses.asdict(e) for e in endpoints]
     http_requests = list((analysis.get("http") or {}).get("requests") or [])
-    seen_fingerprints = {str(item.get("fingerprint") or "") for item in endpoint_rows if str(item.get("fingerprint") or "")}
+    seen_fingerprints = {
+        str(item.get("fingerprint") or "")
+        for item in endpoint_rows
+        if str(item.get("fingerprint") or "")
+    }
     for request in http_requests:
         url = str(request.get("url") or "").strip()
         if not url:
             continue
         pattern = _normalize_url_pattern(url)
-        fingerprint = _endpoint_fingerprint(str(request.get("method") or "GET"), str(request.get("host") or ""), pattern)
+        fingerprint = _endpoint_fingerprint(
+            str(request.get("method") or "GET"), str(request.get("host") or ""), pattern
+        )
         if fingerprint in seen_fingerprints:
             continue
         seen_fingerprints.add(fingerprint)
@@ -79,11 +89,23 @@ def extract_api_endpoints_from_pcap(path: pathlib.Path) -> dict[str, Any]:
         if endpoint and not row.get("parameter_keys"):
             row["parameter_keys"] = _parameter_keys(endpoint)
         if not row.get("fingerprint"):
-            row["fingerprint"] = _endpoint_fingerprint(str(row.get("method") or "GET"), str(row.get("host") or ""), str(row.get("pattern") or endpoint))
+            row["fingerprint"] = _endpoint_fingerprint(
+                str(row.get("method") or "GET"),
+                str(row.get("host") or ""),
+                str(row.get("pattern") or endpoint),
+            )
     hosts = sorted({str(item) for item in (analysis.get("hosts") or []) if str(item)})
     grouped = group_endpoints(endpoint_rows)
-    parameter_keys = sorted({key for row in endpoint_rows for key in list(row.get("parameter_keys") or [])})
-    fingerprints = sorted({str(row.get("fingerprint") or "") for row in endpoint_rows if str(row.get("fingerprint") or "")})
+    parameter_keys = sorted(
+        {key for row in endpoint_rows for key in list(row.get("parameter_keys") or [])}
+    )
+    fingerprints = sorted(
+        {
+            str(row.get("fingerprint") or "")
+            for row in endpoint_rows
+            if str(row.get("fingerprint") or "")
+        }
+    )
     summary = {
         "input_path": str(path),
         "endpoint_count": len(endpoint_rows),
@@ -146,21 +168,36 @@ def summarize_pcap(path: pathlib.Path) -> dict[str, Any]:
     return summary
 
 
-def _review_notes(grouped: list[dict[str, Any]], hosts: list[str], http_requests: list[dict[str, Any]], analysis: dict[str, Any]) -> list[str]:
+def _review_notes(
+    grouped: list[dict[str, Any]],
+    hosts: list[str],
+    http_requests: list[dict[str, Any]],
+    analysis: dict[str, Any],
+) -> list[str]:
     notes: list[str] = []
     if grouped:
         top = grouped[0]
-        notes.append(f"Top endpoint cluster: {top.get('host') or 'unknown'} with {top.get('count') or 0} endpoint observations.")
+        notes.append(
+            f"Top endpoint cluster: {top.get('host') or 'unknown'} with {top.get('count') or 0} endpoint observations."
+        )
     if any(str(item.get("url") or "").startswith("http://") for item in http_requests):
         notes.append("Cleartext HTTP requests were observed in the capture preview.")
     if int((analysis.get("tls") or {}).get("server_name_count") or 0):
-        notes.append("TLS SNI metadata is available; compare hosts and endpoints for certificate-bound API surfaces.")
+        notes.append(
+            "TLS SNI metadata is available; compare hosts and endpoints for certificate-bound API surfaces."
+        )
     if int((analysis.get("connections") or {}).get("edge_count") or 0) >= 5:
-        notes.append("Connection graph shows multiple flows; review top destinations and port reuse before scoping trust boundaries.")
+        notes.append(
+            "Connection graph shows multiple flows; review top destinations and port reuse before scoping trust boundaries."
+        )
     if len(hosts) >= 5:
-        notes.append("Multiple destination hosts were observed; review host grouping before drawing API conclusions.")
+        notes.append(
+            "Multiple destination hosts were observed; review host grouping before drawing API conclusions."
+        )
     if not notes:
-        notes.append("Capture summary is best-effort and should be validated against packet-level evidence when decisions matter.")
+        notes.append(
+            "Capture summary is best-effort and should be validated against packet-level evidence when decisions matter."
+        )
     return notes[:4]
 
 
@@ -175,7 +212,9 @@ def _normalize_url_pattern(endpoint: str) -> str:
     for segment in [part for part in path.split("/") if part]:
         if re.fullmatch(r"[0-9]+", segment):
             normalized_segments.append("{int}")
-        elif re.fullmatch(r"[0-9a-fA-F]{8,}", segment) or re.fullmatch(r"[0-9a-fA-F-]{16,}", segment):
+        elif re.fullmatch(r"[0-9a-fA-F]{8,}", segment) or re.fullmatch(
+            r"[0-9a-fA-F-]{16,}", segment
+        ):
             normalized_segments.append("{id}")
         else:
             normalized_segments.append(segment)

@@ -71,11 +71,11 @@ def test_apk_parse_manifest_with_stub(monkeypatch, tmp_path) -> None:
                     '<action android:name="android.intent.action.VIEW"/>'
                     '<category android:name="android.intent.category.BROWSABLE"/>'
                     '<data android:scheme="https" android:host="example.com" android:pathPrefix="/open"/>'
-                    '</intent-filter>'
-                    '</activity>'
+                    "</intent-filter>"
+                    "</activity>"
                     '<provider android:name=".Provider" android:authorities="com.example.provider" android:exported="true"/>'
-                    '</application>'
-                    '</manifest>'
+                    "</application>"
+                    "</manifest>"
                 )
             )
 
@@ -168,7 +168,9 @@ def test_apk_parse_manifest_with_stub(monkeypatch, tmp_path) -> None:
     assert info["string_analysis"]["stats"]["code_signal_count"] >= 1
     assert info["components"]["summary"]["exported_total"] >= 2
     assert info["components"]["summary"]["browsable_deeplink_total"] == 1
-    assert info["component_interactions"]["provider_authority_map"]["com.example.provider"] == ["com.example.Provider"]
+    assert info["component_interactions"]["provider_authority_map"]["com.example.provider"] == [
+        "com.example.Provider"
+    ]
     assert info["component_interactions"]["custom_schemes"] == []
     assert info["components"]["deeplinks"][0]["uri"] == "https://example.com/open"
     assert info["manifest_flags"]["allow_backup"] is True
@@ -177,8 +179,8 @@ def test_apk_parse_manifest_with_stub(monkeypatch, tmp_path) -> None:
 
 
 def test_decompile_apk_report_runs_selected_pipeline(monkeypatch, tmp_path) -> None:
-    from lockknife.modules.apk import decompile as decomp
     from lockknife.modules.apk import _decompile_tools as decomp_tools
+    from lockknife.modules.apk import decompile as decomp
 
     apk = tmp_path / "sample.apk"
     with zipfile.ZipFile(apk, "w") as archive:
@@ -231,7 +233,10 @@ def test_decompile_auto_prefers_jadx_and_reports_depth_when_tools_exist(monkeypa
     tools = decomp_tools.available_decompile_tools()
 
     assert decomp_tools.selected_decompile_mode("auto", tools) == "jadx"
-    assert decomp_tools.decompile_positioning("jadx", tools)["source_recovery_level"] == "java-like-source"
+    assert (
+        decomp_tools.decompile_positioning("jadx", tools)["source_recovery_level"]
+        == "java-like-source"
+    )
     assert decomp_tools._decompilation_depth("jadx")["reconstructed_sources"] is True
 
 
@@ -305,11 +310,15 @@ def test_run_external_stage_raises_apk_error(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(
         decomp_tools.subprocess,
         "run",
-        lambda command, **_kwargs: (_ for _ in ()).throw(subprocess.CalledProcessError(1, command, stderr="failed")),
+        lambda command, **_kwargs: (_ for _ in ()).throw(
+            subprocess.CalledProcessError(1, command, stderr="failed")
+        ),
     )
 
     with pytest.raises(ApkError, match="failed"):
-        decomp_tools._run_external_stage("jadx", ["jadx", "-d", str(tmp_path), "sample.apk"], tmp_path)
+        decomp_tools._run_external_stage(
+            "jadx", ["jadx", "-d", str(tmp_path), "sample.apk"], tmp_path
+        )
 
 
 def test_build_source_inventory_counts_interesting_files(tmp_path) -> None:

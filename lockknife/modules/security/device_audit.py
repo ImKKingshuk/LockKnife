@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
-from typing import Any
 
 from lockknife.core.device import DeviceManager
-from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
 
 log = get_logger()
@@ -21,7 +19,9 @@ class AuditFinding:
     details: dict[str, str]
 
 
-def _shell_best_effort(devices: DeviceManager, serial: str, command: str, *, timeout_s: float = 10.0) -> str | None:
+def _shell_best_effort(
+    devices: DeviceManager, serial: str, command: str, *, timeout_s: float = 10.0
+) -> str | None:
     try:
         return devices.shell(serial, command, timeout_s=timeout_s).strip()
     except Exception:
@@ -50,15 +50,36 @@ def run_device_audit(devices: DeviceManager, serial: str) -> list[AuditFinding]:
 
     tags = props.get("ro.build.tags", "")
     if "test-keys" in tags:
-        findings.append(AuditFinding(id="test_keys", severity="medium", title="Build signed with test-keys", details={"ro.build.tags": tags}))
+        findings.append(
+            AuditFinding(
+                id="test_keys",
+                severity="medium",
+                title="Build signed with test-keys",
+                details={"ro.build.tags": tags},
+            )
+        )
 
     selinux = props.get("ro.build.selinux", "")
     if selinux and selinux.lower() not in {"1", "true"}:
-        findings.append(AuditFinding(id="selinux_flag", severity="low", title="SELinux flag unusual", details={"ro.build.selinux": selinux}))
+        findings.append(
+            AuditFinding(
+                id="selinux_flag",
+                severity="low",
+                title="SELinux flag unusual",
+                details={"ro.build.selinux": selinux},
+            )
+        )
 
     sdk = props.get("ro.build.version.sdk", "")
     if sdk:
-        findings.append(AuditFinding(id="sdk", severity="info", title="Android SDK level", details={"ro.build.version.sdk": sdk}))
+        findings.append(
+            AuditFinding(
+                id="sdk",
+                severity="info",
+                title="Android SDK level",
+                details={"ro.build.version.sdk": sdk},
+            )
+        )
 
     patch_raw = props.get("ro.build.version.security_patch", "")
     if patch_raw:
@@ -83,16 +104,41 @@ def run_device_audit(devices: DeviceManager, serial: str) -> list[AuditFinding]:
     if crypto_state:
         lowered = crypto_state.strip().lower()
         if lowered in {"unencrypted", "unsupported", "none"}:
-            findings.append(AuditFinding(id="encryption", severity="high", title="Device encryption disabled", details={"ro.crypto.state": crypto_state}))
+            findings.append(
+                AuditFinding(
+                    id="encryption",
+                    severity="high",
+                    title="Device encryption disabled",
+                    details={"ro.crypto.state": crypto_state},
+                )
+            )
         else:
-            findings.append(AuditFinding(id="encryption", severity="info", title="Device encryption state", details={"ro.crypto.state": crypto_state}))
+            findings.append(
+                AuditFinding(
+                    id="encryption",
+                    severity="info",
+                    title="Device encryption state",
+                    details={"ro.crypto.state": crypto_state},
+                )
+            )
 
-    adb_enabled = _shell_best_effort(devices, serial, "settings get global adb_enabled 2>/dev/null || echo ''")
+    adb_enabled = _shell_best_effort(
+        devices, serial, "settings get global adb_enabled 2>/dev/null || echo ''"
+    )
     if adb_enabled:
         sev = "medium" if adb_enabled.strip() == "1" else "info"
-        findings.append(AuditFinding(id="adb_debug", severity=sev, title="ADB debugging setting", details={"adb_enabled": adb_enabled}))
+        findings.append(
+            AuditFinding(
+                id="adb_debug",
+                severity=sev,
+                title="ADB debugging setting",
+                details={"adb_enabled": adb_enabled},
+            )
+        )
 
-    dev_opts = _shell_best_effort(devices, serial, "settings get global development_settings_enabled 2>/dev/null || echo ''")
+    dev_opts = _shell_best_effort(
+        devices, serial, "settings get global development_settings_enabled 2>/dev/null || echo ''"
+    )
     if dev_opts:
         sev = "low" if dev_opts.strip() == "1" else "info"
         findings.append(
@@ -104,7 +150,9 @@ def run_device_audit(devices: DeviceManager, serial: str) -> list[AuditFinding]:
             )
         )
 
-    unknown_sources = _shell_best_effort(devices, serial, "settings get secure install_non_market_apps 2>/dev/null || echo ''")
+    unknown_sources = _shell_best_effort(
+        devices, serial, "settings get secure install_non_market_apps 2>/dev/null || echo ''"
+    )
     if unknown_sources:
         sev = "medium" if unknown_sources.strip() == "1" else "info"
         findings.append(
@@ -116,7 +164,9 @@ def run_device_audit(devices: DeviceManager, serial: str) -> list[AuditFinding]:
             )
         )
 
-    verifier_enabled = _shell_best_effort(devices, serial, "settings get global package_verifier_enable 2>/dev/null || echo ''")
+    verifier_enabled = _shell_best_effort(
+        devices, serial, "settings get global package_verifier_enable 2>/dev/null || echo ''"
+    )
     if verifier_enabled:
         sev = "medium" if verifier_enabled.strip() in {"0", "false"} else "info"
         findings.append(
@@ -129,8 +179,12 @@ def run_device_audit(devices: DeviceManager, serial: str) -> list[AuditFinding]:
         )
 
     if devices.has_root(serial):
-        findings.append(AuditFinding(id="root", severity="info", title="su binary present", details={}))
+        findings.append(
+            AuditFinding(id="root", severity="info", title="su binary present", details={})
+        )
     else:
-        findings.append(AuditFinding(id="no_root", severity="info", title="No su detected", details={}))
+        findings.append(
+            AuditFinding(id="no_root", severity="info", title="No su detected", details={})
+        )
 
     return findings

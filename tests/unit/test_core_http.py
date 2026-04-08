@@ -99,7 +99,9 @@ def test_http_get_retries_on_exception_and_retry_after(monkeypatch, tmp_path) ->
     monkeypatch.setattr(http_mod.time, "sleep", lambda *_args, **_kwargs: None)
 
     class _Resp:
-        def __init__(self, status: int, headers: dict[str, str] | None = None, data: bytes = b"") -> None:
+        def __init__(
+            self, status: int, headers: dict[str, str] | None = None, data: bytes = b""
+        ) -> None:
             self.status = status
             self._headers = {k.lower(): v for k, v in (headers or {}).items()}
             self._data = data
@@ -162,7 +164,7 @@ def test_http_get_raises_on_4xx(monkeypatch, tmp_path) -> None:
             return None
 
     monkeypatch.setattr(http_mod.http.client, "HTTPSConnection", _Conn)
-    with pytest.raises(Exception):
+    with pytest.raises(http_mod.HttpError):
         http_mod.http_get("https://example.com/missing", max_attempts=1)
 
 

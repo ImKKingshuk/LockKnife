@@ -1,5 +1,3 @@
-import json
-import pathlib
 import struct
 import zipfile
 
@@ -42,7 +40,12 @@ def test_media_parse_exif_gps_values() -> None:
     exif.extend(struct.pack("<H", 4))
 
     def gps_entry(tag: int, typ: int, cnt: int, val: int) -> bytes:
-        return struct.pack("<H", tag) + struct.pack("<H", typ) + struct.pack("<I", cnt) + struct.pack("<I", val)
+        return (
+            struct.pack("<H", tag)
+            + struct.pack("<H", typ)
+            + struct.pack("<I", cnt)
+            + struct.pack("<I", val)
+        )
 
     entries = bytearray()
     entries.extend(gps_entry(1, 2, 2, int.from_bytes(b"N\x00\x00\x00", "little")))
@@ -153,7 +156,12 @@ def test_apk_static_analysis(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(
         sa,
         "parse_apk_manifest",
-        lambda p: {"debuggable": True, "uses_cleartext_traffic": "true", "allow_backup": "true", "permissions": []},
+        lambda p: {
+            "debuggable": True,
+            "uses_cleartext_traffic": "true",
+            "allow_backup": "true",
+            "permissions": [],
+        },
     )
     rows = sa.scan_apk(tmp_path / "a.apk")
     ids = {f.id for f in rows}

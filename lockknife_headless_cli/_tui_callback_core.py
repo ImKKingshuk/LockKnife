@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -177,7 +178,10 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         command = _require(params, "command")
         timeout = float(params.get("timeout") or 30.0)
         out = app.devices.shell(serial, command, timeout_s=timeout)
-        return _ok({"serial": serial, "command": command, "output": out}, f"Shell command executed on {serial}")
+        return _ok(
+            {"serial": serial, "command": command, "output": out},
+            f"Shell command executed on {serial}",
+        )
 
     if action == "core.health":
         return _ok(health_status(), "Core health checks ready")

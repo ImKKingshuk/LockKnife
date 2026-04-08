@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import io
 import pathlib
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
 from lockknife.core.exceptions import LockKnifeError
 from lockknife.core.logging import get_logger
 from lockknife.modules.reporting.html_report import render_html_report, write_html_report
 
 log = get_logger()
+
 
 class PdfReportError(LockKnifeError):
     pass
@@ -42,7 +42,9 @@ def pdf_backend_status() -> dict[str, Any]:
         xhtml2pdf_available = False
     return {
         "available": weasyprint_available or xhtml2pdf_available,
-        "preferred": "weasyprint" if weasyprint_available else ("xhtml2pdf" if xhtml2pdf_available else None),
+        "preferred": "weasyprint"
+        if weasyprint_available
+        else ("xhtml2pdf" if xhtml2pdf_available else None),
         "backends": {"weasyprint": weasyprint_available, "xhtml2pdf": xhtml2pdf_available},
     }
 
@@ -56,7 +58,9 @@ def render_pdf_report(template_path: pathlib.Path, context: dict[str, Any]) -> b
 
     if html_cls is not None:
         try:
-            return cast(bytes, html_cls(string=html, base_url=str(template_path.parent)).write_pdf())
+            return cast(
+                bytes, html_cls(string=html, base_url=str(template_path.parent)).write_pdf()
+            )
         except (AttributeError, OSError, RuntimeError, TypeError, ValueError):
             log.warning("pdf_render_weasyprint_failed", exc_info=True)
 
@@ -88,7 +92,12 @@ def write_pdf_report(
     try:
         pdf = render_pdf_report(template_path, context)
         output_path.write_bytes(pdf)
-        return {"format": "pdf", "output": str(output_path), "degraded": False, "pdf_backend_status": pdf_backend_status()}
+        return {
+            "format": "pdf",
+            "output": str(output_path),
+            "degraded": False,
+            "pdf_backend_status": pdf_backend_status(),
+        }
     except PdfReportError as exc:
         if fallback_html_path is None:
             raise

@@ -6,7 +6,11 @@ from typing import Any
 from lockknife.core.device import DeviceManager
 from lockknife.modules.security._attack_surface_live import probe_findings, probe_surface
 from lockknife.modules.security._attack_surface_score import risk_summary
-from lockknife.modules.security._attack_surface_static import load_static_source, static_findings, surface_inventory
+from lockknife.modules.security._attack_surface_static import (
+    load_static_source,
+    static_findings,
+    surface_inventory,
+)
 from lockknife.modules.security.owasp import mastg_summary
 
 

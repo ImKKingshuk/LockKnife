@@ -23,11 +23,15 @@ def test_normalize_target_serials_splits_csv_and_dedupes() -> None:
 
 
 def test_resolve_single_device_serial_auto_selects_only_authorized_device() -> None:
-    devices = _Devices([DeviceHandle(serial="SER-1", adb_state="device", state=DeviceState.authorized)])
+    devices = _Devices(
+        [DeviceHandle(serial="SER-1", adb_state="device", state=DeviceState.authorized)]
+    )
     assert resolve_single_device_serial(devices, action_label="gesture recovery") == "SER-1"
 
 
-def test_resolve_single_device_serial_rejects_multiple_authorized_devices_without_selection() -> None:
+def test_resolve_single_device_serial_rejects_multiple_authorized_devices_without_selection() -> (
+    None
+):
     devices = _Devices(
         [
             DeviceHandle(serial="SER-1", adb_state="device", state=DeviceState.authorized),
@@ -39,7 +43,9 @@ def test_resolve_single_device_serial_rejects_multiple_authorized_devices_withou
 
 
 def test_resolve_single_device_serial_rejects_unauthorized_explicit_target() -> None:
-    devices = _Devices([DeviceHandle(serial="SER-1", adb_state="unauthorized", state=DeviceState.connecting)])
+    devices = _Devices(
+        [DeviceHandle(serial="SER-1", adb_state="unauthorized", state=DeviceState.connecting)]
+    )
     with pytest.raises(DeviceError, match="currently unauthorized"):
         resolve_single_device_serial(devices, serial="SER-1", action_label="PIN recovery")
 

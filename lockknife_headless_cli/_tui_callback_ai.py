@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -176,7 +177,11 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 category="ai-anomaly",
                 source_command="ai anomaly",
                 input_paths=[str(input_path)],
-                metadata={"feature_keys": feature_keys, "row_count": len(rows), **(payload.get("summary") or {})},
+                metadata={
+                    "feature_keys": feature_keys,
+                    "row_count": len(rows),
+                    **(payload.get("summary") or {}),
+                },
             )
             return _ok(payload, f"Scored {len(rows)} rows to {output}")
         return _ok(payload, f"Scored {len(rows)} rows")
@@ -198,13 +203,19 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             filename=f"ai_predict_password_{_safe_name(wordlist.stem)}.json",
         )
         predictor = PasswordPredictor.train_from_wordlist(wordlist, order=markov_order)
-        source_words = [line.strip() for line in wordlist.read_text(encoding="utf-8").splitlines() if line.strip()]
+        source_words = [
+            line.strip()
+            for line in wordlist.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
         predictions = predictor.generate(
             count=count,
             min_len=min_len,
             max_len=max_len,
             seed=seed,
-            personal_data=load_personal_data(personal_data_path) if personal_data_path is not None else None,
+            personal_data=load_personal_data(personal_data_path)
+            if personal_data_path is not None
+            else None,
         )
         payload = password_payload(
             predictions,
@@ -213,7 +224,10 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             min_len=min_len,
             max_len=max_len,
             seed=seed,
-            metadata={"markov_order": markov_order, "personal_data_path": str(personal_data_path) if personal_data_path else None},
+            metadata={
+                "markov_order": markov_order,
+                "personal_data_path": str(personal_data_path) if personal_data_path else None,
+            },
             case_dir=case_dir,
             output=output,
         )
@@ -224,8 +238,16 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 path=output,
                 category="ai-password-predictions",
                 source_command="ai predict-password",
-                input_paths=[str(wordlist)] + ([str(personal_data_path)] if personal_data_path is not None else []),
-                metadata={"count": count, "min_len": min_len, "max_len": max_len, "seed": seed, "markov_order": markov_order, **(payload.get("summary") or {})},
+                input_paths=[str(wordlist)]
+                + ([str(personal_data_path)] if personal_data_path is not None else []),
+                metadata={
+                    "count": count,
+                    "min_len": min_len,
+                    "max_len": max_len,
+                    "seed": seed,
+                    "markov_order": markov_order,
+                    **(payload.get("summary") or {}),
+                },
             )
             return _ok(payload, f"Generated {len(predictions)} passwords to {output}")
         return _ok(payload, f"Generated {len(predictions)} passwords")
@@ -240,9 +262,14 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         if model_path is None:
             if case_dir is None:
                 return _err("Either model path or case directory is required")
-            model_path = case_output_path(case_dir, area="derived", filename=f"ai_malware_model_{_safe_name(input_path.stem)}.joblib")
+            model_path = case_output_path(
+                case_dir,
+                area="derived",
+                filename=f"ai_malware_model_{_safe_name(input_path.stem)}.joblib",
+            )
         rows = json.loads(input_path.read_text(encoding="utf-8"))
         from lockknife.modules.ai.malware_classifier import train_classifier
+
         out = train_classifier(rows, feature_keys, label_key, model_path)
         _register_case_output(
             case_dir,
@@ -252,7 +279,15 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             input_paths=[str(input_path)],
             metadata={"feature_keys": feature_keys, "label_key": label_key, "row_count": len(rows)},
         )
-        return _ok({"model_path": str(out), "row_count": len(rows), "feature_keys": feature_keys, "label_key": label_key}, f"Trained malware classifier: {out}")
+        return _ok(
+            {
+                "model_path": str(out),
+                "row_count": len(rows),
+                "feature_keys": feature_keys,
+                "label_key": label_key,
+            },
+            f"Trained malware classifier: {out}",
+        )
 
     if action == "ai.classify_malware":
         input_path = pathlib.Path(_require(params, "input"))
@@ -266,6 +301,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         )
         rows = json.loads(input_path.read_text(encoding="utf-8"))
         from lockknife.modules.ai.malware_classifier import predict_classifier
+
         out = predict_classifier(rows, model_path)
         payload = {
             "predictions": out,

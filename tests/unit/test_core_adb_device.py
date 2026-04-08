@@ -45,7 +45,9 @@ def test_adb_list_devices_skips_noise(monkeypatch) -> None:
 
     def fake_run(args, check, capture_output, text, timeout):
         if args[1:3] == ["devices", "-l"]:
-            return _P("List of devices attached\n* daemon started successfully\njunk\nSERIAL device model:X foo\n")
+            return _P(
+                "List of devices attached\n* daemon started successfully\njunk\nSERIAL device model:X foo\n"
+            )
         if args[3] == "shell":
             return _P("[k]: [v]\nnot-a-prop\n")
         return _P("")
@@ -77,9 +79,10 @@ def test_adb_shell_requires_serial() -> None:
 
 
 def test_adb_run_errors(monkeypatch) -> None:
+    import subprocess
+
     from lockknife.core.adb import AdbClient
     from lockknife.core.exceptions import ExternalToolError
-    import subprocess
 
     def raise_fnf(*args, **kwargs):
         raise FileNotFoundError("adb")

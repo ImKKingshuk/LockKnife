@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 import time
+from dataclasses import asdict
 from typing import Any
 
 import click
@@ -20,8 +20,8 @@ def _safe_value(value: Any) -> Any:
         if len(value) > 256:
             return value[:256] + "…"
         return value
-    if hasattr(value, "name") and isinstance(getattr(value, "name"), str):
-        return getattr(value, "name")
+    if hasattr(value, "name") and isinstance(value.name, str):
+        return value.name
     return type(value).__name__
 
 
@@ -42,7 +42,12 @@ class LockKnifeCommand(click.Command):
         try:
             out = super().invoke(ctx)
         except click.ClickException:
-            log.error("cli_error", command=ctx.command_path, elapsed_s=round(time.perf_counter() - start, 6), exc_info=True)
+            log.error(
+                "cli_error",
+                command=ctx.command_path,
+                elapsed_s=round(time.perf_counter() - start, 6),
+                exc_info=True,
+            )
             raise
         except LockKnifeError as exc:
             log.error(
@@ -54,7 +59,11 @@ class LockKnifeCommand(click.Command):
             )
             raise click.ClickException(str(exc)) from exc
         except Exception:
-            report = capture(ctx.command_path, device_serial=_device_hint(ctx.params or {}), extra={"params": params})
+            report = capture(
+                ctx.command_path,
+                device_serial=_device_hint(ctx.params or {}),
+                extra={"params": params},
+            )
             log.error(
                 "cli_error",
                 command=ctx.command_path,
@@ -62,8 +71,12 @@ class LockKnifeCommand(click.Command):
                 report=asdict(report),
                 exc_info=True,
             )
-            raise click.ClickException(f"Unexpected error while running {ctx.command_path}") from None
-        log.info("cli_done", command=ctx.command_path, elapsed_s=round(time.perf_counter() - start, 6))
+            raise click.ClickException(
+                f"Unexpected error while running {ctx.command_path}"
+            ) from None
+        log.info(
+            "cli_done", command=ctx.command_path, elapsed_s=round(time.perf_counter() - start, 6)
+        )
         return out
 
 

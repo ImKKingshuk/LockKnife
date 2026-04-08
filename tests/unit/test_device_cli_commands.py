@@ -17,8 +17,22 @@ def test_device_cli_commands(monkeypatch) -> None:
     from lockknife_headless_cli import device as device_cli
 
     handles = [
-        types.SimpleNamespace(serial="S1", adb_state="device", state=_State("ready"), model="Pixel", device="redfin", transport_id="1"),
-        types.SimpleNamespace(serial="S2", adb_state="offline", state=_State("offline"), model=None, device=None, transport_id=None),
+        types.SimpleNamespace(
+            serial="S1",
+            adb_state="device",
+            state=_State("ready"),
+            model="Pixel",
+            device="redfin",
+            transport_id="1",
+        ),
+        types.SimpleNamespace(
+            serial="S2",
+            adb_state="offline",
+            state=_State("offline"),
+            model=None,
+            device=None,
+            transport_id=None,
+        ),
     ]
 
     def _map_devices(fn, serials):
@@ -36,7 +50,9 @@ def test_device_cli_commands(monkeypatch) -> None:
             connect_device=lambda host: f"connected:{host}",
             authorized_serials=lambda: ["S1", "S2"],
             map_devices=_map_devices,
-            info=lambda serial: types.SimpleNamespace(props={"serial": serial, "ro.product.model": "Pixel"}),
+            info=lambda serial: types.SimpleNamespace(
+                props={"serial": serial, "ro.product.model": "Pixel"}
+            ),
         ),
         adb=types.SimpleNamespace(shell=lambda serial, cmd, timeout_s=120.0: "line1\nline2\n"),
     )
@@ -63,9 +79,17 @@ def test_device_cli_commands(monkeypatch) -> None:
             connect_device=lambda host: f"connected:{host}",
             authorized_serials=lambda: ["S1", "S2"],
             map_devices=_map_devices,
-            info=lambda serial: (_ for _ in ()).throw(RuntimeError("boom")) if serial == "S2" else types.SimpleNamespace(props={"serial": serial, "ro.product.model": "Pixel"}),
+            info=lambda serial: (
+                (_ for _ in ()).throw(RuntimeError("boom"))
+                if serial == "S2"
+                else types.SimpleNamespace(props={"serial": serial, "ro.product.model": "Pixel"})
+            ),
         ),
-        adb=types.SimpleNamespace(shell=lambda serial, cmd, timeout_s=120.0: (_ for _ in ()).throw(RuntimeError("boom")) if serial == "S2" else "line1\nline2\n"),
+        adb=types.SimpleNamespace(
+            shell=lambda serial, cmd, timeout_s=120.0: (
+                (_ for _ in ()).throw(RuntimeError("boom")) if serial == "S2" else "line1\nline2\n"
+            )
+        ),
     )
     for args in [["info", "-s", "S1", "--all"], ["shell", "-s", "S1", "--all", "echo", "hello"]]:
         result = runner.invoke(device_cli.device, args, obj=app_with_errors)

@@ -37,7 +37,11 @@ def extract_dns_records(texts: list[str]) -> list[dict[str, Any]]:
 
 
 def extract_dns_queries(texts: list[str]) -> list[str]:
-    return [str(item.get("query") or "") for item in extract_dns_records(texts) if str(item.get("query") or "")]
+    return [
+        str(item.get("query") or "")
+        for item in extract_dns_records(texts)
+        if str(item.get("query") or "")
+    ]
 
 
 def summarize_dns_records(records: list[dict[str, Any]]) -> dict[str, Any]:
@@ -50,14 +54,18 @@ def summarize_dns_records(records: list[dict[str, Any]]) -> dict[str, Any]:
         "unique_domain_count": len(set(domains)),
         "answer_count": len(answers),
         "top_domains": [{"name": name, "count": count} for name, count in counts.most_common(8)],
-        "top_answers": [{"name": name, "count": count} for name, count in answer_counts.most_common(8)],
+        "top_answers": [
+            {"name": name, "count": count} for name, count in answer_counts.most_common(8)
+        ],
         "domains": sorted(set(domains))[:25],
         "records": records[:25],
     }
 
 
 def summarize_dns_queries(domains: list[str]) -> dict[str, Any]:
-    return summarize_dns_records([{"query": domain, "answer": None, "source": "summary"} for domain in domains])
+    return summarize_dns_records(
+        [{"query": domain, "answer": None, "source": "summary"} for domain in domains]
+    )
 
 
 def _normalize(value: str) -> str:

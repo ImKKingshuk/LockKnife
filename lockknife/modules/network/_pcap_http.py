@@ -5,7 +5,9 @@ from collections import Counter
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-_REQUEST_LINE = re.compile(r"(?im)^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+([^\s]+)\s+HTTP/\d\.\d\s*$")
+_REQUEST_LINE = re.compile(
+    r"(?im)^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+([^\s]+)\s+HTTP/\d\.\d\s*$"
+)
 _RESPONSE_LINE = re.compile(r"(?i)HTTP/\d\.\d\s+(\d{3})\s+([^\r\n]+)")
 _HOST_HEADER = re.compile(r"(?im)^host:\s*([^\s:]+)(?::\d+)?\s*$")
 _FULL_URL = re.compile(r"\bhttps?://[a-zA-Z0-9._:-]+(?:/[^\s\"'<>)]*)?\b")
@@ -44,7 +46,16 @@ def extract_http_requests(texts: list[str]) -> list[dict[str, Any]]:
             if key in seen:
                 continue
             seen.add(key)
-            requests.append({"method": "URL", "path": url, "host": _host_from_url(url), "url": url, "content_type": None, "parameter_keys": _query_keys(url)})
+            requests.append(
+                {
+                    "method": "URL",
+                    "path": url,
+                    "host": _host_from_url(url),
+                    "url": url,
+                    "content_type": None,
+                    "parameter_keys": _query_keys(url),
+                }
+            )
     return requests[:200]
 
 
@@ -73,17 +84,31 @@ def extract_http_responses(texts: list[str]) -> list[dict[str, Any]]:
     return responses[:120]
 
 
-def summarize_http_requests(requests: list[dict[str, Any]], responses: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+def summarize_http_requests(
+    requests: list[dict[str, Any]], responses: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
     method_counts = Counter(str(item.get("method") or "unknown") for item in requests)
-    hosts = [str(item.get("host") or "").strip() for item in requests if str(item.get("host") or "").strip()]
+    hosts = [
+        str(item.get("host") or "").strip()
+        for item in requests
+        if str(item.get("host") or "").strip()
+    ]
     unique_hosts = sorted(set(hosts))
-    status_counts = Counter(str(item.get("status_code") or "") for item in (responses or []) if str(item.get("status_code") or ""))
+    status_counts = Counter(
+        str(item.get("status_code") or "")
+        for item in (responses or [])
+        if str(item.get("status_code") or "")
+    )
     return {
         "request_count": len(requests),
         "response_count": len(responses or []),
         "host_count": len(unique_hosts),
-        "top_methods": [{"name": name, "count": count} for name, count in method_counts.most_common(6)],
-        "top_status_codes": [{"name": name, "count": count} for name, count in status_counts.most_common(6)],
+        "top_methods": [
+            {"name": name, "count": count} for name, count in method_counts.most_common(6)
+        ],
+        "top_status_codes": [
+            {"name": name, "count": count} for name, count in status_counts.most_common(6)
+        ],
         "hosts": unique_hosts[:25],
         "requests": requests[:25],
         "responses": (responses or [])[:25],

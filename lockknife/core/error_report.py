@@ -17,7 +17,7 @@ import datetime
 import platform
 import sys
 import traceback
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -45,13 +45,11 @@ def capture(
     """
     exc_type, exc_value, tb = sys.exc_info()
     tb_text = (
-        "".join(traceback.format_exception(exc_type, exc_value, tb))
-        if exc_type is not None
-        else ""
+        "".join(traceback.format_exception(exc_type, exc_value, tb)) if exc_type is not None else ""
     )
     return ErrorReport(
         operation=operation,
-        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        timestamp=datetime.datetime.now(datetime.UTC).isoformat(),
         exc_type=exc_type.__name__ if exc_type else "UnknownError",
         exc_message=str(exc_value) if exc_value else "",
         traceback=tb_text,

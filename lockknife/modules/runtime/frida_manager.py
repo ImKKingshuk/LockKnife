@@ -67,7 +67,9 @@ class FridaManager:
         if not callable(enumerate_applications):
             return False
         try:
-            return any(getattr(app, "identifier", None) == app_id for app in enumerate_applications())
+            return any(
+                getattr(app, "identifier", None) == app_id for app in enumerate_applications()
+            )
         except self._lookup_errors():
             return False
 

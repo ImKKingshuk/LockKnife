@@ -147,60 +147,192 @@ def test_cli_extract_commands(monkeypatch, tmp_path: pathlib.Path) -> None:
     _invoke(extract_cli.extract, ["sms", "-s", "S", "--limit", "1", "--format", "json"], obj=app)
     _invoke(
         extract_cli.extract,
-        ["sms", "-s", "S", "--limit", "1", "--format", "csv", "--output", str(tmp_path / "sms.csv")],
-        obj=app,
-    )
-    _invoke(extract_cli.extract, ["contacts", "-s", "S", "--limit", "1", "--format", "json"], obj=app)
-    _invoke(
-        extract_cli.extract,
-        ["contacts", "-s", "S", "--limit", "1", "--format", "csv", "--output", str(tmp_path / "contacts.csv")],
-        obj=app,
-    )
-    _invoke(extract_cli.extract, ["call-logs", "-s", "S", "--limit", "1", "--format", "json"], obj=app)
-    _invoke(
-        extract_cli.extract,
-        ["call-logs", "-s", "S", "--limit", "1", "--format", "csv", "--output", str(tmp_path / "calls.csv")],
-        obj=app,
-    )
-    _invoke(
-        extract_cli.extract,
-        ["browser", "-s", "S", "--app", "chrome", "--kind", "history", "--limit", "1", "--format", "json"],
+        [
+            "sms",
+            "-s",
+            "S",
+            "--limit",
+            "1",
+            "--format",
+            "csv",
+            "--output",
+            str(tmp_path / "sms.csv"),
+        ],
         obj=app,
     )
     _invoke(
+        extract_cli.extract, ["contacts", "-s", "S", "--limit", "1", "--format", "json"], obj=app
+    )
+    _invoke(
         extract_cli.extract,
-        ["browser", "-s", "S", "--app", "chrome", "--kind", "all", "--limit", "1", "--format", "json"],
+        [
+            "contacts",
+            "-s",
+            "S",
+            "--limit",
+            "1",
+            "--format",
+            "csv",
+            "--output",
+            str(tmp_path / "contacts.csv"),
+        ],
+        obj=app,
+    )
+    _invoke(
+        extract_cli.extract, ["call-logs", "-s", "S", "--limit", "1", "--format", "json"], obj=app
+    )
+    _invoke(
+        extract_cli.extract,
+        [
+            "call-logs",
+            "-s",
+            "S",
+            "--limit",
+            "1",
+            "--format",
+            "csv",
+            "--output",
+            str(tmp_path / "calls.csv"),
+        ],
         obj=app,
     )
     _invoke(
         extract_cli.extract,
-        ["messaging", "-s", "S", "--app", "signal", "--mode", "messages", "--limit", "1", "--format", "json"],
+        [
+            "browser",
+            "-s",
+            "S",
+            "--app",
+            "chrome",
+            "--kind",
+            "history",
+            "--limit",
+            "1",
+            "--format",
+            "json",
+        ],
         obj=app,
     )
     _invoke(
         extract_cli.extract,
-        ["messaging", "-s", "S", "--app", "signal", "--mode", "artifacts", "--limit", "1", "--format", "json"],
+        [
+            "browser",
+            "-s",
+            "S",
+            "--app",
+            "chrome",
+            "--kind",
+            "all",
+            "--limit",
+            "1",
+            "--format",
+            "json",
+        ],
         obj=app,
     )
     _invoke(
         extract_cli.extract,
-        ["browser", "-s", "S", "--app", "firefox", "--kind", "all", "--limit", "1", "--format", "json"],
+        [
+            "messaging",
+            "-s",
+            "S",
+            "--app",
+            "signal",
+            "--mode",
+            "messages",
+            "--limit",
+            "1",
+            "--format",
+            "json",
+        ],
         obj=app,
     )
     _invoke(
         extract_cli.extract,
-        ["browser", "-s", "S", "--app", "firefox", "--kind", "all", "--limit", "1", "--format", "json", "--output", str(tmp_path / "firefox.json")],
+        [
+            "messaging",
+            "-s",
+            "S",
+            "--app",
+            "signal",
+            "--mode",
+            "artifacts",
+            "--limit",
+            "1",
+            "--format",
+            "json",
+        ],
         obj=app,
     )
     _invoke(
         extract_cli.extract,
-        ["browser", "-s", "S", "--app", "edge", "--kind", "passwords", "--limit", "1", "--format", "csv", "--output", str(tmp_path / "edge.csv")],
+        [
+            "browser",
+            "-s",
+            "S",
+            "--app",
+            "firefox",
+            "--kind",
+            "all",
+            "--limit",
+            "1",
+            "--format",
+            "json",
+        ],
+        obj=app,
+    )
+    _invoke(
+        extract_cli.extract,
+        [
+            "browser",
+            "-s",
+            "S",
+            "--app",
+            "firefox",
+            "--kind",
+            "all",
+            "--limit",
+            "1",
+            "--format",
+            "json",
+            "--output",
+            str(tmp_path / "firefox.json"),
+        ],
+        obj=app,
+    )
+    _invoke(
+        extract_cli.extract,
+        [
+            "browser",
+            "-s",
+            "S",
+            "--app",
+            "edge",
+            "--kind",
+            "passwords",
+            "--limit",
+            "1",
+            "--format",
+            "csv",
+            "--output",
+            str(tmp_path / "edge.csv"),
+        ],
         obj=app,
     )
     _invoke(extract_cli.extract, ["media", "-s", "S", "--limit", "1", "--format", "json"], obj=app)
     _invoke(
         extract_cli.extract,
-        ["media", "-s", "S", "--limit", "1", "--format", "csv", "--output", str(tmp_path / "media.csv")],
+        [
+            "media",
+            "-s",
+            "S",
+            "--limit",
+            "1",
+            "--format",
+            "csv",
+            "--output",
+            str(tmp_path / "media.csv"),
+        ],
         obj=app,
     )
     _invoke(extract_cli.extract, ["location", "-s", "S", "--mode", "snapshot"], obj=app)
@@ -223,7 +355,11 @@ def test_cli_extract_browser_rejects_csv_for_all(monkeypatch) -> None:
     monkeypatch.setattr(extract_cli, "console", _console())
     monkeypatch.setattr(extract_cli, "extract_chrome_history", lambda *_a, **_k: [_Row("h")])
     runner = CliRunner()
-    result = runner.invoke(extract_cli.extract, ["browser", "-s", "S", "--app", "chrome", "--kind", "all", "--format", "csv"], obj=app)
+    result = runner.invoke(
+        extract_cli.extract,
+        ["browser", "-s", "S", "--app", "chrome", "--kind", "all", "--format", "csv"],
+        obj=app,
+    )
     assert result.exit_code != 0
     assert "not supported" in result.output.lower()
 
@@ -256,18 +392,32 @@ def test_cli_forensics_and_network(monkeypatch, tmp_path: pathlib.Path) -> None:
         "analyze_sqlite",
         lambda *_a, **_k: _Analysis(path=str(sqlite_path), tables=[_Row("t")]),
     )
-    monkeypatch.setattr(forensics_cli, "correlate_artifacts_json_blobs", lambda *_a, **_k: {"ok": True})
+    monkeypatch.setattr(
+        forensics_cli, "correlate_artifacts_json_blobs", lambda *_a, **_k: {"ok": True}
+    )
     monkeypatch.setattr(forensics_cli, "recover_deleted_records", lambda *_a, **_k: {"ok": True})
-    monkeypatch.setattr(forensics_cli, "carve_deleted_files", lambda *_a, **_k: {"ok": True, "carved_count": 0})
+    monkeypatch.setattr(
+        forensics_cli, "carve_deleted_files", lambda *_a, **_k: {"ok": True, "carved_count": 0}
+    )
     monkeypatch.setattr(
         forensics_cli,
         "build_timeline_report",
-        lambda *_a, **_k: {"event_count": 1, "sources": [{"path": str(json_path)}], "events": [{"ts_ms": 1}]},
+        lambda *_a, **_k: {
+            "event_count": 1,
+            "sources": [{"path": str(json_path)}],
+            "events": [{"ts_ms": 1}],
+        },
     )
     monkeypatch.setattr(
         forensics_cli,
         "parse_forensics_directory",
-        lambda *_a, **_k: _ParsedReport(input_dir=str(tmp_path), artifacts=[], app_data=[], protobuf_files=[], summary={"artifact_count": 0, "protobuf_count": 0}),
+        lambda *_a, **_k: _ParsedReport(
+            input_dir=str(tmp_path),
+            artifacts=[],
+            app_data=[],
+            protobuf_files=[],
+            summary={"artifact_count": 0, "protobuf_count": 0},
+        ),
     )
 
     sqlite_path = tmp_path / "db.sqlite"
@@ -288,7 +438,15 @@ def test_cli_forensics_and_network(monkeypatch, tmp_path: pathlib.Path) -> None:
     _invoke(forensics_cli.forensics, ["sqlite", str(sqlite_path)], obj=app)
     _invoke(
         forensics_cli.forensics,
-        ["timeline", "--sms", str(json_path), "--call-logs", str(json_path), "--output", str(tmp_path / "timeline.json")],
+        [
+            "timeline",
+            "--sms",
+            str(json_path),
+            "--call-logs",
+            str(json_path),
+            "--output",
+            str(tmp_path / "timeline.json"),
+        ],
         obj=app,
     )
     _invoke(
@@ -298,20 +456,38 @@ def test_cli_forensics_and_network(monkeypatch, tmp_path: pathlib.Path) -> None:
     )
     _invoke(forensics_cli.forensics, ["recover", str(sqlite_path)], obj=app)
 
-    monkeypatch.setattr(network_cli, "capture_pcap", lambda *_a, **_k: _Capture(str(tmp_path / "cap.pcap")))
+    monkeypatch.setattr(
+        network_cli, "capture_pcap", lambda *_a, **_k: _Capture(str(tmp_path / "cap.pcap"))
+    )
     monkeypatch.setattr(network_cli, "summarize_pcap", lambda *_a, **_k: {"summary": "ok"})
-    monkeypatch.setattr(network_cli, "extract_api_endpoints_from_pcap", lambda *_a, **_k: {"endpoints": []})
+    monkeypatch.setattr(
+        network_cli, "extract_api_endpoints_from_pcap", lambda *_a, **_k: {"endpoints": []}
+    )
 
     pcap = tmp_path / "cap.pcap"
     pcap.write_text("pcap", encoding="utf-8")
     _invoke(
         network_cli.network,
-        ["capture", "-s", "S", "--duration", "1", "--iface", "any", "--snaplen", "64", "--output", str(pcap)],
+        [
+            "capture",
+            "-s",
+            "S",
+            "--duration",
+            "1",
+            "--iface",
+            "any",
+            "--snaplen",
+            "64",
+            "--output",
+            str(pcap),
+        ],
         obj=app,
     )
     _invoke(network_cli.network, ["analyze", str(pcap)], obj=app)
     _invoke(network_cli.network, ["api-discovery", str(pcap)], obj=app)
-    _invoke(network_cli.network, ["parse-ipv4", "4500001400000000400600007f00000108080808"], obj=app)
+    _invoke(
+        network_cli.network, ["parse-ipv4", "4500001400000000400600007f00000108080808"], obj=app
+    )
 
 
 def test_cli_apk_security_intel(monkeypatch, tmp_path: pathlib.Path) -> None:
@@ -379,15 +555,25 @@ def test_cli_apk_security_intel(monkeypatch, tmp_path: pathlib.Path) -> None:
     monkeypatch.setattr(sec_cli, "run_device_audit", lambda *_a, **_k: [_Row("r")])
     monkeypatch.setattr(sec_cli, "get_selinux_status", lambda *_a, **_k: _Row("Enforcing"))
     monkeypatch.setattr(sec_cli, "scan_with_yara", lambda *_a, **_k: [_Row("hit")])
-    monkeypatch.setattr(sec_cli, "scan_network", lambda *_a, **_k: SimpleNamespace(dns=[], dns_cache=[], listening=[], raw=""))
+    monkeypatch.setattr(
+        sec_cli,
+        "scan_network",
+        lambda *_a, **_k: SimpleNamespace(dns=[], dns_cache=[], listening=[], raw=""),
+    )
     monkeypatch.setattr(sec_cli, "analyze_bootloader", lambda *_a, **_k: _Boot(False))
     monkeypatch.setattr(sec_cli, "analyze_hardware_security", lambda *_a, **_k: _Hardware(True))
-    monkeypatch.setattr(sec_cli, "assess_attack_surface", lambda *_a, **_k: {"package": "pkg", "findings": [], "probe_results": {"attempted": False}})
+    monkeypatch.setattr(
+        sec_cli,
+        "assess_attack_surface",
+        lambda *_a, **_k: {"package": "pkg", "findings": [], "probe_results": {"attempted": False}},
+    )
     monkeypatch.setattr(sec_cli, "mastg_summary", lambda *_a, **_k: {"items": []})
 
     _invoke(sec_cli.security, ["scan", "-s", "S"], obj=app)
     _invoke(sec_cli.security, ["selinux", "-s", "S"], obj=app)
-    _invoke(sec_cli.security, ["malware", "--yara", str(rule_path), "--target", str(apk_path)], obj=app)
+    _invoke(
+        sec_cli.security, ["malware", "--yara", str(rule_path), "--target", str(apk_path)], obj=app
+    )
     _invoke(sec_cli.security, ["network-scan", "-s", "S"], obj=app)
     _invoke(sec_cli.security, ["bootloader", "-s", "S"], obj=app)
     _invoke(sec_cli.security, ["hardware", "-s", "S"], obj=app)
@@ -404,7 +590,11 @@ def test_cli_apk_security_intel(monkeypatch, tmp_path: pathlib.Path) -> None:
     monkeypatch.setattr(intel_cli, "load_taxii_indicators", lambda *_a, **_k: [_Row("ioc")])
     monkeypatch.setattr(intel_cli, "list_iocs", lambda *_a, **_k: [_Row("ioc")])
     monkeypatch.setattr(intel_cli, "load_feed_config", lambda *_a, **_k: [{"name": "demo"}])
-    monkeypatch.setattr(intel_cli, "sync_ioc_feeds", lambda *_a, **_k: {"feeds": [{"status": "updated"}], "total_added": 1})
+    monkeypatch.setattr(
+        intel_cli,
+        "sync_ioc_feeds",
+        lambda *_a, **_k: {"feeds": [{"status": "updated"}], "total_added": 1},
+    )
     monkeypatch.setattr(intel_cli, "android_cve_risk_score", lambda *_a, **_k: {"score": 1})
 
     json_path = tmp_path / "iocs.json"
@@ -417,10 +607,16 @@ def test_cli_apk_security_intel(monkeypatch, tmp_path: pathlib.Path) -> None:
     _invoke(intel_cli.intel, ["reputation", "--domain", "example.com"], obj=app)
     _invoke(intel_cli.intel, ["stix", "--url", "https://example.com/stix.json"], obj=app)
     _invoke(intel_cli.intel, ["taxii", "--api-root-url", "https://example.com/api"], obj=app)
-    _invoke(intel_cli.intel, ["ioc-db-list", "--db", str(tmp_path / "iocs.db"), "--limit", "1"], obj=app)
+    _invoke(
+        intel_cli.intel, ["ioc-db-list", "--db", str(tmp_path / "iocs.db"), "--limit", "1"], obj=app
+    )
     cfg = tmp_path / "feeds.json"
     cfg.write_text("[]", encoding="utf-8")
-    _invoke(intel_cli.intel, ["ioc-db-sync", "--db", str(tmp_path / "iocs.db"), "--config", str(cfg), "--force"], obj=app)
+    _invoke(
+        intel_cli.intel,
+        ["ioc-db-sync", "--db", str(tmp_path / "iocs.db"), "--config", str(cfg), "--force"],
+        obj=app,
+    )
 
 
 def test_cli_intel_error_paths(monkeypatch, tmp_path: pathlib.Path) -> None:
@@ -456,14 +652,25 @@ def test_cli_ai_crypto_runtime_report(monkeypatch, tmp_path: pathlib.Path) -> No
     monkeypatch.setattr(report_cli, "console", _console())
     monkeypatch.setattr(runtime_cli, "console", _console())
 
-    monkeypatch.setattr(ai_cli, "anomaly_scores", lambda *_a, **_k: [{"row": {"a": 1}, "anomaly_score": 0.5}])
-    monkeypatch.setattr(ai_cli, "PasswordPredictor", SimpleNamespace(train_from_wordlist=lambda *_a, **_k: SimpleNamespace(generate=lambda *_a, **_k: ["pw"])))
+    monkeypatch.setattr(
+        ai_cli, "anomaly_scores", lambda *_a, **_k: [{"row": {"a": 1}, "anomaly_score": 0.5}]
+    )
+    monkeypatch.setattr(
+        ai_cli,
+        "PasswordPredictor",
+        SimpleNamespace(
+            train_from_wordlist=lambda *_a, **_k: SimpleNamespace(generate=lambda *_a, **_k: ["pw"])
+        ),
+    )
+
     def _train(rows, features, label, model_path):
         model_path.write_text("model", encoding="utf-8")
         return model_path
 
     monkeypatch.setattr(ai_cli, "train_classifier", _train)
-    monkeypatch.setattr(ai_cli, "predict_classifier", lambda *_a, **_k: [{"row": {"a": 1}, "risk": 0.1}])
+    monkeypatch.setattr(
+        ai_cli, "predict_classifier", lambda *_a, **_k: [{"row": {"a": 1}, "risk": 0.1}]
+    )
 
     json_path = tmp_path / "rows.json"
     json_path.write_text(json.dumps([{"a": 1}]), encoding="utf-8")
@@ -473,14 +680,46 @@ def test_cli_ai_crypto_runtime_report(monkeypatch, tmp_path: pathlib.Path) -> No
     _invoke(ai_cli.ai, ["anomaly", "--input", str(json_path), "--feature", "a"], obj=app)
     _invoke(
         ai_cli.ai,
-        ["train-malware", "--input", str(json_path), "--feature", "a", "--label", "a", "--model", str(tmp_path / "model.json")],
+        [
+            "train-malware",
+            "--input",
+            str(json_path),
+            "--feature",
+            "a",
+            "--label",
+            "a",
+            "--model",
+            str(tmp_path / "model.json"),
+        ],
         obj=app,
     )
-    _invoke(ai_cli.ai, ["classify-malware", "--input", str(json_path), "--model", str(tmp_path / "model.json")], obj=app)
-    _invoke(ai_cli.ai, ["predict-password", "--corpus", str(wl), "--count", "1", "--min-len", "4", "--max-len", "8"], obj=app)
+    _invoke(
+        ai_cli.ai,
+        ["classify-malware", "--input", str(json_path), "--model", str(tmp_path / "model.json")],
+        obj=app,
+    )
+    _invoke(
+        ai_cli.ai,
+        [
+            "predict-password",
+            "--corpus",
+            str(wl),
+            "--count",
+            "1",
+            "--min-len",
+            "4",
+            "--max-len",
+            "8",
+        ],
+        obj=app,
+    )
 
-    monkeypatch.setattr(crypto_cli, "extract_wallet_addresses_from_sqlite", lambda *_a, **_k: [_Row("addr")])
-    monkeypatch.setattr(crypto_cli, "enrich_wallet_addresses", lambda *_a, **_k: [{"address": "addr"}])
+    monkeypatch.setattr(
+        crypto_cli, "extract_wallet_addresses_from_sqlite", lambda *_a, **_k: [_Row("addr")]
+    )
+    monkeypatch.setattr(
+        crypto_cli, "enrich_wallet_addresses", lambda *_a, **_k: [{"address": "addr"}]
+    )
 
     db = tmp_path / "db.sqlite"
     db.write_text("x", encoding="utf-8")
@@ -495,12 +734,34 @@ def test_cli_ai_crypto_runtime_report(monkeypatch, tmp_path: pathlib.Path) -> No
     artifacts.write_text(json.dumps({"case_id": "CASE"}), encoding="utf-8")
     _invoke(
         report_cli.report,
-        ["generate", "--case-id", "CASE", "--template", "technical", "--artifacts", str(artifacts), "--format", "html", "--output", str(tmp_path / "r.html")],
+        [
+            "generate",
+            "--case-id",
+            "CASE",
+            "--template",
+            "technical",
+            "--artifacts",
+            str(artifacts),
+            "--format",
+            "html",
+            "--output",
+            str(tmp_path / "r.html"),
+        ],
         obj=app,
     )
     _invoke(
         report_cli.report,
-        ["chain-of-custody", "--case-id", "CASE", "--examiner", "Examiner", "--evidence", "item", "--output", str(tmp_path / "coc.json")],
+        [
+            "chain-of-custody",
+            "--case-id",
+            "CASE",
+            "--examiner",
+            "Examiner",
+            "--evidence",
+            "item",
+            "--output",
+            str(tmp_path / "coc.json"),
+        ],
         obj=app,
     )
 
@@ -522,17 +783,34 @@ def test_cli_ai_crypto_runtime_report(monkeypatch, tmp_path: pathlib.Path) -> No
     monkeypatch.setattr(
         runtime_cli,
         "get_builtin_runtime_script",
-        lambda name: {"name": name, "category": "test", "path": str(wl), "source": f"send('{name}')"},
+        lambda name: {
+            "name": name,
+            "category": "test",
+            "path": str(wl),
+            "source": f"send('{name}')",
+        },
     )
     monkeypatch.setattr(runtime_cli, "method_tracer_script", lambda *_a, **_k: "m")
     monkeypatch.setattr(runtime_cli, "memory_search", lambda *_a, **_k: json.dumps({"hits": []}))
-    monkeypatch.setattr(runtime_cli, "heap_dump", lambda *_a, **_k: json.dumps({"path": "/tmp/heap"}))
+    monkeypatch.setattr(
+        runtime_cli, "heap_dump", lambda *_a, **_k: json.dumps({"path": "/tmp/heap"})
+    )
 
-    monkeypatch.setattr(runtime_cli.time, "sleep", lambda *_a, **_k: (_ for _ in ()).throw(KeyboardInterrupt()))
+    monkeypatch.setattr(
+        runtime_cli.time, "sleep", lambda *_a, **_k: (_ for _ in ()).throw(KeyboardInterrupt())
+    )
     _invoke(runtime_cli.runtime, ["hook", "app", "--script", str(wl)], obj=app)
     _invoke(runtime_cli.runtime, ["bypass-ssl", "app"], obj=app)
     _invoke(runtime_cli.runtime, ["bypass-root", "app"], obj=app)
     _invoke(runtime_cli.runtime, ["builtin-script", "app", "--name", "debug_bypass"], obj=app)
     _invoke(runtime_cli.runtime, ["trace", "app", "--class", "C", "--method", "m"], obj=app)
-    _invoke(runtime_cli.runtime, ["memory-search", "app", "--pattern", "abc", "--timeout", "1.0"], obj=app)
-    _invoke(runtime_cli.runtime, ["heap-dump", "app", "--output-path", "/tmp/heap.hprof", "--timeout", "1.0"], obj=app)
+    _invoke(
+        runtime_cli.runtime,
+        ["memory-search", "app", "--pattern", "abc", "--timeout", "1.0"],
+        obj=app,
+    )
+    _invoke(
+        runtime_cli.runtime,
+        ["heap-dump", "app", "--output-path", "/tmp/heap.hprof", "--timeout", "1.0"],
+        obj=app,
+    )

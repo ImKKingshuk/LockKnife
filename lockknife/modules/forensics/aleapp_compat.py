@@ -8,7 +8,6 @@ import sqlite3
 from collections import Counter
 from typing import Any, cast
 
-
 _LAVA_JSON_NAMES = ("_lava_data.json", "lava_data.json")
 _LAVA_DB_NAMES = ("_lava_artifacts.db", "lava_artifacts.db")
 
@@ -34,7 +33,9 @@ def import_aleapp_artifacts(input_dir: pathlib.Path) -> dict[str, Any]:
         tsv_artifacts = _import_tsv_artifacts(input_dir)
         artifacts.extend(tsv_artifacts)
         source_formats["tsv"] += len(tsv_artifacts)
-    artifact_family_counts = Counter(str(item.get("artifact_family") or "generic") for item in artifacts)
+    artifact_family_counts = Counter(
+        str(item.get("artifact_family") or "generic") for item in artifacts
+    )
     return {
         "source_dir": str(input_dir),
         "artifacts": artifacts,
@@ -58,7 +59,9 @@ def _find_first(input_dir: pathlib.Path, names: tuple[str, ...]) -> pathlib.Path
     return None
 
 
-def _import_lava_artifacts(metadata_path: pathlib.Path, database_path: pathlib.Path) -> list[dict[str, Any]]:
+def _import_lava_artifacts(
+    metadata_path: pathlib.Path, database_path: pathlib.Path
+) -> list[dict[str, Any]]:
     payload = json.loads(metadata_path.read_text(encoding="utf-8"))
     artifacts_root = payload.get("artifacts") or {}
     if not isinstance(artifacts_root, dict):
@@ -76,14 +79,25 @@ def _import_lava_artifacts(metadata_path: pathlib.Path, database_path: pathlib.P
                 table_name = str(entry.get("tablename") or "").strip()
                 if not table_name:
                     continue
-                column_map = cast(dict[str, Any], entry.get("column_map") if isinstance(entry.get("column_map"), dict) else {})
+                column_map = cast(
+                    dict[str, Any],
+                    entry.get("column_map") if isinstance(entry.get("column_map"), dict) else {},
+                )
                 rows = _query_table(conn, table_name)
                 if not rows:
                     continue
                 artifact_name = str(entry.get("name") or table_name)
                 module_name = str(entry.get("module") or table_name)
-                normalized = [_normalize_lava_row(dict(row), column_map, artifact_name=artifact_name) for row in rows]
-                family = infer_aleapp_family(artifact_name=artifact_name, category=str(category), module_name=module_name, rows=normalized)
+                normalized = [
+                    _normalize_lava_row(dict(row), column_map, artifact_name=artifact_name)
+                    for row in rows
+                ]
+                family = infer_aleapp_family(
+                    artifact_name=artifact_name,
+                    category=str(category),
+                    module_name=module_name,
+                    rows=normalized,
+                )
                 out.append(
                     {
                         "artifact_name": artifact_name,
@@ -106,7 +120,9 @@ def _import_lava_artifacts(metadata_path: pathlib.Path, database_path: pathlib.P
     return out
 
 
-def _query_table(conn: sqlite3.Connection, table_name: str, *, limit: int = 500) -> list[sqlite3.Row]:
+def _query_table(
+    conn: sqlite3.Connection, table_name: str, *, limit: int = 500
+) -> list[sqlite3.Row]:
     if not re.fullmatch(r"[A-Za-z0-9_]+", table_name):
         return []
     escaped = table_name.replace('"', '""')
@@ -117,7 +133,9 @@ def _query_table(conn: sqlite3.Connection, table_name: str, *, limit: int = 500)
         return []
 
 
-def _normalize_lava_row(row: dict[str, Any], column_map: dict[str, Any], *, artifact_name: str) -> dict[str, Any]:
+def _normalize_lava_row(
+    row: dict[str, Any], column_map: dict[str, Any], *, artifact_name: str
+) -> dict[str, Any]:
     out: dict[str, Any] = {"_artifact_name": artifact_name}
     for key, value in row.items():
         original = str(column_map.get(key) or key)
@@ -134,12 +152,18 @@ def _import_tsv_artifacts(input_dir: pathlib.Path) -> list[dict[str, Any]]:
         try:
             with path.open("r", encoding="utf-8", errors="ignore", newline="") as handle:
                 reader = csv.DictReader(handle, delimiter="\t")
-                rows = [_normalize_tsv_row(row, artifact_name=path.stem) for row in reader if isinstance(row, dict)]
+                rows = [
+                    _normalize_tsv_row(row, artifact_name=path.stem)
+                    for row in reader
+                    if isinstance(row, dict)
+                ]
         except (csv.Error, OSError, UnicodeError):
             continue
         if not rows:
             continue
-        family = infer_aleapp_family(artifact_name=path.stem, category=path.parent.name, module_name=path.stem, rows=rows)
+        family = infer_aleapp_family(
+            artifact_name=path.stem, category=path.parent.name, module_name=path.stem, rows=rows
+        )
         out.append(
             {
                 "artifact_name": path.stem.replace("_", " ").title(),
@@ -170,7 +194,9 @@ def _normalize_tsv_row(row: dict[str, Any], *, artifact_name: str) -> dict[str, 
     return _augment_aliases(out)
 
 
-def infer_aleapp_family(*, artifact_name: str, category: str, module_name: str, rows: list[dict[str, Any]]) -> str:
+def infer_aleapp_family(
+    *, artifact_name: str, category: str, module_name: str, rows: list[dict[str, Any]]
+) -> str:
     tokens = " ".join([artifact_name, category, module_name]).lower()
     row_keys = {str(key).lower() for row in rows[:10] for key in row.keys()}
     if any(token in tokens for token in ["sms", "mms"]):
@@ -179,7 +205,10 @@ def infer_aleapp_family(*, artifact_name: str, category: str, module_name: str, 
         return "call_logs"
     if any(token in tokens for token in ["browser", "chrome", "firefox", "bookmark", "history"]):
         return "browser"
-    if any(token in tokens for token in ["whatsapp", "telegram", "signal", "discord", "message", "chat"]):
+    if any(
+        token in tokens
+        for token in ["whatsapp", "telegram", "signal", "discord", "message", "chat"]
+    ):
         return "messaging"
     if any(token in tokens for token in ["location", "gps", "geofence"]):
         return "location"
@@ -203,7 +232,11 @@ def infer_aleapp_family(*, artifact_name: str, category: str, module_name: str, 
         return "browser"
     if {"body", "text", "jid", "mid"} & row_keys:
         return "messaging"
-    if {"latitude", "longitude", "timestamp_ms"} <= row_keys or {"provider", "latitude", "longitude"} <= row_keys:
+    if {"latitude", "longitude", "timestamp_ms"} <= row_keys or {
+        "provider",
+        "latitude",
+        "longitude",
+    } <= row_keys:
         return "location"
     return "generic"
 
@@ -226,7 +259,9 @@ def _normalize_value(value: Any) -> Any:
         text = value.strip()
         if not text:
             return text
-        if (text.startswith("{") and text.endswith("}")) or (text.startswith("[") and text.endswith("]")):
+        if (text.startswith("{") and text.endswith("}")) or (
+            text.startswith("[") and text.endswith("]")
+        ):
             try:
                 return json.loads(text)
             except json.JSONDecodeError:

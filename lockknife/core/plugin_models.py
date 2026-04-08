@@ -59,7 +59,11 @@ class PluginFailure:
     plugin_name: str | None = None
 
     def to_dict(self) -> dict[str, object]:
-        payload: dict[str, object] = {"status": "failed", "source": self.source, "error": self.error}
+        payload: dict[str, object] = {
+            "status": "failed",
+            "source": self.source,
+            "error": self.error,
+        }
         if self.plugin_name:
             payload["plugin_name"] = self.plugin_name
         return payload

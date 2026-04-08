@@ -19,21 +19,21 @@ import hashlib
 import json
 import pathlib
 import threading
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 
 _lock = threading.Lock()
-_entries: list["CustodyEntry"] = []
+_entries: list[CustodyEntry] = []
 
 
 @dataclass
 class CustodyEntry:
-    op: str                      # "pull" | "push"
-    serial: str                  # ADB serial
+    op: str  # "pull" | "push"
+    serial: str  # ADB serial
     remote_path: str
     local_path: str
-    sha256: str                  # hex digest of the local file after the transfer
+    sha256: str  # hex digest of the local file after the transfer
     size_bytes: int
-    timestamp_utc: str           # ISO-8601
+    timestamp_utc: str  # ISO-8601
 
 
 def _sha256_file(path: pathlib.Path) -> tuple[str, int]:
@@ -60,7 +60,7 @@ def log_pull(*, serial: str, remote_path: str, local_path: pathlib.Path) -> None
         local_path=str(local_path),
         sha256=sha256,
         size_bytes=size,
-        timestamp_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        timestamp_utc=datetime.datetime.now(datetime.UTC).isoformat(),
     )
     with _lock:
         _entries.append(entry)
@@ -76,7 +76,7 @@ def log_push(*, serial: str, local_path: pathlib.Path, remote_path: str) -> None
         local_path=str(local_path),
         sha256=sha256,
         size_bytes=size,
-        timestamp_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        timestamp_utc=datetime.datetime.now(datetime.UTC).isoformat(),
     )
     with _lock:
         _entries.append(entry)

@@ -8,13 +8,15 @@ class _FakeAdb:
         self.pulled: list[tuple[str, str]] = []
         self.shell_calls: list[str] = []
 
-    def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0) -> None:
+    def pull(
+        self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0
+    ) -> None:
         self.pulled.append((serial, remote_path))
         local_path.parent.mkdir(parents=True, exist_ok=True)
         if remote_path.endswith("WifiConfigStore.xml"):
             local_path.write_text(
-                "<WifiConfigStoreData><Network><WifiConfiguration><string name=\"SSID\">\"Home\"</string>"
-                "<string name=\"PreSharedKey\">\"pw\"</string><string name=\"KeyMgmt\">WPA_PSK</string>"
+                '<WifiConfigStoreData><Network><WifiConfiguration><string name="SSID">"Home"</string>'
+                '<string name="PreSharedKey">"pw"</string><string name="KeyMgmt">WPA_PSK</string>'
                 "</WifiConfiguration></Network></WifiConfigStoreData>",
                 encoding="utf-8",
             )
@@ -42,7 +44,9 @@ class _FakeDevices:
     def __init__(self) -> None:
         self._adb = _FakeAdb()
 
-    def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0) -> None:
+    def pull(
+        self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0
+    ) -> None:
         return self._adb.pull(serial, remote_path, local_path, timeout_s=timeout_s)
 
     def shell(self, serial: str, command: str, timeout_s: float = 0.0) -> str:
@@ -67,7 +71,9 @@ def test_extract_wifi_passwords_wpa_conf(monkeypatch) -> None:
     dev = _FakeDevices()
     orig_pull = dev.pull
 
-    def pull(serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0) -> None:
+    def pull(
+        serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0
+    ) -> None:
         if remote_path.endswith("WifiConfigStore.xml"):
             raise RuntimeError("no")
         return orig_pull(serial, remote_path, local_path, timeout_s=timeout_s)
@@ -85,7 +91,9 @@ def test_gesture_key_pull_requires_nonempty(tmp_path) -> None:
     p = pull_gesture_key(dev, "SERIAL", tmp_path)  # type: ignore[arg-type]
     assert p.exists()
 
-    def pull_empty(serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0) -> None:
+    def pull_empty(
+        serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0
+    ) -> None:
         local_path.parent.mkdir(parents=True, exist_ok=True)
         local_path.write_bytes(b"")
 
@@ -120,7 +128,11 @@ def test_crack_password_with_rules_leetspeak(tmp_path, monkeypatch) -> None:
     wl = tmp_path / "w2.txt"
     wl.write_text("test\n", encoding="utf-8")
     target = lockknife_core.sha256_hex(b"73$7")
-    monkeypatch.setattr(lockknife_core, "dictionary_attack_rules", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("x")))
+    monkeypatch.setattr(
+        lockknife_core,
+        "dictionary_attack_rules",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("x")),
+    )
     found = crack_password_with_rules(target, "sha256", wl, max_suffix=0)
     assert found == "73$7"
 
@@ -132,7 +144,11 @@ def test_crack_password_with_rules_suffix_loop(tmp_path, monkeypatch) -> None:
     wl = tmp_path / "w3.txt"
     wl.write_text("test\n", encoding="utf-8")
     target = lockknife_core.sha256_hex(b"test5")
-    monkeypatch.setattr(lockknife_core, "dictionary_attack_rules", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("x")))
+    monkeypatch.setattr(
+        lockknife_core,
+        "dictionary_attack_rules",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("x")),
+    )
     found = crack_password_with_rules(target, "sha256", wl, max_suffix=6)
     assert found == "test5"
 
@@ -147,14 +163,18 @@ def test_recover_gesture_from_keyfile_and_device(tmp_path) -> None:
     assert recover_gesture_from_keyfile(p) == "1-2-3-4"
 
     class _Adb:
-        def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0) -> None:
+        def pull(
+            self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0
+        ) -> None:
             local_path.parent.mkdir(parents=True, exist_ok=True)
             local_path.write_bytes(key_bytes)
 
     class _Dev:
         _adb = _Adb()
 
-        def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0) -> None:
+        def pull(
+            self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 0.0
+        ) -> None:
             return self._adb.pull(serial, remote_path, local_path, timeout_s=timeout_s)
 
         def has_root(self, serial: str) -> bool:

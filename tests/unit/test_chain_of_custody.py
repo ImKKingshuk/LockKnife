@@ -1,14 +1,21 @@
 import hashlib
 import pathlib
 
-from lockknife.modules.reporting.chain_of_custody import EvidenceItem, build_chain_of_custody_payload, generate_chain_of_custody, verify_chain_of_custody
+from lockknife.modules.reporting.chain_of_custody import (
+    EvidenceItem,
+    build_chain_of_custody_payload,
+    generate_chain_of_custody,
+    verify_chain_of_custody,
+)
 
 
 def test_chain_of_custody_autohash(tmp_path: pathlib.Path) -> None:
     p = tmp_path / "evidence.bin"
     p.write_bytes(b"abc")
     expected = hashlib.sha256(b"abc").hexdigest()
-    text = generate_chain_of_custody(case_id="C1", examiner="E", notes=None, evidence=[EvidenceItem(name="x", path=str(p))])
+    text = generate_chain_of_custody(
+        case_id="C1", examiner="E", notes=None, evidence=[EvidenceItem(name="x", path=str(p))]
+    )
     assert expected in text
 
 

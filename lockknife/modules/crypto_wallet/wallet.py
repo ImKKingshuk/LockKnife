@@ -10,6 +10,7 @@ from lockknife.core.logging import get_logger
 
 log = get_logger()
 
+
 @dataclasses.dataclass(frozen=True)
 class WalletAddress:
     address: str
@@ -30,7 +31,9 @@ _RE_ETH = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
 _RE_BTC = re.compile(r"\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b")
 
 
-def extract_wallet_addresses_from_sqlite(path: pathlib.Path, limit: int = 5000) -> list[WalletAddress]:
+def extract_wallet_addresses_from_sqlite(
+    path: pathlib.Path, limit: int = 5000
+) -> list[WalletAddress]:
     text = path.read_bytes().decode("utf-8", errors="ignore")
     out: dict[str, WalletAddress] = {}
     for m in _RE_ETH.finditer(text):
@@ -55,7 +58,9 @@ def lookup_wallet_address(address: str, kind: str) -> WalletLookup:
             url = f"https://api.blockcypher.com/v1/btc/main/addrs/{a}/balance"
         else:
             url = f"https://api.blockcypher.com/v1/eth/main/addrs/{a}/balance"
-        raw = http_get_json(url, timeout_s=20.0, max_attempts=4, cache_ttl_s=10 * 60, rate_limit_per_s=1.0)
+        raw = http_get_json(
+            url, timeout_s=20.0, max_attempts=4, cache_ttl_s=10 * 60, rate_limit_per_s=1.0
+        )
         balance = raw.get("final_balance")
         tx_count = raw.get("n_tx")
         return WalletLookup(
@@ -74,7 +79,14 @@ def enrich_wallet_addresses(addrs: list[WalletAddress]) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for w in addrs:
         lk = lookup_wallet_address(w.address, w.kind)
-        out.append({"address": w.address, "kind": w.kind, "source": w.source, "lookup": dataclasses.asdict(lk)})
+        out.append(
+            {
+                "address": w.address,
+                "kind": w.kind,
+                "source": w.source,
+                "lookup": dataclasses.asdict(lk),
+            }
+        )
     return out
 
 
@@ -86,7 +98,9 @@ def list_wallet_transactions(address: str, kind: str, *, limit: int = 50) -> lis
     try:
         base = "btc" if k == "btc" else "eth"
         url = f"https://api.blockcypher.com/v1/{base}/main/addrs/{a}"
-        raw = http_get_json(url, timeout_s=20.0, max_attempts=4, cache_ttl_s=10 * 60, rate_limit_per_s=1.0)
+        raw = http_get_json(
+            url, timeout_s=20.0, max_attempts=4, cache_ttl_s=10 * 60, rate_limit_per_s=1.0
+        )
         txrefs = raw.get("txrefs") if isinstance(raw, dict) else None
         if not isinstance(txrefs, list):
             return []

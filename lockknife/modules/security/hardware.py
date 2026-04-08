@@ -29,7 +29,11 @@ def analyze_hardware_security(devices: DeviceManager, serial: str) -> HardwareSe
             break
     fp = props.get("ro.hardware.fingerprint") or props.get("ro.hardware.biometrics.fingerprint")
     face = props.get("ro.hardware.biometrics.face")
-    knox = props.get("ro.config.knox") or props.get("ro.vendor.knox.version") or props.get("ro.boot.knox")
+    knox = (
+        props.get("ro.config.knox")
+        or props.get("ro.vendor.knox.version")
+        or props.get("ro.boot.knox")
+    )
     return HardwareSecurityStatus(
         serial=serial,
         keystore_hw=ks,

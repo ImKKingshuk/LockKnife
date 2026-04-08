@@ -34,7 +34,10 @@ def test_decompile_inspection_manifest_and_signing_helpers(tmp_path: pathlib.Pat
         archive.writestr("classes.dex", b"dex")
         archive.writestr("lib/arm64-v8a/libx.so", b"so")
         archive.writestr("META-INF/CERT.RSA", b"sig")
-        archive.writestr("assets/config.json", '{"endpoint":"https://api.example.com","api_key":"secret-key","pin":"sha256/AAAAAAAAAAAA"}')
+        archive.writestr(
+            "assets/config.json",
+            '{"endpoint":"https://api.example.com","api_key":"secret-key","pin":"sha256/AAAAAAAAAAAA"}',
+        )
         archive.writestr("res/raw/hosts.txt", "direct.example.com")
 
     inventory = inspect_mod._archive_inventory(apk)
@@ -69,12 +72,25 @@ def test_decompile_inspection_manifest_and_signing_helpers(tmp_path: pathlib.Pat
 
 
 def test_decompile_inspection_misc_helpers() -> None:
-    assert inspect_mod._android_attr(types.SimpleNamespace(get=lambda key: {"android:name": "Main", "name": "Fallback"}.get(key)), "name") == "Main"
+    assert (
+        inspect_mod._android_attr(
+            types.SimpleNamespace(
+                get=lambda key: {"android:name": "Main", "name": "Fallback"}.get(key)
+            ),
+            "name",
+        )
+        == "Main"
+    )
     assert inspect_mod._coerce_manifest_bool("yes") is True
     assert inspect_mod._coerce_manifest_bool("off") is False
     assert inspect_mod._clean_strings([" a ", "a", "", "b"]) == ["a", "b"]
     assert inspect_mod._apk_method(types.SimpleNamespace(version=lambda: "1.0"), "version") == "1.0"
-    assert inspect_mod._apk_method(types.SimpleNamespace(version=lambda x: x), "version", default="fallback") == "fallback"
+    assert (
+        inspect_mod._apk_method(
+            types.SimpleNamespace(version=lambda x: x), "version", default="fallback"
+        )
+        == "fallback"
+    )
     assert inspect_mod._normalize_component_name("com.example", ".Main") == "com.example.Main"
     assert inspect_mod._string_preview("x" * 120).endswith("...")
     assert inspect_mod._redact_secret("super-secret-token-value").startswith("super-")

@@ -25,7 +25,9 @@ def validate_android_package_name(package_name: str) -> str:
     return candidate
 
 
-def pull_apk_from_device(devices: DeviceManager, serial: str, package_name: str, *, timeout_s: float = 180.0) -> pathlib.Path:
+def pull_apk_from_device(
+    devices: DeviceManager, serial: str, package_name: str, *, timeout_s: float = 180.0
+) -> pathlib.Path:
     package_name = validate_android_package_name(package_name)
     if not devices.has_root(serial):
         raise DeviceError("Root required to pull APK from /data/app")
@@ -55,6 +57,8 @@ def pull_apk_from_device(devices: DeviceManager, serial: str, package_name: str,
         return local
     finally:
         try:
-            devices.shell(serial, f'su -c "rm -f {_sh_quote(tmp_remote)} 2>/dev/null"', timeout_s=10.0)
+            devices.shell(
+                serial, f'su -c "rm -f {_sh_quote(tmp_remote)} 2>/dev/null"', timeout_s=10.0
+            )
         except Exception:
             log.warning("apk_pull_cleanup_failed", exc_info=True, serial=serial, remote=tmp_remote)

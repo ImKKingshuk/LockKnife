@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
 
 _metrics: dict[str, dict[str, float]] = {}
 

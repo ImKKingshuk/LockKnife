@@ -4,23 +4,72 @@ import dataclasses
 import json
 import pathlib
 import re
+from typing import cast
 
 import click
 
 from lockknife.core.case import case_output_path, register_case_artifact
-from lockknife.core.cli_types import ANDROID_PACKAGE, DOMAIN, HASH_HEX, IPV4, READABLE_FILE
 from lockknife.core.cli_instrumentation import LockKnifeGroup
+from lockknife.core.cli_types import ANDROID_PACKAGE, DOMAIN, HASH_HEX, IPV4, READABLE_FILE
 from lockknife.core.logging import get_logger
 from lockknife.core.output import console
 from lockknife.core.serialize import write_json
-from lockknife.modules._case_enrichment_payloads import cve_payload, ioc_payload, stix_payload, taxii_payload, virustotal_payload
-from lockknife.modules.intelligence.cve import android_cve_risk_score, correlate_cves_for_apk_package, correlate_cves_for_kernel_version
-from lockknife.modules.intelligence.ioc import detect_iocs, load_stix_indicators_from_url, load_taxii_indicators
-from lockknife.modules.intelligence.ioc_db import IocRecord, add_iocs, list_iocs, load_feed_config, now, sync_ioc_feeds
+from lockknife.modules._case_enrichment_payloads import (
+    cve_payload,
+    ioc_payload,
+    stix_payload,
+    taxii_payload,
+    virustotal_payload,
+)
+from lockknife.modules.intelligence.cve import (
+    android_cve_risk_score,
+    correlate_cves_for_apk_package,
+    correlate_cves_for_kernel_version,
+)
+from lockknife.modules.intelligence.ioc import (
+    detect_iocs,
+    load_stix_indicators_from_url,
+    load_taxii_indicators,
+)
+from lockknife.modules.intelligence.ioc_db import (
+    IocRecord,
+    add_iocs,
+    list_iocs,
+    load_feed_config,
+    now,
+    sync_ioc_feeds,
+)
 from lockknife.modules.intelligence.otx import OtxError, indicator_reputation
-from lockknife.modules.intelligence.virustotal import domain_report, file_report, ip_report, submit_url_for_analysis, url_report
+from lockknife.modules.intelligence.virustotal import (
+    domain_report,
+    file_report,
+    ip_report,
+    submit_url_for_analysis,
+    url_report,
+)
 
 log = get_logger()
+
+
+def _object_dict(value: object) -> dict[str, object]:
+    return cast(dict[str, object], value) if isinstance(value, dict) else {}
+
+
+def _score_value(data: dict[str, object]) -> int:
+    score = data.get("score")
+    if isinstance(score, bool):
+        return int(score)
+    if isinstance(score, int):
+        return score
+    if isinstance(score, float):
+        return int(score)
+    if isinstance(score, str):
+        try:
+            return int(score)
+        except ValueError:
+            return 0
+    return 0
+
 
 @click.group(help="Threat intelligence helpers (VT, IOC, CVE).", cls=LockKnifeGroup)
 def intel() -> None:
@@ -31,7 +80,9 @@ def _safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._") or "intel"
 
 
-def _resolve_case_output(output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str) -> tuple[pathlib.Path | None, bool]:
+def _resolve_case_output(
+    output: pathlib.Path | None, case_dir: pathlib.Path | None, *, filename: str
+) -> tuple[pathlib.Path | None, bool]:
     if output is not None:
         return output, False
     if case_dir is None:
@@ -68,7 +119,15 @@ def _register_intel_output(
 @click.option("--submit-url")
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def vt_cmd(file_hash: str | None, url_value: str | None, domain: str | None, ip_address: str | None, submit_url: str | None, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def vt_cmd(
+    file_hash: str | None,
+    url_value: str | None,
+    domain: str | None,
+    ip_address: str | None,
+    submit_url: str | None,
+    output: pathlib.Path | None,
+    case_dir: pathlib.Path | None,
+) -> None:
     selected = [("file", file_hash), ("url", url_value), ("domain", domain), ("ip", ip_address)]
     populated = [(kind, value) for kind, value in selected if value]
     if submit_url:
@@ -90,8 +149,12 @@ def vt_cmd(file_hash: str | None, url_value: str | None, domain: str | None, ip_
             report = ip_report(str(indicator))
     if indicator is None:
         raise click.ClickException("Indicator is required")
-    output, derived = _resolve_case_output(output, case_dir, filename=f"intel_virustotal_{_safe_name(str(indicator)[:32])}.json")
-    report = virustotal_payload(str(indicator), report, indicator_type=indicator_type, case_dir=case_dir, output=output)
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"intel_virustotal_{_safe_name(str(indicator)[:32])}.json"
+    )
+    report = virustotal_payload(
+        str(indicator), report, indicator_type=indicator_type, case_dir=case_dir, output=output
+    )
     if output:
         write_json(output, report)
         _register_intel_output(
@@ -99,7 +162,11 @@ def vt_cmd(file_hash: str | None, url_value: str | None, domain: str | None, ip_
             output=output,
             category="intel-virustotal",
             source_command="intel virustotal",
-            metadata={"indicator": indicator, "indicator_type": indicator_type, **(report.get("summary") or {})},
+            metadata={
+                "indicator": indicator,
+                "indicator_type": indicator_type,
+                **(report.get("summary") or {}),
+            },
         )
         if derived:
             console.print(str(output))
@@ -112,7 +179,12 @@ def vt_cmd(file_hash: str | None, url_value: str | None, domain: str | None, ip_
 @click.option("--composite-rules", type=READABLE_FILE)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def ioc_cmd(input_path: pathlib.Path, composite_rules: pathlib.Path | None, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def ioc_cmd(
+    input_path: pathlib.Path,
+    composite_rules: pathlib.Path | None,
+    output: pathlib.Path | None,
+    case_dir: pathlib.Path | None,
+) -> None:
     try:
         data = json.loads(input_path.read_text(encoding="utf-8"))
     except Exception as e:
@@ -125,7 +197,9 @@ def ioc_cmd(input_path: pathlib.Path, composite_rules: pathlib.Path | None, outp
         except Exception as e:
             raise click.ClickException("Invalid composite rules JSON") from e
         rules = parsed_rules if isinstance(parsed_rules, list) else None
-    output, derived = _resolve_case_output(output, case_dir, filename=f"intel_ioc_{_safe_name(input_path.stem)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"intel_ioc_{_safe_name(input_path.stem)}.json"
+    )
     matches = [dataclasses.asdict(m) for m in detect_iocs(data, composite_rules=rules)]
     payload = ioc_payload(matches, input_path=input_path, case_dir=case_dir, output=output)
     if output:
@@ -149,8 +223,12 @@ def ioc_cmd(input_path: pathlib.Path, composite_rules: pathlib.Path | None, outp
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
 def cve_cmd(package_name: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
-    output, derived = _resolve_case_output(output, case_dir, filename=f"intel_cve_{_safe_name(package_name)}.json")
-    data = cve_payload(package_name, correlate_cves_for_apk_package(package_name), case_dir=case_dir, output=output)
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"intel_cve_{_safe_name(package_name)}.json"
+    )
+    data = cve_payload(
+        package_name, correlate_cves_for_apk_package(package_name), case_dir=case_dir, output=output
+    )
     if output:
         write_json(output, data)
         _register_intel_output(
@@ -171,7 +249,12 @@ def cve_cmd(package_name: str, output: pathlib.Path | None, case_dir: pathlib.Pa
 @click.option("--kernel-version")
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def cve_risk_cmd(sdk: int | None, kernel_version: str | None, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def cve_risk_cmd(
+    sdk: int | None,
+    kernel_version: str | None,
+    output: pathlib.Path | None,
+    case_dir: pathlib.Path | None,
+) -> None:
     if sdk is None and not kernel_version:
         raise click.ClickException("Provide --sdk and/or --kernel-version")
     data: dict[str, object] = {}
@@ -179,19 +262,21 @@ def cve_risk_cmd(sdk: int | None, kernel_version: str | None, output: pathlib.Pa
         data["android"] = android_cve_risk_score(sdk)
     if kernel_version:
         data["kernel"] = correlate_cves_for_kernel_version(kernel_version)
-    android_data = data.get("android")
-    kernel_data = data.get("kernel")
+    android_data = _object_dict(data.get("android"))
+    kernel_data = _object_dict(data.get("kernel"))
     summary = {
         "sdk": sdk,
         "kernel_version": kernel_version,
         "max_score": max(
-            int(android_data.get("score") or 0) if isinstance(android_data, dict) else 0,
-            int(kernel_data.get("score") or 0) if isinstance(kernel_data, dict) else 0,
-        )
+            _score_value(android_data),
+            _score_value(kernel_data),
+        ),
     }
     data["summary"] = summary
     suffix = _safe_name(kernel_version or f"sdk_{sdk}")
-    output, derived = _resolve_case_output(output, case_dir, filename=f"intel_cve_risk_{suffix}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"intel_cve_risk_{suffix}.json"
+    )
     if output:
         write_json(output, data)
         _register_intel_output(
@@ -212,16 +297,27 @@ def cve_risk_cmd(sdk: int | None, kernel_version: str | None, output: pathlib.Pa
 @click.option("--db", "db_path", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
-def stix_cmd(url: str, db_path: pathlib.Path | None, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+def stix_cmd(
+    url: str,
+    db_path: pathlib.Path | None,
+    output: pathlib.Path | None,
+    case_dir: pathlib.Path | None,
+) -> None:
     if not url.strip().startswith("https://"):
         raise click.ClickException("Only https:// URLs are supported")
     matches = [dataclasses.asdict(m) for m in load_stix_indicators_from_url(url)]
     if db_path:
-        recs = [IocRecord(ioc=m["ioc"], kind=m["kind"], source=url, first_seen=now()) for m in matches]
-    output, derived = _resolve_case_output(output, case_dir, filename=f"intel_stix_{_safe_name(url)}.json")
+        recs = [
+            IocRecord(ioc=m["ioc"], kind=m["kind"], source=url, first_seen=now()) for m in matches
+        ]
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"intel_stix_{_safe_name(url)}.json"
+    )
     payload = stix_payload(url, matches, case_dir=case_dir, output=output)
     if db_path:
-        recs = [IocRecord(ioc=m["ioc"], kind=m["kind"], source=url, first_seen=now()) for m in matches]
+        recs = [
+            IocRecord(ioc=m["ioc"], kind=m["kind"], source=url, first_seen=now()) for m in matches
+        ]
         payload["added"] = add_iocs(db_path, recs)
     if output:
         write_json(output, payload)
@@ -230,7 +326,12 @@ def stix_cmd(url: str, db_path: pathlib.Path | None, output: pathlib.Path | None
             output=output,
             category="intel-stix",
             source_command="intel stix",
-            metadata={"url": url, "db_path": str(db_path) if db_path else None, "match_count": len(matches), **(payload.get("summary") or {})},
+            metadata={
+                "url": url,
+                "db_path": str(db_path) if db_path else None,
+                "match_count": len(matches),
+                **(payload.get("summary") or {}),
+            },
         )
         if derived:
             console.print(str(output))
@@ -272,7 +373,9 @@ def taxii_cmd(
             password=password,
         )
     ]
-    output, derived = _resolve_case_output(output, case_dir, filename=f"intel_taxii_{_safe_name(collection_id or api_root_url)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"intel_taxii_{_safe_name(collection_id or api_root_url)}.json"
+    )
     payload = taxii_payload(
         api_root_url,
         matches,
@@ -285,7 +388,10 @@ def taxii_cmd(
         password=password,
     )
     if db_path:
-        recs = [IocRecord(ioc=m["ioc"], kind=m["kind"], source=api_root_url, first_seen=now()) for m in matches]
+        recs = [
+            IocRecord(ioc=m["ioc"], kind=m["kind"], source=api_root_url, first_seen=now())
+            for m in matches
+        ]
         payload["added"] = add_iocs(db_path, recs)
     if output:
         write_json(output, payload)
@@ -309,7 +415,9 @@ def taxii_cmd(
 
 
 @intel.command("ioc-db-list")
-@click.option("--db", "db_path", type=click.Path(dir_okay=False, path_type=pathlib.Path), required=True)
+@click.option(
+    "--db", "db_path", type=click.Path(dir_okay=False, path_type=pathlib.Path), required=True
+)
 @click.option("--limit", type=int, default=200)
 def ioc_db_list_cmd(db_path: pathlib.Path, limit: int) -> None:
     rows = [dataclasses.asdict(r) for r in list_iocs(db_path, limit=limit)]
@@ -317,12 +425,18 @@ def ioc_db_list_cmd(db_path: pathlib.Path, limit: int) -> None:
 
 
 @intel.command("ioc-db-sync")
-@click.option("--db", "db_path", type=click.Path(dir_okay=False, path_type=pathlib.Path), required=True)
+@click.option(
+    "--db", "db_path", type=click.Path(dir_okay=False, path_type=pathlib.Path), required=True
+)
 @click.option("--config", type=READABLE_FILE, required=True)
 @click.option("--force", is_flag=True, help="Refresh even if feeds were synced recently.")
 @click.option("--min-refresh-seconds", type=int, default=6 * 3600, show_default=True)
-def ioc_db_sync_cmd(db_path: pathlib.Path, config: pathlib.Path, force: bool, min_refresh_seconds: int) -> None:
-    payload = sync_ioc_feeds(db_path, load_feed_config(config), force=force, min_refresh_seconds=min_refresh_seconds)
+def ioc_db_sync_cmd(
+    db_path: pathlib.Path, config: pathlib.Path, force: bool, min_refresh_seconds: int
+) -> None:
+    payload = sync_ioc_feeds(
+        db_path, load_feed_config(config), force=force, min_refresh_seconds=min_refresh_seconds
+    )
     console.print_json(json.dumps(payload))
 
 
@@ -348,7 +462,11 @@ def reputation_cmd(
         try:
             vt = file_report(file_hash)
             payload["virustotal"] = vt
-            stats = (vt.get("attributes") or {}).get("last_analysis_stats") if isinstance(vt, dict) else None
+            stats = (
+                (vt.get("attributes") or {}).get("last_analysis_stats")
+                if isinstance(vt, dict)
+                else None
+            )
             if isinstance(stats, dict):
                 malicious = int(stats.get("malicious") or 0)
                 suspicious = int(stats.get("suspicious") or 0)
@@ -380,7 +498,9 @@ def reputation_cmd(
 
     payload["combined_score"] = combined_score
     subject = file_hash or domain or ip or package or "reputation"
-    output, derived = _resolve_case_output(output, case_dir, filename=f"intel_reputation_{_safe_name(subject)}.json")
+    output, derived = _resolve_case_output(
+        output, case_dir, filename=f"intel_reputation_{_safe_name(subject)}.json"
+    )
     if output:
         write_json(output, payload)
         _register_intel_output(
@@ -388,7 +508,13 @@ def reputation_cmd(
             output=output,
             category="intel-reputation",
             source_command="intel reputation",
-            metadata={"hash": file_hash, "domain": domain, "ip": ip, "package": package, "combined_score": combined_score},
+            metadata={
+                "hash": file_hash,
+                "domain": domain,
+                "ip": ip,
+                "package": package,
+                "combined_score": combined_score,
+            },
         )
         if derived:
             console.print(str(output))

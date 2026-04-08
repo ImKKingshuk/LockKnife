@@ -90,7 +90,9 @@ def extract_sms(devices: DeviceManager, serial: str, limit: int = 200) -> list[S
             try:
                 return _parse_mmssms_db(local, limit)
             except sqlite3.Error:
-                log.debug("sms_db_parse_failed", exc_info=True, serial=serial, local_path=str(local))
+                log.debug(
+                    "sms_db_parse_failed", exc_info=True, serial=serial, local_path=str(local)
+                )
                 continue
 
     raise DeviceError("Unable to extract SMS database")

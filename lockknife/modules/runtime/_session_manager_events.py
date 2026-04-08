@@ -58,7 +58,9 @@ def build_runtime_failure_context(
         if isinstance(compatibility, dict):
             for finding in compatibility.get("findings") or []:
                 if isinstance(finding, dict) and finding.get("severity") in {"warn", "fail"}:
-                    compatibility_findings.append(str(finding.get("title") or finding.get("rule_id") or "compatibility"))
+                    compatibility_findings.append(
+                        str(finding.get("title") or finding.get("rule_id") or "compatibility")
+                    )
     return {
         "status": status or "unknown",
         "error_message": error_message or None,

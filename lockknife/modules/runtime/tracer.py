@@ -26,4 +26,3 @@ Java.perform(function() {{
   }}
 }});
 """.strip()
-

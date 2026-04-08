@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-
-
-from typing import Any, Callable
-
-
+from collections.abc import Callable
+from typing import Any
 
 from lockknife.modules.runtime._compat_registry_match import evaluate_runtime_compatibility
-
-from lockknife.modules.runtime.frida_manager import FridaManager
-from lockknife.modules.runtime.hooks import list_builtin_runtime_scripts, suggest_builtin_runtime_scripts
-
 from lockknife.modules.runtime._session_manager_shared import _recovery_hint
-
+from lockknife.modules.runtime.frida_manager import FridaManager
+from lockknife.modules.runtime.hooks import (
+    list_builtin_runtime_scripts,
+    suggest_builtin_runtime_scripts,
+)
 
 
 def runtime_preflight(
@@ -28,11 +25,13 @@ def runtime_preflight(
     try:
         manager_factory = manager_factory or FridaManager
         manager = manager_factory(device_id)
-        checks.append({
-            "check": "frida-client",
-            "status": "pass",
-            "message": "Frida client bindings loaded successfully.",
-        })
+        checks.append(
+            {
+                "check": "frida-client",
+                "status": "pass",
+                "message": "Frida client bindings loaded successfully.",
+            }
+        )
     except Exception as exc:
         message = str(exc)
         checks.append({"check": "frida-client", "status": "fail", "message": message})
@@ -75,13 +74,17 @@ def runtime_preflight(
 
     device: dict[str, Any] | None = None
     try:
-        device = manager.describe_device() if hasattr(manager, "describe_device") else {"id": device_id}
-        checks.append({
-            "check": "device",
-            "status": "pass",
-            "message": f"Frida device ready: {device.get('id') or device_id or 'usb'}.",
-            "device": device,
-        })
+        device = (
+            manager.describe_device() if hasattr(manager, "describe_device") else {"id": device_id}
+        )
+        checks.append(
+            {
+                "check": "device",
+                "status": "pass",
+                "message": f"Frida device ready: {device.get('id') or device_id or 'usb'}.",
+                "device": device,
+            }
+        )
     except Exception as exc:
         checks.append({"check": "device", "status": "fail", "message": str(exc)})
         return {
@@ -123,7 +126,11 @@ def runtime_preflight(
 
     available: bool | None = None
     try:
-        available = manager.application_available(app_id) if hasattr(manager, "application_available") else False
+        available = (
+            manager.application_available(app_id)
+            if hasattr(manager, "application_available")
+            else False
+        )
         checks.append(
             {
                 "check": "application",
@@ -209,7 +216,9 @@ def runtime_preflight(
         "warned_checks": warned_checks,
         "compatibility_warning_count": compatibility.get("warning_count") or 0,
         "compatibility_fail_count": compatibility.get("fail_count") or 0,
-        "builtin_script_suggestion_count": len(suggest_builtin_runtime_scripts(app_id, session_kind=session_kind)),
+        "builtin_script_suggestion_count": len(
+            suggest_builtin_runtime_scripts(app_id, session_kind=session_kind)
+        ),
         "recommended_next_action": readiness_recommended,
     }
     available_scripts = list_builtin_runtime_scripts()
@@ -230,21 +239,29 @@ def runtime_preflight(
         "available_builtin_scripts": available_scripts,
         "suggested_builtin_scripts": suggested_scripts,
         "readiness": {
-            "status": "blocked" if overall == "fail" else ("ready-with-warnings" if warned_checks else "ready"),
+            "status": "blocked"
+            if overall == "fail"
+            else ("ready-with-warnings" if warned_checks else "ready"),
             "ready": overall != "fail",
             "blocked_checks": blocked_checks,
             "warned_checks": warned_checks,
             "recommended_action": readiness_recommended,
-            "next_actions": _next_actions(attach_mode=attach_mode, running_pid=running_pid, overall=overall),
+            "next_actions": _next_actions(
+                attach_mode=attach_mode, running_pid=running_pid, overall=overall
+            ),
         },
         "runtime_dashboard": runtime_dashboard,
-        "recovery_hint": None if overall == "pass" else "Review the failed/warned checks before launching or reconnecting the session.",
+        "recovery_hint": None
+        if overall == "pass"
+        else "Review the failed/warned checks before launching or reconnecting the session.",
     }
 
 
 def _recommended_action(*, attach_mode: str, overall: str, blocked_checks: list[str]) -> str:
     if overall == "pass" and attach_mode == "attach":
-        return "Attach readiness looks good; reconnect or launch while the target process stays alive."
+        return (
+            "Attach readiness looks good; reconnect or launch while the target process stays alive."
+        )
     if overall == "pass":
         return "Spawn readiness looks good; launch when you are ready for the app to restart under Frida."
     if "attach-target" in blocked_checks:
@@ -252,7 +269,9 @@ def _recommended_action(*, attach_mode: str, overall: str, blocked_checks: list[
     return "Clear the failed checks before starting or reconnecting a managed runtime session."
 
 
-def _next_actions(*, attach_mode: str, running_pid: int | None, overall: str) -> list[dict[str, str]]:
+def _next_actions(
+    *, attach_mode: str, running_pid: int | None, overall: str
+) -> list[dict[str, str]]:
     actions = []
     if attach_mode == "attach":
         actions.append(

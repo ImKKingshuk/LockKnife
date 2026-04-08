@@ -16,7 +16,9 @@ def device() -> None:
 
 
 @device.command("list")
-@click.option("--format", "fmt", type=click.Choice(["table", "json"], case_sensitive=False), default="table")
+@click.option(
+    "--format", "fmt", type=click.Choice(["table", "json"], case_sensitive=False), default="table"
+)
 @click.pass_obj
 def list_devices(app: Any, fmt: str) -> None:
     handles = app.devices.list_handles()
@@ -32,7 +34,14 @@ def list_devices(app: Any, fmt: str) -> None:
     table.add_column("Device")
     table.add_column("Transport")
     for h in handles:
-        table.add_row(h.serial, h.adb_state, h.state.value, h.model or "", h.device or "", h.transport_id or "")
+        table.add_row(
+            h.serial,
+            h.adb_state,
+            h.state.value,
+            h.model or "",
+            h.device or "",
+            h.transport_id or "",
+        )
     console.print(table)
 
 
@@ -47,7 +56,9 @@ def connect(app: Any, host: str) -> None:
 @device.command("info")
 @click.option("-s", "--serial", required=True)
 @click.option("--all", "all_devices", is_flag=True, default=False)
-@click.option("--format", "fmt", type=click.Choice(["table", "json"], case_sensitive=False), default="table")
+@click.option(
+    "--format", "fmt", type=click.Choice(["table", "json"], case_sensitive=False), default="table"
+)
 @click.pass_obj
 def info(app: Any, serial: str, all_devices: bool, fmt: str) -> None:
     if all_devices:
@@ -90,7 +101,9 @@ def shell(app: Any, serial: str, all_devices: bool, command: tuple[str, ...]) ->
     cmd = " ".join(command)
     if all_devices:
         serials = app.devices.authorized_serials()
-        results = app.devices.map_devices(lambda s: app.adb.shell(s, cmd, timeout_s=120.0), serials=serials)
+        results = app.devices.map_devices(
+            lambda s: app.adb.shell(s, cmd, timeout_s=120.0), serials=serials
+        )
         for s in serials:
             v = results.get(s)
             if isinstance(v, Exception):

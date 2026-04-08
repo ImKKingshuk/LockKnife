@@ -1,15 +1,16 @@
-import dataclasses
 import pathlib
 
 
 def test_score_permissions() -> None:
     from lockknife.modules.apk.permissions import score_permissions
 
-    total, risks = score_permissions([
-        "android.permission.READ_SMS",
-        "android.permission.CAMERA",
-        "nope",
-    ])
+    total, risks = score_permissions(
+        [
+            "android.permission.READ_SMS",
+            "android.permission.CAMERA",
+            "nope",
+        ]
+    )
     assert total > 0
     assert risks[0].score >= risks[-1].score
 
@@ -37,8 +38,12 @@ def test_analyze_apk_builds_combined_risk_summary(monkeypatch) -> None:
             },
             "components": {
                 "interaction_analysis": {
-                    "overlaps": [{"type": "custom-scheme", "scheme": "example", "components": ["A", "B"]}],
-                    "permission_gaps": [{"component": "com.example.OpenActivity", "bucket": "activities"}],
+                    "overlaps": [
+                        {"type": "custom-scheme", "scheme": "example", "components": ["A", "B"]}
+                    ],
+                    "permission_gaps": [
+                        {"component": "com.example.OpenActivity", "bucket": "activities"}
+                    ],
                     "custom_scheme_overlaps": [{"scheme": "example", "components": ["A", "B"]}],
                 },
                 "providers": [{"name": "com.example.Provider", "exported": True}],
@@ -52,23 +57,49 @@ def test_analyze_apk_builds_combined_risk_summary(monkeypatch) -> None:
                     "native_library_count": 1,
                     "jni_entry_point_count": 2,
                 },
-                "hardcoded_secret_indicators": [{"file": "classes.dex", "preview": "api_ke…123456"}],
+                "hardcoded_secret_indicators": [
+                    {"file": "classes.dex", "preview": "api_ke…123456"}
+                ],
                 "trackers": [{"id": "appsflyer", "label": "AppsFlyer"}],
                 "code_signals": [
-                    {"id": "dynamic-code-loading", "label": "Dynamic code loading APIs", "severity": "medium"},
-                    {"id": "webview-js-bridge", "label": "WebView JavaScript bridge", "severity": "medium"},
-                    {"id": "insecure-storage-world-readable", "label": "World-readable storage APIs", "severity": "high"},
+                    {
+                        "id": "dynamic-code-loading",
+                        "label": "Dynamic code loading APIs",
+                        "severity": "medium",
+                    },
+                    {
+                        "id": "webview-js-bridge",
+                        "label": "WebView JavaScript bridge",
+                        "severity": "medium",
+                    },
+                    {
+                        "id": "insecure-storage-world-readable",
+                        "label": "World-readable storage APIs",
+                        "severity": "high",
+                    },
                     {"id": "crypto-ecb-mode", "label": "ECB cryptography mode", "severity": "high"},
-                    {"id": "crypto-static-iv", "label": "Static IV cryptography", "severity": "high"},
+                    {
+                        "id": "crypto-static-iv",
+                        "label": "Static IV cryptography",
+                        "severity": "high",
+                    },
                 ],
-                "native_libraries": [{"file": "lib/arm64-v8a/libnative.so", "jni_entry_point_count": 2}],
+                "native_libraries": [
+                    {"file": "lib/arm64-v8a/libnative.so", "jni_entry_point_count": 2}
+                ],
             },
             "signing": {
                 "has_debug_or_test_certificate": True,
                 "certificates": [],
                 "strict_verification": {
                     "status": "warn",
-                    "findings": [{"id": "legacy-v1-only-signing", "severity": "warn", "title": "Legacy signing"}],
+                    "findings": [
+                        {
+                            "id": "legacy-v1-only-signing",
+                            "severity": "warn",
+                            "title": "Legacy signing",
+                        }
+                    ],
                 },
             },
         },
@@ -117,14 +148,23 @@ def test_vulnerability_report_merges_static_and_cve_signals(monkeypatch, tmp_pat
             "network_security_config": None,
             "uses_libraries": ["libssl"],
             "component_summary": {"exported_total": 1},
-            "component_interactions": {"permission_gaps": [{"component": "A"}], "overlaps": [{"scheme": "example"}]},
+            "component_interactions": {
+                "permission_gaps": [{"component": "A"}],
+                "overlaps": [{"scheme": "example"}],
+            },
             "components": {"activities": [], "services": [], "receivers": [], "providers": []},
             "string_analysis": {
                 "stats": {"secret_indicator_count": 0, "jni_entry_point_count": 1},
                 "code_signals": [
-                    {"id": "insecure-storage-world-readable", "label": "World-readable storage APIs", "severity": "high"},
+                    {
+                        "id": "insecure-storage-world-readable",
+                        "label": "World-readable storage APIs",
+                        "severity": "high",
+                    },
                 ],
-                "native_libraries": [{"file": "lib/arm64-v8a/libnative.so", "jni_entry_point_count": 1}],
+                "native_libraries": [
+                    {"file": "lib/arm64-v8a/libnative.so", "jni_entry_point_count": 1}
+                ],
             },
             "signing": {"has_debug_or_test_certificate": False},
         },
@@ -158,5 +198,10 @@ def test_vulnerability_report_merges_static_and_cve_signals(monkeypatch, tmp_pat
     assert rep.cve_summary["component_cve_count"] == 1
     assert rep.risk_summary["score"] > analysis.risk_summary["score"]
     assert rep.findings[0]["id"] == "debuggable"
-    assert {item["id"] for item in rep.findings} >= {"insecure_storage_world_readable", "jni_native_surface", "component_permission_gap", "intent_filter_overlap"}
+    assert {item["id"] for item in rep.findings} >= {
+        "insecure_storage_world_readable",
+        "jni_native_surface",
+        "component_permission_gap",
+        "intent_filter_overlap",
+    }
     assert rep.manifest["package"] == "com.example"

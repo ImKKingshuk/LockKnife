@@ -21,4 +21,3 @@ def import_submodules(package: str) -> None:
     module = importlib.import_module(package)
     for m in pkgutil.walk_packages(module.__path__, prefix=f"{package}."):
         importlib.import_module(m.name)
-

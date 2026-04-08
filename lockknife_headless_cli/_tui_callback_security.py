@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 
 def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[str, Any] | None:
@@ -188,7 +189,10 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 category="security-selinux",
                 source_command="security selinux",
                 device_serial=serial,
-                metadata={"status": status.get("status") or status.get("mode"), "risk_level": (status.get("posture") or {}).get("risk_level")},
+                metadata={
+                    "status": status.get("status") or status.get("mode"),
+                    "risk_level": (status.get("posture") or {}).get("risk_level"),
+                },
             )
             return _ok(status, f"SELinux status saved to {output}")
         return _ok(status, "SELinux status collected")
@@ -228,7 +232,11 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             filename=f"security_network_scan_{_safe_name(serial)}.json",
         )
         scan = scan_network(app.devices, serial)
-        payload = {"dns": scan.dns, "dns_cache": scan.dns_cache, "listening": [dataclasses.asdict(p) for p in scan.listening]}
+        payload = {
+            "dns": scan.dns,
+            "dns_cache": scan.dns_cache,
+            "listening": [dataclasses.asdict(p) for p in scan.listening],
+        }
         if output is not None:
             write_json(output, payload)
             _register_case_output(
@@ -307,7 +315,12 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             apk_path=apk,
             artifacts_path=artifacts,
         )
-        name_hint = report.get("package") or (artifacts.stem if artifacts is not None else None) or (apk.stem if apk is not None else None) or "attack_surface"
+        name_hint = (
+            report.get("package")
+            or (artifacts.stem if artifacts is not None else None)
+            or (apk.stem if apk is not None else None)
+            or "attack_surface"
+        )
         output, _derived = _resolve_case_output(
             _path_param(params.get("output")),
             case_dir,
@@ -321,9 +334,13 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             payload["output"] = str(output)
             write_json(output, payload)
             probe_results = payload.get("probe_results")
-            probe_results_dict: dict[str, Any] = probe_results if isinstance(probe_results, dict) else {}
+            probe_results_dict: dict[str, Any] = (
+                probe_results if isinstance(probe_results, dict) else {}
+            )
             risk_summary = payload.get("risk_summary")
-            risk_summary_dict: dict[str, Any] = risk_summary if isinstance(risk_summary, dict) else {}
+            risk_summary_dict: dict[str, Any] = (
+                risk_summary if isinstance(risk_summary, dict) else {}
+            )
             _register_case_output(
                 case_dir,
                 path=output,

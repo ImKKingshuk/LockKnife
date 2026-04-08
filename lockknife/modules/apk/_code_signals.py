@@ -5,14 +5,25 @@ import zipfile
 from typing import Any
 
 from lockknife.modules.apk._decompile_inspection import _redact_secret, _string_preview
-from lockknife.modules.apk._decompile_shared import ASCII_STRING_RE, CERT_PIN_RE, HOST_HINT_RE, SECRET_INDICATOR_RE, TEXT_FILE_SUFFIXES, URL_RE
-
+from lockknife.modules.apk._decompile_shared import (
+    ASCII_STRING_RE,
+    CERT_PIN_RE,
+    HOST_HINT_RE,
+    SECRET_INDICATOR_RE,
+    TEXT_FILE_SUFFIXES,
+    URL_RE,
+)
 
 _LIBRARY_PATTERNS = (
     ("okhttp", "OkHttp", "network", ("okhttp3", "okhttp/", "okhttpclient")),
     ("retrofit", "Retrofit", "network", ("retrofit2", "retrofit/")),
     ("firebase", "Firebase", "platform", ("firebase", "google.firebase")),
-    ("play-services", "Google Play Services", "platform", ("com.google.android.gms", "play-services")),
+    (
+        "play-services",
+        "Google Play Services",
+        "platform",
+        ("com.google.android.gms", "play-services"),
+    ),
     ("webview", "Android WebView", "web", ("android.webkit", "webview")),
     ("sentry", "Sentry", "telemetry", ("io.sentry", "sentry")),
     ("bugsnag", "Bugsnag", "telemetry", ("bugsnag",)),
@@ -20,7 +31,12 @@ _LIBRARY_PATTERNS = (
 )
 
 _TRACKER_PATTERNS = (
-    ("firebase-analytics", "Firebase Analytics", "analytics", ("firebaseanalytics", "google.firebase.analytics")),
+    (
+        "firebase-analytics",
+        "Firebase Analytics",
+        "analytics",
+        ("firebaseanalytics", "google.firebase.analytics"),
+    ),
     ("appsflyer", "AppsFlyer", "attribution", ("appsflyer",)),
     ("adjust", "Adjust", "attribution", ("com.adjust", "adjustsdk")),
     ("mixpanel", "Mixpanel", "analytics", ("mixpanel",)),
@@ -145,7 +161,9 @@ def scan_archive_code_signals(apk_path: pathlib.Path) -> dict[str, Any]:
     library_items = _finalize_named_matches(libraries)
     tracker_items = _finalize_named_matches(trackers)
     signal_items = _finalize_signal_matches(signals)
-    jni_entry_point_count = sum(int(item.get("jni_entry_point_count") or 0) for item in native_libraries)
+    jni_entry_point_count = sum(
+        int(item.get("jni_entry_point_count") or 0) for item in native_libraries
+    )
     return {
         "stats": {
             "scanned_file_count": len(scanned_files),
@@ -180,9 +198,7 @@ def _candidate_names(names: list[str]) -> list[str]:
             priority = 0
         elif suffix in TEXT_FILE_SUFFIXES:
             priority = 1
-        elif name.endswith(".dex"):
-            priority = 2
-        elif name.endswith(".so"):
+        elif name.endswith(".dex") or name.endswith(".so"):
             priority = 2
         elif name.startswith("res/") or name.startswith("META-INF/"):
             priority = 3
@@ -195,20 +211,32 @@ def _string_candidates(name: str, raw: bytes) -> list[str]:
     suffix = pathlib.PurePosixPath(name).suffix.lower()
     if suffix in TEXT_FILE_SUFFIXES or name.endswith((".smali", ".kt", ".java")):
         try:
-            return [line for line in raw.decode("utf-8", errors="ignore").splitlines() if line.strip()]
+            return [
+                line for line in raw.decode("utf-8", errors="ignore").splitlines() if line.strip()
+            ]
         except Exception:
             return []
     return [match.decode("utf-8", errors="ignore") for match in ASCII_STRING_RE.findall(raw)]
 
 
-def _match_registry(patterns: tuple[tuple[str, str, str, tuple[str, ...]], ...]) -> dict[str, dict[str, Any]]:
+def _match_registry(
+    patterns: tuple[tuple[str, str, str, tuple[str, ...]], ...],
+) -> dict[str, dict[str, Any]]:
     return {
-        match_id: {"id": match_id, "label": label, "category": category, "tokens": tokens, "evidence": []}
+        match_id: {
+            "id": match_id,
+            "label": label,
+            "category": category,
+            "tokens": tokens,
+            "evidence": [],
+        }
         for match_id, label, category, tokens in patterns
     }
 
 
-def _signal_registry(patterns: tuple[tuple[str, str, str, str, tuple[str, ...]], ...]) -> dict[str, dict[str, Any]]:
+def _signal_registry(
+    patterns: tuple[tuple[str, str, str, str, tuple[str, ...]], ...],
+) -> dict[str, dict[str, Any]]:
     return {
         signal_id: {
             "id": signal_id,
@@ -222,13 +250,17 @@ def _signal_registry(patterns: tuple[tuple[str, str, str, str, tuple[str, ...]],
     }
 
 
-def _record_named_patterns(registry: dict[str, dict[str, Any]], lowered: str, file_name: str, original: str) -> None:
+def _record_named_patterns(
+    registry: dict[str, dict[str, Any]], lowered: str, file_name: str, original: str
+) -> None:
     for item in registry.values():
         if any(token in lowered for token in item["tokens"]):
             _append_evidence(item["evidence"], file_name, original)
 
 
-def _record_signal_patterns(registry: dict[str, dict[str, Any]], lowered: str, file_name: str, original: str) -> None:
+def _record_signal_patterns(
+    registry: dict[str, dict[str, Any]], lowered: str, file_name: str, original: str
+) -> None:
     for item in registry.values():
         if any(token in lowered for token in item["tokens"]):
             _append_evidence(item["evidence"], file_name, original)

@@ -3,15 +3,20 @@ import types
 
 import pytest
 
-from lockknife.modules.reporting.pdf_report import PdfReportError, pdf_backend_status, render_pdf_report, write_pdf_report
+from lockknife.modules.reporting.pdf_report import (
+    PdfReportError,
+    pdf_backend_status,
+    render_pdf_report,
+    write_pdf_report,
+)
 
 
 def test_render_pdf_report_if_backend_available(tmp_path: pathlib.Path) -> None:
     try:
-        import weasyprint  # type: ignore
+        pass  # type: ignore
     except Exception:
         try:
-            import xhtml2pdf  # type: ignore
+            pass  # type: ignore
         except Exception:
             pytest.skip("No PDF backend installed")
 
@@ -49,7 +54,9 @@ def test_pdf_backend_status_detects_available_backend(monkeypatch: pytest.Monkey
     import lockknife.modules.reporting.pdf_report as pdf_mod
 
     monkeypatch.setattr(pdf_mod, "_load_weasyprint_html", lambda: object())
-    monkeypatch.setattr(pdf_mod, "_load_xhtml2pdf_pisa", lambda: (_ for _ in ()).throw(ImportError("missing")))
+    monkeypatch.setattr(
+        pdf_mod, "_load_xhtml2pdf_pisa", lambda: (_ for _ in ()).throw(ImportError("missing"))
+    )
 
     status = pdf_backend_status()
     assert status["available"] is True
@@ -57,7 +64,9 @@ def test_pdf_backend_status_detects_available_backend(monkeypatch: pytest.Monkey
     assert status["backends"]["weasyprint"] is True
 
 
-def test_render_pdf_report_falls_back_to_xhtml2pdf_when_weasyprint_render_fails(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
+def test_render_pdf_report_falls_back_to_xhtml2pdf_when_weasyprint_render_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
     import lockknife.modules.reporting.pdf_report as pdf_mod
 
     tpl = tmp_path / "t.html"
@@ -76,20 +85,29 @@ def test_render_pdf_report_falls_back_to_xhtml2pdf_when_weasyprint_render_fails(
         pdf_mod,
         "_load_xhtml2pdf_pisa",
         lambda: types.SimpleNamespace(
-            CreatePDF=lambda _src, dest, link_callback=None: (dest.write(b"pdf-bytes"), types.SimpleNamespace(err=False))[1]
+            CreatePDF=lambda _src, dest, link_callback=None: (
+                dest.write(b"pdf-bytes"),
+                types.SimpleNamespace(err=False),
+            )[1]
         ),
     )
 
     assert render_pdf_report(tpl, {"case_id": "X"}) == b"pdf-bytes"
 
 
-def test_render_pdf_report_raises_when_no_pdf_backend_available(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
+def test_render_pdf_report_raises_when_no_pdf_backend_available(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
     import lockknife.modules.reporting.pdf_report as pdf_mod
 
     tpl = tmp_path / "t.html"
     tpl.write_text("<h1>{{ case_id }}</h1>", encoding="utf-8")
-    monkeypatch.setattr(pdf_mod, "_load_weasyprint_html", lambda: (_ for _ in ()).throw(ImportError("missing")))
-    monkeypatch.setattr(pdf_mod, "_load_xhtml2pdf_pisa", lambda: (_ for _ in ()).throw(ImportError("missing")))
+    monkeypatch.setattr(
+        pdf_mod, "_load_weasyprint_html", lambda: (_ for _ in ()).throw(ImportError("missing"))
+    )
+    monkeypatch.setattr(
+        pdf_mod, "_load_xhtml2pdf_pisa", lambda: (_ for _ in ()).throw(ImportError("missing"))
+    )
 
     with pytest.raises(PdfReportError, match="requires weasyprint or xhtml2pdf"):
         render_pdf_report(tpl, {"case_id": "X"})

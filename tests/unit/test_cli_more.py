@@ -1,5 +1,4 @@
 import dataclasses
-import json
 import pathlib
 import sys
 from types import SimpleNamespace
@@ -98,18 +97,42 @@ def test_cli_crack_commands(monkeypatch, tmp_path: pathlib.Path) -> None:
     monkeypatch.setattr(crack_cli, "crack_password_with_rules", lambda *_a, **_k: "pass1")
     monkeypatch.setattr(crack_cli, "recover_gesture", lambda *_a, **_k: "1-2-3-4")
     monkeypatch.setattr(crack_cli, "recover_pin", lambda *_a, **_k: "0000")
-    monkeypatch.setattr(crack_cli, "extract_wifi_passwords", lambda *_a, **_k: [_Wifi("ssid", "psk")])
+    monkeypatch.setattr(
+        crack_cli, "extract_wifi_passwords", lambda *_a, **_k: [_Wifi("ssid", "psk")]
+    )
     monkeypatch.setattr(crack_cli, "list_keystore", lambda *_a, **_k: [_Keystore("/data", ["k1"])])
-    monkeypatch.setattr(crack_cli, "pull_passkey_artifacts", lambda *_a, **_k: [_Passkey("rp", "user")])
+    monkeypatch.setattr(
+        crack_cli, "pull_passkey_artifacts", lambda *_a, **_k: [_Passkey("rp", "user")]
+    )
 
     _invoke(crack_cli.crack, ["pin", "--hash", "0" * 64, "--algo", "sha256", "--length", "4"])
-    _invoke(crack_cli.crack, ["password", "--hash", "0" * 64, "--algo", "sha256", "--wordlist", str(wordlist)])
-    _invoke(crack_cli.crack, ["password-rules", "--hash", "0" * 64, "--algo", "sha256", "--wordlist", str(wordlist), "--max-suffix", "1"])
+    _invoke(
+        crack_cli.crack,
+        ["password", "--hash", "0" * 64, "--algo", "sha256", "--wordlist", str(wordlist)],
+    )
+    _invoke(
+        crack_cli.crack,
+        [
+            "password-rules",
+            "--hash",
+            "0" * 64,
+            "--algo",
+            "sha256",
+            "--wordlist",
+            str(wordlist),
+            "--max-suffix",
+            "1",
+        ],
+    )
     _invoke(crack_cli.crack, ["gesture", "-s", "S"], obj=app)
     _invoke(crack_cli.crack, ["pin-device", "-s", "S", "--length", "4"], obj=app)
     _invoke(crack_cli.crack, ["wifi", "-s", "S"], obj=app)
     _invoke(crack_cli.crack, ["keystore", "-s", "S"], obj=app)
-    _invoke(crack_cli.crack, ["passkeys", "-s", "S", "--output-dir", str(tmp_path), "--limit", "1"], obj=app)
+    _invoke(
+        crack_cli.crack,
+        ["passkeys", "-s", "S", "--output-dir", str(tmp_path), "--limit", "1"],
+        obj=app,
+    )
 
 
 def test_cli_intel_reputation(monkeypatch) -> None:
@@ -118,7 +141,9 @@ def test_cli_intel_reputation(monkeypatch) -> None:
     monkeypatch.setattr(
         intel_cli,
         "file_report",
-        lambda *_a, **_k: {"attributes": {"last_analysis_stats": {"malicious": 1, "suspicious": 1}}},
+        lambda *_a, **_k: {
+            "attributes": {"last_analysis_stats": {"malicious": 1, "suspicious": 1}}
+        },
     )
     monkeypatch.setattr(intel_cli, "indicator_reputation", lambda *_a, **_k: {"ok": True})
     monkeypatch.setattr(intel_cli, "correlate_cves_for_apk_package", lambda *_a, **_k: {"cves": []})

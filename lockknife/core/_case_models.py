@@ -1,11 +1,7 @@
 from __future__ import annotations
 
-
-
 import dataclasses
-
 from typing import Any
-
 
 
 @dataclasses.dataclass(frozen=True)
@@ -22,10 +18,12 @@ class CaseArtifact:
     parent_artifact_ids: list[str] = dataclasses.field(default_factory=list)
     metadata: dict[str, Any] = dataclasses.field(default_factory=dict)
 
+
 @dataclasses.dataclass(frozen=True)
 class CaseArtifactRegistration:
     artifact: CaseArtifact
     action: str
+
 
 @dataclasses.dataclass(frozen=True)
 class CaseJobStep:
@@ -35,6 +33,7 @@ class CaseJobStep:
     started_at_utc: str
     ended_at_utc: str | None = None
     message: str | None = None
+
 
 @dataclasses.dataclass(frozen=True)
 class CaseJob:
@@ -58,6 +57,7 @@ class CaseJob:
     result_artifact_ids: list[str] = dataclasses.field(default_factory=list)
     steps: list[CaseJobStep] = dataclasses.field(default_factory=list)
 
+
 @dataclasses.dataclass(frozen=True)
 class CaseRuntimeScript:
     script_id: str
@@ -69,6 +69,7 @@ class CaseRuntimeScript:
     source_kind: str = "snapshot"
     source_path: str | None = None
     metadata: dict[str, Any] = dataclasses.field(default_factory=dict)
+
 
 @dataclasses.dataclass(frozen=True)
 class CaseRuntimeSession:
@@ -98,6 +99,7 @@ class CaseRuntimeSession:
     result_artifact_ids: list[str] = dataclasses.field(default_factory=list)
     script_inventory: list[CaseRuntimeScript] = dataclasses.field(default_factory=list)
     metadata: dict[str, Any] = dataclasses.field(default_factory=dict)
+
 
 @dataclasses.dataclass
 class CaseManifest:

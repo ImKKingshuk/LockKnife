@@ -52,7 +52,9 @@ def build_chain_of_custody_payload(
             "metadata": resolved.metadata,
             "previous_hash": previous_hash,
         }
-        entry_hash = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        entry_hash = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
         entries.append({**payload, "entry_hash": entry_hash})
         previous_hash = entry_hash
     verification = verify_chain_of_custody(entries)
@@ -83,7 +85,9 @@ def generate_chain_of_custody(
     notes: str | None,
     evidence: list[EvidenceItem],
 ) -> str:
-    payload = build_chain_of_custody_payload(case_id=case_id, examiner=examiner, notes=notes, evidence=evidence)
+    payload = build_chain_of_custody_payload(
+        case_id=case_id, examiner=examiner, notes=notes, evidence=evidence
+    )
     lines: list[str] = []
     lines.append("Chain of Custody")
     lines.append("")
@@ -135,14 +139,22 @@ def verify_chain_of_custody(entries: list[dict[str, Any]]) -> dict[str, Any]:
         if str(entry.get("previous_hash") or "") != previous_hash:
             return {"status": "invalid", "entry_index": index, "reason": "previous-hash-mismatch"}
         payload = {key: value for key, value in entry.items() if key != "entry_hash"}
-        recalculated = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        recalculated = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
         if str(entry.get("entry_hash") or "") != recalculated:
             return {"status": "invalid", "entry_index": index, "reason": "entry-hash-mismatch"}
         previous_hash = recalculated
-    return {"status": "verified", "entry_count": len(entries), "chain_head_sha256": previous_hash if entries else None}
+    return {
+        "status": "verified",
+        "entry_count": len(entries),
+        "chain_head_sha256": previous_hash if entries else None,
+    }
 
 
-def sign_report_file(output_path: pathlib.Path, *, key_id: str | None = None, armor: bool = True) -> dict[str, Any]:
+def sign_report_file(
+    output_path: pathlib.Path, *, key_id: str | None = None, armor: bool = True
+) -> dict[str, Any]:
     executable = shutil.which("gpg") or shutil.which("gpg2")
     if executable is None:
         return {"status": "unavailable", "reason": "gpg-not-found"}
@@ -161,7 +173,13 @@ def sign_report_file(output_path: pathlib.Path, *, key_id: str | None = None, ar
             "stderr": (result.stderr or "").strip()[:400],
             "command": command,
         }
-    return {"status": "signed", "signature_path": str(signature_path), "command": command, "armor": armor, "key_id": key_id}
+    return {
+        "status": "signed",
+        "signature_path": str(signature_path),
+        "command": command,
+        "armor": armor,
+        "key_id": key_id,
+    }
 
 
 def _resolved_evidence(item: EvidenceItem) -> EvidenceItem:

@@ -24,12 +24,24 @@ def _rows_payload(*, status: str | None, category: str | None) -> list[dict[str,
     ]
 
 
-@click.command("features", cls=LockKnifeCommand, help="Show the current LockKnife feature maturity matrix.")
-@click.option("--format", "out_format", type=click.Choice(["table", "json"], case_sensitive=False), default="table")
+@click.command(
+    "features", cls=LockKnifeCommand, help="Show the current LockKnife feature maturity matrix."
+)
+@click.option(
+    "--format",
+    "out_format",
+    type=click.Choice(["table", "json"], case_sensitive=False),
+    default="table",
+)
 @click.option("--status", type=click.Choice(list(FEATURE_STATUSES), case_sensitive=False))
-@click.option("--category", type=click.Choice(sorted({row.category for row in iter_features()}), case_sensitive=False))
+@click.option(
+    "--category",
+    type=click.Choice(sorted({row.category for row in iter_features()}), case_sensitive=False),
+)
 def features_cmd(out_format: str, status: str | None, category: str | None) -> None:
-    rows = _rows_payload(status=status.lower() if status else None, category=category.lower() if category else None)
+    rows = _rows_payload(
+        status=status.lower() if status else None, category=category.lower() if category else None
+    )
     if out_format.lower() == "json":
         console.print_json(json.dumps({"rows": rows, "statuses": list(FEATURE_STATUSES)}))
         return
@@ -41,5 +53,7 @@ def features_cmd(out_format: str, status: str | None, category: str | None) -> N
     table.add_column("Requirements")
     table.add_column("Notes")
     for row in rows:
-        table.add_row(row["category"], row["capability"], row["status"], row["requirements"], row["notes"])
+        table.add_row(
+            row["category"], row["capability"], row["status"], row["requirements"], row["notes"]
+        )
     console.print(table)

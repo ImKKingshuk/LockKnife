@@ -14,11 +14,25 @@ def register(extract: Any, cli: Any) -> None:
     @extract.command("sms")
     @click.option("-s", "--serial", required=True)
     @click.option("--limit", type=int, default=200)
-    @click.option("--format", "out_format", type=click.Choice(["json", "csv"], case_sensitive=False), default="json")
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["json", "csv"], case_sensitive=False),
+        default="json",
+    )
     @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
+    @click.option(
+        "--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path)
+    )
     @click.pass_obj
-    def extract_sms_cmd(app: Any, serial: str, limit: int, out_format: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+    def extract_sms_cmd(
+        app: Any,
+        serial: str,
+        limit: int,
+        out_format: str,
+        output: pathlib.Path | None,
+        case_dir: pathlib.Path | None,
+    ) -> None:
         rows = cli.extract_sms(app.devices, serial, limit=limit)
         items = [dataclasses.asdict(row) for row in rows]
         ext = "csv" if out_format.lower() == "csv" else "json"
@@ -44,11 +58,25 @@ def register(extract: Any, cli: Any) -> None:
     @extract.command("contacts")
     @click.option("-s", "--serial", required=True)
     @click.option("--limit", type=int, default=500)
-    @click.option("--format", "out_format", type=click.Choice(["json", "csv"], case_sensitive=False), default="json")
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["json", "csv"], case_sensitive=False),
+        default="json",
+    )
     @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
+    @click.option(
+        "--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path)
+    )
     @click.pass_obj
-    def extract_contacts_cmd(app: Any, serial: str, limit: int, out_format: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+    def extract_contacts_cmd(
+        app: Any,
+        serial: str,
+        limit: int,
+        out_format: str,
+        output: pathlib.Path | None,
+        case_dir: pathlib.Path | None,
+    ) -> None:
         rows = cli.extract_contacts(app.devices, serial, limit=limit)
         items = [dataclasses.asdict(row) for row in rows]
         ext = "csv" if out_format.lower() == "csv" else "json"
@@ -74,11 +102,25 @@ def register(extract: Any, cli: Any) -> None:
     @extract.command("call-logs")
     @click.option("-s", "--serial", required=True)
     @click.option("--limit", type=int, default=500)
-    @click.option("--format", "out_format", type=click.Choice(["json", "csv"], case_sensitive=False), default="json")
+    @click.option(
+        "--format",
+        "out_format",
+        type=click.Choice(["json", "csv"], case_sensitive=False),
+        default="json",
+    )
     @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
-    @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
+    @click.option(
+        "--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path)
+    )
     @click.pass_obj
-    def extract_call_logs_cmd(app: Any, serial: str, limit: int, out_format: str, output: pathlib.Path | None, case_dir: pathlib.Path | None) -> None:
+    def extract_call_logs_cmd(
+        app: Any,
+        serial: str,
+        limit: int,
+        out_format: str,
+        output: pathlib.Path | None,
+        case_dir: pathlib.Path | None,
+    ) -> None:
         rows = cli.extract_call_logs(app.devices, serial, limit=limit)
         items = [dataclasses.asdict(row) for row in rows]
         ext = "csv" if out_format.lower() == "csv" else "json"

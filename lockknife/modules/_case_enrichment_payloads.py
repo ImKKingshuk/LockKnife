@@ -1,25 +1,19 @@
 from __future__ import annotations
 
-
-
 import pathlib
-
 from typing import Any, cast
-
-
 
 from lockknife.modules._case_enrichment_common import (
     _base_payload,
-    _hash_prefix,
-    _safe_package,
     _secret_status,
-    _source,
     _summarize_matches,
 )
-from lockknife.modules._case_enrichment_helpers import _anomaly_explainability, _password_explainability
+from lockknife.modules._case_enrichment_helpers import (
+    _anomaly_explainability,
+    _password_explainability,
+)
 from lockknife.modules.intelligence._attribution import attributed_source
 from lockknife.modules.intelligence._confidence import coverage_summary
-
 
 
 def network_summary_payload(
@@ -68,6 +62,7 @@ def network_summary_payload(
     )
     return payload
 
+
 def api_discovery_payload(
     discovery: dict[str, Any],
     *,
@@ -110,6 +105,7 @@ def api_discovery_payload(
     )
     return payload
 
+
 def ioc_payload(
     matches: list[dict[str, Any]],
     *,
@@ -133,7 +129,9 @@ def ioc_payload(
     payload["coverage"] = coverage_summary(
         str(input_path),
         evidence_count=len(matches),
-        confidence="high" if float(cast(dict[str, Any], payload["summary"]).get("max_confidence") or 0.0) >= 0.85 else ("moderate" if matches else "limited"),
+        confidence="high"
+        if float(cast(dict[str, Any], payload["summary"]).get("max_confidence") or 0.0) >= 0.85
+        else ("moderate" if matches else "limited"),
         providers=["lockknife-local-ioc-detection"],
     )
     payload.update(
@@ -147,6 +145,7 @@ def ioc_payload(
     )
     return payload
 
+
 def cve_payload(
     package: str,
     report: dict[str, Any],
@@ -156,14 +155,20 @@ def cve_payload(
     input_paths: list[str] | None = None,
 ) -> dict[str, Any]:
     vulns = report.get("vulns") if isinstance(report, dict) else None
-    vuln_list = [item for item in vulns if isinstance(item, dict)] if isinstance(vulns, list) else []
+    vuln_list = (
+        [item for item in vulns if isinstance(item, dict)] if isinstance(vulns, list) else []
+    )
     payload = {
         "package": package,
         "report": report,
         "summary": {
             "package": package,
             "vulnerability_count": len(vuln_list),
-            "critical_or_high_count": sum(1 for item in vuln_list if str(item.get("severity") or "").lower() in {"critical", "high"}),
+            "critical_or_high_count": sum(
+                1
+                for item in vuln_list
+                if str(item.get("severity") or "").lower() in {"critical", "high"}
+            ),
             "max_cvss": max(
                 (
                     float(str(severity.get("score") or 0.0))
@@ -173,7 +178,9 @@ def cve_payload(
                 ),
                 default=0.0,
             ),
-            "sample_ids": [str(item.get("id") or "") for item in vuln_list[:5] if str(item.get("id") or "")],
+            "sample_ids": [
+                str(item.get("id") or "") for item in vuln_list[:5] if str(item.get("id") or "")
+            ],
         },
         "source_attribution": [
             attributed_source(
@@ -205,6 +212,7 @@ def cve_payload(
     )
     return payload
 
+
 def virustotal_payload(
     indicator: str,
     report: dict[str, Any],
@@ -217,11 +225,23 @@ def virustotal_payload(
     configured, source = _secret_status("VT_API_KEY")
     attributes = report.get("attributes") if isinstance(report, dict) else None
     stats = attributes.get("last_analysis_stats") if isinstance(attributes, dict) else None
-    summary = cast(dict[str, Any], report.get("summary") if isinstance(report.get("summary"), dict) else {})
-    malicious_count = int(summary.get("malicious_count") or int((stats or {}).get("malicious") or 0)) if isinstance(summary, dict) else 0
-    suspicious_count = int(summary.get("suspicious_count") or int((stats or {}).get("suspicious") or 0)) if isinstance(summary, dict) else 0
+    summary = cast(
+        dict[str, Any], report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    )
+    malicious_count = (
+        int(summary.get("malicious_count") or int((stats or {}).get("malicious") or 0))
+        if isinstance(summary, dict)
+        else 0
+    )
+    suspicious_count = (
+        int(summary.get("suspicious_count") or int((stats or {}).get("suspicious") or 0))
+        if isinstance(summary, dict)
+        else 0
+    )
     engine_total = int(summary.get("engine_total") or 0) if isinstance(summary, dict) else 0
-    detection_ratio = float(summary.get("detection_ratio") or 0.0) if isinstance(summary, dict) else 0.0
+    detection_ratio = (
+        float(summary.get("detection_ratio") or 0.0) if isinstance(summary, dict) else 0.0
+    )
     payload = {
         "indicator": indicator,
         "indicator_type": indicator_type,
@@ -235,7 +255,14 @@ def virustotal_payload(
             "suspicious_count": suspicious_count,
             "engine_total": engine_total,
             "detection_ratio": detection_ratio,
-            "detection_ratio_text": str(summary.get("detection_ratio_text") or (f"{malicious_count + suspicious_count}/{engine_total}" if engine_total else "0/0")),
+            "detection_ratio_text": str(
+                summary.get("detection_ratio_text")
+                or (
+                    f"{malicious_count + suspicious_count}/{engine_total}"
+                    if engine_total
+                    else "0/0"
+                )
+            ),
             "confidence_score": int(summary.get("confidence_score") or 0),
         },
         "source_attribution": [
@@ -255,7 +282,9 @@ def virustotal_payload(
     payload["coverage"] = coverage_summary(
         indicator,
         evidence_count=malicious_count + suspicious_count,
-        confidence="high" if configured and detection_ratio >= 0.15 else ("moderate" if configured else "limited"),
+        confidence="high"
+        if configured and detection_ratio >= 0.15
+        else ("moderate" if configured else "limited"),
         providers=["virustotal"],
     )
     payload.update(
@@ -268,6 +297,7 @@ def virustotal_payload(
         )
     )
     return payload
+
 
 def otx_payload(
     indicator: str,
@@ -319,6 +349,7 @@ def otx_payload(
     )
     return payload
 
+
 def stix_payload(
     url: str,
     matches: list[dict[str, Any]],
@@ -349,8 +380,13 @@ def stix_payload(
         confidence="moderate" if matches else "limited",
         providers=["stix-feed"],
     )
-    payload.update(_base_payload(case_dir=case_dir, output=output, category="intel-stix", source_command="intel stix"))
+    payload.update(
+        _base_payload(
+            case_dir=case_dir, output=output, category="intel-stix", source_command="intel stix"
+        )
+    )
     return payload
+
 
 def taxii_payload(
     api_root: str,
@@ -364,7 +400,9 @@ def taxii_payload(
     case_dir: pathlib.Path | None = None,
     output: pathlib.Path | None = None,
 ) -> dict[str, Any]:
-    credentials_present = bool((token or "").strip() or ((username or "").strip() and (password or "").strip()))
+    credentials_present = bool(
+        (token or "").strip() or ((username or "").strip() and (password or "").strip())
+    )
     payload = {
         "api_root": api_root,
         "collection_id": collection_id,
@@ -392,8 +430,13 @@ def taxii_payload(
         confidence="moderate" if matches else "limited",
         providers=["taxii-2.1"],
     )
-    payload.update(_base_payload(case_dir=case_dir, output=output, category="intel-taxii", source_command="intel taxii"))
+    payload.update(
+        _base_payload(
+            case_dir=case_dir, output=output, category="intel-taxii", source_command="intel taxii"
+        )
+    )
     return payload
+
 
 def anomaly_payload(
     rows: list[dict[str, Any]],
@@ -410,8 +453,20 @@ def anomaly_payload(
             "input_path": str(input_path),
             "row_count": len(rows),
             "feature_keys": feature_keys,
-            "max_anomaly_score": max((float(item.get("anomaly_score") or 0.0) for item in results), default=0.0),
-            "model_names": sorted({name for item in results for name in ((item.get("models") or {}).keys() if isinstance(item.get("models"), dict) else [])}),
+            "max_anomaly_score": max(
+                (float(item.get("anomaly_score") or 0.0) for item in results), default=0.0
+            ),
+            "model_names": sorted(
+                {
+                    name
+                    for item in results
+                    for name in (
+                        (item.get("models") or {}).keys()
+                        if isinstance(item.get("models"), dict)
+                        else []
+                    )
+                }
+            ),
         },
         "explainability": _anomaly_explainability(rows, results, feature_keys),
         "source_attribution": [
@@ -441,6 +496,7 @@ def anomaly_payload(
         )
     )
     return payload
+
 
 def password_payload(
     predictions: list[str],
@@ -488,7 +544,8 @@ def password_payload(
         _base_payload(
             case_dir=case_dir,
             output=output,
-            input_paths=[str(wordlist_path)] + ([str(metadata["personal_data_path"])] if metadata.get("personal_data_path") else []),
+            input_paths=[str(wordlist_path)]
+            + ([str(metadata["personal_data_path"])] if metadata.get("personal_data_path") else []),
             category="ai-password-predictions",
             source_command="ai predict-password",
         )
