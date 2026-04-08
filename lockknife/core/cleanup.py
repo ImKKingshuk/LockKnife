@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import pathlib
 import shutil
+from typing import Callable
 
 _temp_paths: set[pathlib.Path] = set()
-_terminal_cleanup_callbacks: list[callable[[], None]] = []
+_terminal_cleanup_callbacks: list[Callable[[], None]] = []
 
 
 def register_temp_path(path: pathlib.Path) -> None:
@@ -15,7 +16,7 @@ def unregister_temp_path(path: pathlib.Path) -> None:
     _temp_paths.discard(path)
 
 
-def register_terminal_cleanup(callback: callable[[], None]) -> None:
+def register_terminal_cleanup(callback: Callable[[], None]) -> None:
     """Register a callback to restore terminal state on cleanup."""
     _terminal_cleanup_callbacks.append(callback)
 
