@@ -68,8 +68,8 @@ def extract_call_logs(devices: DeviceManager, serial: str, limit: int = 200) -> 
             local = d / pathlib.Path(remote).name
             try:
                 devices.pull(serial, remote, local, timeout_s=90.0)
-            except Exception:
-                log.debug("call_log_pull_failed", exc_info=True, serial=serial, remote_path=remote)
+            except (DeviceError, TimeoutError, OSError) as e:
+                log.debug("call_log_pull_failed", exc_info=True, serial=serial, remote_path=remote, error=str(e))
                 continue
             if not local.exists() or local.stat().st_size == 0:
                 continue

@@ -81,9 +81,9 @@ def extract_contacts(devices: DeviceManager, serial: str, limit: int = 200) -> l
             local = d / "contacts2.db"
             try:
                 devices.pull(serial, remote, local, timeout_s=90.0)
-            except Exception:
+            except (DeviceError, TimeoutError, OSError) as e:
                 log.debug(
-                    "contacts_db_pull_failed", exc_info=True, serial=serial, remote_path=remote
+                    "contacts_db_pull_failed", exc_info=True, serial=serial, remote_path=remote, error=str(e)
                 )
                 continue
             if not local.exists() or local.stat().st_size == 0:

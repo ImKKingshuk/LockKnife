@@ -149,7 +149,7 @@ def _read_varint(data: bytes, offset: int) -> tuple[int, int]:
 def _decode_utf8(data: bytes) -> str | None:
     try:
         text = data.decode("utf-8")
-    except Exception:
+    except UnicodeDecodeError:
         return None
     normalized = "".join(ch for ch in text if ch.isprintable() or ch in "\t\n\r").strip()
     if not normalized:
