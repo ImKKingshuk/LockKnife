@@ -9,9 +9,9 @@ from lockknife.modules.intelligence.ioc_db import IocRecord, add_iocs, list_iocs
 
 def test_ioc_db_roundtrip(tmp_path: pathlib.Path) -> None:
     db = tmp_path / "iocs.db"
-    add_iocs(db, [IocRecord(ioc="1.2.3.4", kind="ipv4", source="test", first_seen=now())])
+    add_iocs(db, [IocRecord(ioc="192.0.2.2", kind="ipv4", source="test", first_seen=now())])
     rows = list_iocs(db, limit=10)
-    assert rows[0].ioc == "1.2.3.4"
+    assert rows[0].ioc == "192.0.2.2"
 
 
 def test_ioc_db_sync_supports_stix_and_freshness(monkeypatch, tmp_path: pathlib.Path) -> None:
@@ -21,7 +21,7 @@ def test_ioc_db_sync_supports_stix_and_freshness(monkeypatch, tmp_path: pathlib.
     monkeypatch.setattr(
         ioc_db,
         "load_stix_indicators_from_url",
-        lambda url: [type("M", (), {"ioc": "2.2.2.2", "kind": "ipv4", "location": url})()],
+        lambda url: [type("M", (), {"ioc": "192.0.2.3", "kind": "ipv4", "location": url})()],
     )
 
     result = sync_ioc_feeds(db, [{"name": "demo", "type": "stix_url", "url": "https://example.test/feed.json"}], force=True)
@@ -55,12 +55,12 @@ def test_ioc_db_sync_supports_raw_url(monkeypatch, tmp_path: pathlib.Path) -> No
     from lockknife.modules.intelligence import ioc_db
 
     db = tmp_path / "iocs.db"
-    monkeypatch.setattr(ioc_db, "http_get", lambda *_a, **_k: b"1.1.1.1\nhttps://example.test/x\n")
+    monkeypatch.setattr(ioc_db, "http_get", lambda *_a, **_k: b"192.0.2.4\nhttps://example.test/x\n")
     monkeypatch.setattr(
         ioc_db,
         "detect_iocs",
         lambda raw, location: [
-            types.SimpleNamespace(ioc="1.1.1.1", kind="ipv4", location=location),
+            types.SimpleNamespace(ioc="192.0.2.4", kind="ipv4", location=location),
             types.SimpleNamespace(ioc="https://example.test/x", kind="url", location=location),
         ],
     )
@@ -68,7 +68,7 @@ def test_ioc_db_sync_supports_raw_url(monkeypatch, tmp_path: pathlib.Path) -> No
     result = sync_ioc_feeds(db, [{"name": "raw", "type": "raw_url", "url": "https://example.test/iocs.txt"}], force=True)
 
     assert result["total_added"] == 2
-    assert {row.ioc for row in list_iocs(db, limit=10)} == {"1.1.1.1", "https://example.test/x"}
+    assert {row.ioc for row in list_iocs(db, limit=10)} == {"192.0.2.4", "https://example.test/x"}
 
 
 def test_ioc_db_sync_supports_taxii(monkeypatch, tmp_path: pathlib.Path) -> None:
@@ -80,7 +80,7 @@ def test_ioc_db_sync_supports_taxii(monkeypatch, tmp_path: pathlib.Path) -> None
     def _taxii(api_root_url, **kwargs):
         seen["api_root_url"] = api_root_url
         seen.update(kwargs)
-        return [types.SimpleNamespace(ioc="8.8.8.8", kind="ipv4")]
+        return [types.SimpleNamespace(ioc="192.0.2.5", kind="ipv4")]
 
     monkeypatch.setattr(ioc_db, "load_taxii_indicators", _taxii)
 

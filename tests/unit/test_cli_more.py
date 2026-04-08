@@ -132,7 +132,7 @@ def test_cli_intel_reputation(monkeypatch) -> None:
             "--domain",
             "example.com",
             "--ip",
-            "8.8.8.8",
+            "192.0.2.5",
             "--package",
             "com.example.app",
         ],

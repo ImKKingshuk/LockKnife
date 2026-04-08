@@ -90,7 +90,7 @@ def test_tui_callback_action_matrix(tmp_path: pathlib.Path, monkeypatch: pytest.
     monkeypatch.setattr(cb, "scan_with_yara", lambda *a, **k: [DummyRow("hit")])
     monkeypatch.setattr(cb, "run_device_audit", lambda *a, **k: [DummyAudit("rule")])
     monkeypatch.setattr(cb, "get_selinux_status", lambda *a, **k: DummyStatus("enforcing"))
-    monkeypatch.setattr(cb, "scan_network", lambda *a, **k: DummyScan(["1.1.1.1"], ["1.1.1.1"], [DummyRow("8080")]))
+    monkeypatch.setattr(cb, "scan_network", lambda *a, **k: DummyScan(["192.0.2.4"], ["192.0.2.4"], [DummyRow("8080")]))
     monkeypatch.setattr(cb, "analyze_bootloader", lambda *a, **k: DummyBoot(True))
     monkeypatch.setattr(cb, "analyze_hardware_security", lambda *a, **k: DummyHardware(True))
     monkeypatch.setattr(
@@ -110,9 +110,9 @@ def test_tui_callback_action_matrix(tmp_path: pathlib.Path, monkeypatch: pytest.
     monkeypatch.setattr(cb, "domain_report", lambda *a, **k: {"report": "ok", "summary": {"detection_ratio": 0.1}})
     monkeypatch.setattr(cb, "ip_report", lambda *a, **k: {"report": "ok", "summary": {"detection_ratio": 0.1}})
     monkeypatch.setattr(cb, "submit_url_for_analysis", lambda *a, **k: {"submitted": True, "submission_id": "analysis-1"})
-    monkeypatch.setattr(cb, "detect_iocs", lambda *a, **k: [DummyIoc("1.1.1.1", "ipv4", "text")])
-    monkeypatch.setattr(cb, "load_stix_indicators_from_url", lambda *a, **k: [DummyIoc("2.2.2.2", "ipv4", "stix")])
-    monkeypatch.setattr(cb, "load_taxii_indicators", lambda *a, **k: [DummyIoc("3.3.3.3", "ipv4", "taxii")])
+    monkeypatch.setattr(cb, "detect_iocs", lambda *a, **k: [DummyIoc("192.0.2.4", "ipv4", "text")])
+    monkeypatch.setattr(cb, "load_stix_indicators_from_url", lambda *a, **k: [DummyIoc("192.0.2.3", "ipv4", "stix")])
+    monkeypatch.setattr(cb, "load_taxii_indicators", lambda *a, **k: [DummyIoc("192.0.2.7", "ipv4", "taxii")])
     monkeypatch.setattr(cb, "anomaly_scores", lambda *a, **k: [{"row": {"x": 1}, "anomaly_score": 0.9}])
     monkeypatch.setattr(cb, "PasswordPredictor", type("P", (), {"train_from_wordlist": lambda *_a, **_k: DummyPredictor()}))
     monkeypatch.setattr(cb, "load_personal_data", lambda *a, **k: {"owner": "Casey"})
@@ -352,7 +352,7 @@ def test_tui_callback_action_matrix(tmp_path: pathlib.Path, monkeypatch: pytest.
     actions = [
         ("device.list", {}),
         ("device.info", {"serial": "SERIAL"}),
-        ("device.connect", {"host": "127.0.0.1:5555"}),
+        ("device.connect", {"host": "192.0.2.1:5555"}),
         ("core.health", {}),
         ("core.doctor", {}),
         ("core.features", {}),

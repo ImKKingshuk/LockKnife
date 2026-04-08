@@ -16,7 +16,7 @@ pub(super) fn action_description(action_id: &str) -> Option<&'static str> {
             "Retrieve detailed device properties and getprop values for a specific device by serial.",
         ),
         "device.connect" => Some(
-            "Connect to a remote device via host:port (e.g., 127.0.0.1:5555) for wireless debugging.",
+            "Connect to a remote device via host:port (e.g., 192.0.2.1:5555) for wireless debugging.",
         ),
         "device.shell" => Some(
             "Execute a shell command on the device and return the output. Useful for device inspection and debugging.",

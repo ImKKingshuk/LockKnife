@@ -226,7 +226,7 @@ def test_tui_callback_additional_case_aware_actions_route_outputs_into_case_dir(
     monkeypatch.setattr(cb, "score_permissions", lambda *_a, **_k: (7, [DummyRow("risk")]))
     monkeypatch.setattr(cb, "memory_search", lambda *_a, **_k: json.dumps({"hits": ["deadbeef"]}))
     monkeypatch.setattr(cb, "heap_dump", lambda *_a, **_k: json.dumps({"path": "/sdcard/lockknife.hprof"}))
-    monkeypatch.setattr(cb, "detect_iocs", lambda *_a, **_k: [DummyIoc("1.1.1.1", "ipv4", "body")])
+    monkeypatch.setattr(cb, "detect_iocs", lambda *_a, **_k: [DummyIoc("192.0.2.4", "ipv4", "body")])
     monkeypatch.setattr(cb, "anomaly_scores", lambda *_a, **_k: [{"row": {"x": 1}, "anomaly_score": 0.9}])
     monkeypatch.setattr(cb, "PasswordPredictor", type("P", (), {"train_from_wordlist": lambda *_a, **_k: DummyPredictor()}))
     monkeypatch.setattr(cb, "extract_wallet_addresses_from_sqlite", lambda *_a, **_k: [DummyRow("addr")])
@@ -243,7 +243,7 @@ def test_tui_callback_additional_case_aware_actions_route_outputs_into_case_dir(
     anomaly_input = tmp_path / "rows.json"
     anomaly_input.write_text(json.dumps([{"x": 1}]), encoding="utf-8")
     ioc_input = tmp_path / "iocs.json"
-    ioc_input.write_text(json.dumps({"note": "connect to 1.1.1.1"}), encoding="utf-8")
+    ioc_input.write_text(json.dumps({"note": "connect to 192.0.2.4"}), encoding="utf-8")
     wordlist = tmp_path / "words.txt"
     wordlist.write_text("alpha\nbeta\n", encoding="utf-8")
     wallet_db = tmp_path / "wallets.sqlite"
