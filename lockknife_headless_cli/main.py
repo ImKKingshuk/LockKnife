@@ -96,6 +96,7 @@ def cli(ctx: click.Context, config_path: pathlib.Path | None, headless: bool) ->
             """Python-side terminal restoration as fallback."""
             try:
                 import subprocess
+
                 subprocess.run(["stty", "sane"], check=False, capture_output=True)
             except Exception:
                 pass  # Best effort

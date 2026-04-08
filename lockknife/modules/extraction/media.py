@@ -5,6 +5,7 @@ import pathlib
 import struct
 
 from lockknife.core.device import DeviceManager
+from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
 from lockknife.core.security import secure_temp_dir
 
@@ -178,7 +179,9 @@ def extract_media_with_exif(
             try:
                 devices.pull(serial, remote, local, timeout_s=90.0)
             except (DeviceError, TimeoutError, OSError) as e:
-                log.debug("media_pull_failed", exc_info=True, serial=serial, remote=remote, error=str(e))
+                log.debug(
+                    "media_pull_failed", exc_info=True, serial=serial, remote=remote, error=str(e)
+                )
                 continue
             if not local.exists():
                 continue
