@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 lockknife-tui = { path = "../lockknife-tui" }
-pyo3 = { version = "0.22", features = ["abi3", "abi3-py312"] }
+pyo3 = { version = "0.24", features = ["abi3", "abi3-py312"] }
 ring = "0.17"
 rayon = "1.10"
 serde = { version = "1", features = ["derive"] }

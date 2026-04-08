@@ -76,7 +76,8 @@ def analyze_sqlite(
                 TableInfo(
                     name=item.name,
                     row_count=_safe_scalar(
-                        con, f"SELECT COUNT(*) FROM {_quote_identifier(item.name)}"  # nosec B608
+                        con,
+                        f"SELECT COUNT(*) FROM {_quote_identifier(item.name)}",  # nosec B608
                     ),
                     schema_sql=item.sql,
                     columns=columns,

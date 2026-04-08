@@ -141,9 +141,9 @@ fn to_pyobject(py: Python<'_>, value: &Value) -> PyObject {
             }
             list.into_py(py)
         }
-        Value::Object(map) => {
+        Value::Object(obj) => {
             let dict = PyDict::new_bound(py);
-            for (k, v) in map {
+            for (k, v) in obj {
                 dict.set_item(k, to_pyobject(py, v)).ok();
             }
             dict.into_py(py)

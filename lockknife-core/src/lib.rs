@@ -1,4 +1,5 @@
 #![allow(clippy::useless_conversion)]
+#![allow(deprecated)] // Allow deprecated PyO3 API (upgrade to 0.24 for security, migration to new API deferred)
 
 use pyo3::prelude::*;
 

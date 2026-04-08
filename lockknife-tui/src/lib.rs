@@ -1,3 +1,5 @@
+#![allow(deprecated)] // Allow deprecated PyO3 API (upgrade to 0.24 for security, migration to new API deferred)
+
 use std::io::{self, Stdout};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;

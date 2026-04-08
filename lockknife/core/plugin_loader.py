@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import os
 import re
+import signal
 from importlib.metadata import entry_points
 from types import ModuleType
 from typing import Any, cast
@@ -10,6 +11,7 @@ from typing import Any, cast
 import click
 
 from lockknife import __version__
+from lockknife.core.logging import get_logger
 from lockknife.core.plugin_contract import (
     LOCKKNIFE_PLUGIN_API_VERSION,
     LOCKKNIFE_PLUGIN_ENTRY_POINT_GROUP,
@@ -21,6 +23,112 @@ from lockknife.core.plugin_models import LoadedPlugin, PluginFailure, PluginMeta
 PLUGIN_MODULES_ENV = "LOCKKNIFE_PLUGIN_MODULES"
 PLUGIN_DISABLE_ENV = "LOCKKNIFE_DISABLE_PLUGINS"
 _PLUGIN_MANAGER: PluginManager | None = None
+log = get_logger()
+
+# Sandbox configuration
+_SANDBOX_BLOCKED_MODULES = {
+    "os",
+    "subprocess",
+    "sys",
+    "socket",
+    "multiprocessing",
+    "threading",
+    "ctypes",
+    "ctypes.util",
+}
+_SANDBOX_ALLOWED_MODULES = {
+    "logging",
+    "typing",
+    "dataclasses",
+    "collections",
+    "pathlib",
+    "re",
+    "json",
+    "datetime",
+    "decimal",
+    "fractions",
+    "numbers",
+    "enum",
+    "itertools",
+    "functools",
+    "contextlib",
+    "copy",
+    "hashlib",
+    "random",
+    "uuid",
+}
+
+
+class TimeoutError(RuntimeError):
+    """Raised when plugin execution times out."""
+
+    pass
+
+
+def _timeout_handler(signum: int, frame: Any) -> None:
+    """Signal handler for timeout."""
+    raise TimeoutError("Plugin execution timed out")
+
+
+def with_timeout(timeout_s: float):
+    """Decorator to add timeout to a function using signal.alarm()."""
+
+    def decorator(func):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            def set_timeout():
+                signal.signal(signal.SIGALRM, _timeout_handler)
+                signal.alarm(int(timeout_s))
+
+            def clear_timeout():
+                signal.alarm(0)
+
+            set_timeout()
+            try:
+                return func(*args, **kwargs)
+            finally:
+                clear_timeout()
+
+        return wrapper
+
+    return decorator
+
+
+def _sandbox_import(
+    name: str, globals: Any = None, locals: Any = None, fromlist: Any = None, level: int = 0
+) -> Any:
+    """Restricted __import__ wrapper that blocks dangerous modules."""
+    base_module = name.split(".")[0]
+
+    if base_module in _SANDBOX_BLOCKED_MODULES:
+        log.warning(
+            "plugin_sandbox_import_blocked",
+            module=name,
+            reason="Module is in blocked list for security",
+        )
+        raise ImportError(f"Import of '{name}' is not allowed in plugin sandbox")
+
+    # Check if the module is explicitly allowed
+    if base_module not in _SANDBOX_ALLOWED_MODULES:
+        log.warning(
+            "plugin_sandbox_import_unsafe",
+            module=name,
+            reason="Module is not in explicit allow list",
+        )
+
+    # Use the original __import__
+    return __builtins__.__import__(name, globals, locals, fromlist, level)
+
+
+def _apply_sandbox() -> None:
+    """Apply sandbox restrictions to the current import system."""
+    __builtins__.__import__ = _sandbox_import
+
+
+def _remove_sandbox() -> None:
+    """Remove sandbox restrictions from the import system."""
+    __builtins__.__import__ = __builtins__.__dict__.get(
+        "__original_import__", __builtins__.__import__
+    )
 
 
 class PluginLoadError(RuntimeError):
@@ -136,12 +244,30 @@ class PluginManager:
                 continue
             seen_sources.add(source)
             try:
-                loader = getattr(record, "load", None)
-                loaded = loader() if callable(loader) else _load_module_spec(record)
-                plugin = _coerce_plugin(loaded)
+                # Apply sandbox before loading plugin
+                _apply_sandbox()
+
+                @with_timeout(30.0)  # 30 second timeout for plugin loading
+                def load_plugin(rec=record) -> LockKnifePlugin:
+                    loader = getattr(rec, "load", None)
+                    loaded = loader() if callable(loader) else _load_module_spec(rec)
+                    return _coerce_plugin(loaded)
+
+                plugin = load_plugin()
                 self._register_plugin(plugin, source)
+            except TimeoutError:
+                self.failures.append(
+                    PluginFailure(source=source, error="Plugin loading timed out (30s)")
+                )
+            except ImportError as exc:
+                self.failures.append(
+                    PluginFailure(source=source, error=f"Import blocked by sandbox: {exc}")
+                )
             except Exception as exc:
                 self.failures.append(PluginFailure(source=source, error=str(exc)))
+            finally:
+                # Remove sandbox after loading
+                _remove_sandbox()
 
     def _register_plugin(self, plugin: LockKnifePlugin, source: str) -> None:
         metadata = plugin.metadata
@@ -159,7 +285,13 @@ class PluginManager:
             raise PluginLoadError(f"duplicate plugin name: {metadata.name}")
 
         registry = PluginRegistrationContext(metadata=metadata, source=source)
-        plugin.register(registry)
+
+        @with_timeout(60.0)  # 60 second timeout for plugin registration
+        def register_plugin() -> None:
+            plugin.register(registry)
+
+        register_plugin()
+
         commands = registry.commands
         for command in commands:
             if not command.name:
@@ -217,11 +349,18 @@ class PluginManager:
             for name, callback in callbacks.items():
                 key = f"{plugin.metadata.name}:{name}"
                 try:
-                    payload = callback()
+
+                    @with_timeout(30.0)  # 30 second timeout for health checks
+                    def run_health_check(cb=callback) -> Any:
+                        return cb()
+
+                    payload = run_health_check()
                     if isinstance(payload, bool):
                         payload = {"ok": payload}
                     elif not isinstance(payload, dict):
                         payload = {"ok": True, "value": payload}
+                except TimeoutError:
+                    payload = {"ok": False, "error": "Health check timed out (30s)"}
                 except Exception as exc:
                     payload = {"ok": False, "error": str(exc)}
                 plugin_checks[key] = payload
