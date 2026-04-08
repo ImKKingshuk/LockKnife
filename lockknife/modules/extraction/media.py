@@ -154,8 +154,8 @@ def extract_media_with_exif(
                 cmd = f'su -c "{cmd}"'
             try:
                 listing = devices.shell(serial, cmd, timeout_s=30.0)
-            except Exception:
-                log.debug("media_ls_failed", exc_info=True, serial=serial, base=base)
+            except (DeviceError, TimeoutError, OSError) as e:
+                log.debug("media_ls_failed", exc_info=True, serial=serial, base=base, error=str(e))
                 continue
             for ln in listing.splitlines():
                 name = ln.strip()
@@ -177,8 +177,8 @@ def extract_media_with_exif(
             local = d / name
             try:
                 devices.pull(serial, remote, local, timeout_s=90.0)
-            except Exception:
-                log.debug("media_pull_failed", exc_info=True, serial=serial, remote=remote)
+            except (DeviceError, TimeoutError, OSError) as e:
+                log.debug("media_pull_failed", exc_info=True, serial=serial, remote=remote, error=str(e))
                 continue
             if not local.exists():
                 continue
