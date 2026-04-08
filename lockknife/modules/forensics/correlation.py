@@ -13,16 +13,21 @@ class CorrelationError(LockKnifeError):
 def correlate_artifacts_json_blobs(json_blobs: list[str]) -> dict[str, Any]:
     try:
         import lockknife.lockknife_core as lockknife_core
-    except Exception as e:
+    except ImportError as e:
         raise CorrelationError("lockknife_core extension is not available") from e
 
     try:
         out = lockknife_core.correlate_artifacts_json(json_blobs)
+    except (RuntimeError, ValueError, TypeError) as e:
+        # PyO3 errors typically manifest as RuntimeError, ValueError, or TypeError
+        raise CorrelationError(f"Correlation engine failed: {e}") from e
     except Exception as e:
-        raise CorrelationError("Correlation engine failed") from e
+        # Fallback for unexpected errors
+        raise CorrelationError(f"Correlation engine failed: {e}") from e
+    
     try:
         return cast(dict[str, Any], json.loads(out))
-    except Exception as e:
+    except json.JSONDecodeError as e:
         raise CorrelationError("Correlation engine returned invalid JSON") from e
 
 
