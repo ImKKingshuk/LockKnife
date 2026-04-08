@@ -204,7 +204,7 @@ from lockknife_headless_cli._tui_callback_crypto import handle as _handle_crypto
 from lockknife_headless_cli._tui_callback_misc import handle as _handle_misc
 from lockknife_headless_cli._tui_callback_analyze import handle as _handle_analyze
 from lockknife_headless_cli._tui_callback_plugins import handle as _handle_plugins
-
+from lockknife_headless_cli._tui_callback_exploit import handle as _handle_exploit
 
 
 _HANDLERS = (
@@ -224,6 +224,7 @@ _HANDLERS = (
     _handle_analyze,
     _handle_plugins,
     _handle_misc,
+    _handle_exploit,
 )
 
 def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, Any]]:
