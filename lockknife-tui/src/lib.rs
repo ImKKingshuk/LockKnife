@@ -1,4 +1,6 @@
 use std::io::{self, Stdout};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use crossterm::event::{poll, read, DisableMouseCapture, EnableMouseCapture, Event};
@@ -8,18 +10,40 @@ use crossterm::terminal::{
 use pyo3::prelude::*;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
+use signal_hook::consts::signal;
 
 pub mod app;
 pub mod bridge;
 pub mod event;
 pub mod ui;
 
+static CLEANUP_REGISTERED: AtomicBool = AtomicBool::new(false);
+
+fn register_signal_handlers(cleanup_flag: Arc<AtomicBool>) -> PyResult<()> {
+    if CLEANUP_REGISTERED.swap(true, Ordering::SeqCst) {
+        return Ok(()); // Already registered
+    }
+    
+    let flag = cleanup_flag.clone();
+    signal_hook::flag::register(signal::SIGINT, flag.clone())
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+    signal_hook::flag::register(signal::SIGTERM, flag)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+    
+    Ok(())
+}
+
 pub fn run_tui(py: Python<'_>, callback: PyObject) -> PyResult<()> {
     let callback = callback.into_py(py);
     let mut terminal = setup_terminal()?;
+    
+    // Register signal handlers for graceful shutdown
+    let cleanup_flag = Arc::new(AtomicBool::new(false));
+    register_signal_handlers(cleanup_flag.clone())?;
+    
     let mut app = app::App::new(callback);
     app.refresh_devices();
-    let res = run_app(py, &mut terminal, &mut app);
+    let res = run_app(py, &mut terminal, &mut app, cleanup_flag);
     restore_terminal(&mut terminal)?;
     res.map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
 }
@@ -53,8 +77,14 @@ fn run_app(
     py: Python<'_>,
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     app: &mut app::App,
+    cleanup_flag: Arc<AtomicBool>,
 ) -> io::Result<()> {
     loop {
+        // Check if signal was received
+        if cleanup_flag.load(Ordering::SeqCst) {
+            break;
+        }
+        
         let quit = py.allow_threads(|| -> io::Result<bool> {
             app.poll_async();
             app.tick();

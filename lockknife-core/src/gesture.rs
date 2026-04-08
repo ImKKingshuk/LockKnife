@@ -55,7 +55,7 @@ fn dfs(
         return &h == target;
     }
 
-    let last = *path.last().unwrap();
+    let last = *path.last().ok_or_else(|| PyValueError::new_err("path is empty"))?;
     for next in 1u8..=9 {
         if visited[next as usize] {
             continue;

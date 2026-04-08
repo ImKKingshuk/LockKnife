@@ -19,3 +19,4 @@ ratatui = { version = "0.30", features = ["crossterm"] }
 crossterm = "0.28"
 toml = "0.8"
 arboard = "3.4"
+signal-hook = "0.3"
