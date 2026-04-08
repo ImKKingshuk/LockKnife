@@ -12,13 +12,9 @@ from lockknife.modules.reporting.pdf_report import (
 
 
 def test_render_pdf_report_if_backend_available(tmp_path: pathlib.Path) -> None:
-    try:
-        pass  # type: ignore
-    except Exception:
-        try:
-            pass  # type: ignore
-        except Exception:
-            pytest.skip("No PDF backend installed")
+    status = pdf_backend_status()
+    if not status["available"]:
+        pytest.skip("No PDF backend installed")
 
     tpl = tmp_path / "t.html"
     tpl.write_text("<h1>{{ case_id }}</h1>", encoding="utf-8")
