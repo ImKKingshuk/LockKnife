@@ -1536,7 +1536,6 @@ dependencies = [
  "md-5",
  "nom",
  "pyo3",
- "pyo3-build-config",
  "rayon",
  "regex",
  "ring",

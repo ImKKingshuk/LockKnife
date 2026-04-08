@@ -7,7 +7,7 @@ name = "lockknife"
 version = "1.0.0"
 description = "LockKnife: Android security research, forensics, and ethical hacking tool"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = { text = "GPL-3.0-only" }
 authors = [{ name = "ImKKingshuk" }]
 urls = { Homepage = "https://github.com/ImKKingshuk/LockKnife", Documentation = "https://lockknife.vercel.app" }
@@ -21,7 +21,6 @@ classifiers = [
   "Operating System :: Microsoft :: Windows",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Security",
 ]
@@ -109,7 +108,7 @@ allowed-unresolved-imports = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = [
@@ -156,7 +155,6 @@ python-packages = ["lockknife", "lockknife_headless_cli"]
 include = [
   { path = "lockknife_headless_cli/**/*.py", format = ["sdist", "wheel"] },
 ]
-features = ["extension-module"]
 
 [dependency-groups]
 dev = [
