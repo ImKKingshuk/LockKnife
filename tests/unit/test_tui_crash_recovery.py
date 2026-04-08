@@ -7,7 +7,11 @@ import signal
 
 def test_python_atexit_cleanup():
     """Test that Python atexit handler is registered."""
-    from lockknife.core.cleanup import register_terminal_cleanup, cleanup_all, _terminal_cleanup_callbacks
+    from lockknife.core.cleanup import (
+        _terminal_cleanup_callbacks,
+        cleanup_all,
+        register_terminal_cleanup,
+    )
 
     # Register a test callback
     test_called = []
@@ -41,7 +45,7 @@ def test_signal_handlers_registered():
 
 def test_cleanup_idempotent():
     """Test that cleanup can be called multiple times safely."""
-    from lockknife.core.cleanup import register_terminal_cleanup, cleanup_all
+    from lockknife.core.cleanup import cleanup_all, register_terminal_cleanup
 
     call_count = []
 
@@ -61,7 +65,7 @@ def test_cleanup_idempotent():
 
 def test_terminal_cleanup_error_handling():
     """Test that cleanup handles errors in callbacks gracefully."""
-    from lockknife.core.cleanup import register_terminal_cleanup, cleanup_all
+    from lockknife.core.cleanup import cleanup_all, register_terminal_cleanup
 
     def failing_callback():
         raise RuntimeError("Test error")

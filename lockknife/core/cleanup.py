@@ -27,7 +27,7 @@ def cleanup_all() -> None:
             callback()
         except Exception:
             pass  # Best effort cleanup
-    
+
     # Then clean up temp paths
     for path in list(_temp_paths):
         try:

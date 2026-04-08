@@ -24,7 +24,7 @@ def correlate_artifacts_json_blobs(json_blobs: list[str]) -> dict[str, Any]:
     except Exception as e:
         # Fallback for unexpected errors
         raise CorrelationError(f"Correlation engine failed: {e}") from e
-    
+
     try:
         return cast(dict[str, Any], json.loads(out))
     except json.JSONDecodeError as e:
