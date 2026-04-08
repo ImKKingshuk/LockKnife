@@ -88,7 +88,7 @@ def test_correlate_artifacts_json() -> None:
 
 def test_parse_ipv4_header_json() -> None:
     lockknife_core = pytest.importorskip("lockknife.lockknife_core")
-    pkt = bytes.fromhex("4500001400000000400600007f00000108080808")
+    pkt = bytes.fromhex("450000140000000040060000c000020108080808")
     out = lockknife_core.parse_ipv4_header_json(pkt)
     assert "192.0.2.1" in out
 

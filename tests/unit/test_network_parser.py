@@ -4,7 +4,7 @@ from lockknife.modules.network.parser import analyze_pcap, parse_ipv4_header
 
 
 def test_parse_ipv4_header() -> None:
-    pkt = bytes.fromhex("4500001400000000400600007f00000108080808")
+    pkt = bytes.fromhex("450000140000000040060000c000020108080808")
     out = parse_ipv4_header(pkt)
     assert out["src"] == "192.0.2.1"
 

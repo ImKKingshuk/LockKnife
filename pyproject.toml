@@ -43,19 +43,11 @@ yara = ["yara-python>=4.3"]
 threat-intel = ["vt-py>=0.18", "OTXv2>=1.5"]
 network = ["scapy>=2.5"]
 
-# Exploitation framework dependencies (hybrid approach)
-exploitation-core = [
-  "bleak>=0.21.0",           # BLE operations
-  "impacket>=0.11.0",        # Network protocols
-]
-exploitation-bluetooth = [
-  "lockknife[exploitation-core]",
-  "pybluez>=0.23; sys_platform == 'linux'",  # Bluetooth Classic (Linux only)
-]
-exploitation = [
-  "lockknife[exploitation-core,exploitation-bluetooth]",
-]
-full = ["lockknife[apk,frida,ml,yara,threat-intel,network,exploitation]"]
+# Exploitation framework dependencies (Linux-only, install separately)
+# exploitation-core = ["bleak>=0.21.0; sys_platform == 'linux'", "impacket>=0.11.0"]
+# exploitation-bluetooth = ["lockknife[exploitation-core]", "pybluez>=0.23; sys_platform == 'linux'"]
+# exploitation = ["lockknife[exploitation-core,exploitation-bluetooth]"]
+full = ["lockknife[apk,frida,ml,yara,threat-intel,network]"]
 dev = [
     "pytest>=8.0",
     "pytest-mock>=3.12",
