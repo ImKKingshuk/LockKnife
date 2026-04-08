@@ -3,7 +3,6 @@ import pathlib
 from dataclasses import dataclass
 
 import pytest
-
 from click.testing import CliRunner
 
 

@@ -76,8 +76,8 @@ def analyze_sqlite(
                 TableInfo(
                     name=item.name,
                     row_count=_safe_scalar(
-                        con, f"SELECT COUNT(*) FROM {_quote_identifier(item.name)}"
-                    ),  # nosec B608
+                        con, f"SELECT COUNT(*) FROM {_quote_identifier(item.name)}"  # nosec B608
+                    ),
                     schema_sql=item.sql,
                     columns=columns,
                     sample_rows=_sample_rows(con, item.name, limit=sample_rows),
@@ -186,8 +186,8 @@ def _sample_rows(con: sqlite3.Connection, table_name: str, *, limit: int) -> lis
     try:
         row_limit = max(0, int(limit))
         rows = con.execute(
-            f"SELECT * FROM {_quote_identifier(table_name)} LIMIT {row_limit}"
-        ).fetchall()  # nosec B608
+            f"SELECT * FROM {_quote_identifier(table_name)} LIMIT {row_limit}"  # nosec B608
+        ).fetchall()
     except (sqlite3.OperationalError, sqlite3.DatabaseError):
         return []
     out: list[dict[str, Any]] = []

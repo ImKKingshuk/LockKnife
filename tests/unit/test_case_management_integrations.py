@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 
 import pytest
-
 from click.testing import CliRunner
 
 from tests.unit.test_case_management import _SmsRow
