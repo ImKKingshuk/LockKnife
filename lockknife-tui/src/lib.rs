@@ -133,9 +133,6 @@ mod crash_recovery_tests {
     #[test]
     fn test_cleanup_registration_idempotent() {
         // Verify that cleanup registration is idempotent
-        let flag1 = Arc::new(AtomicBool::new(false));
-        let flag2 = Arc::new(AtomicBool::new(false));
-        
         // First registration should succeed (not testing actual registration due to signal complexity)
         // This is a placeholder to verify the logic exists
         assert!(!CLEANUP_REGISTERED.load(Ordering::SeqCst));
