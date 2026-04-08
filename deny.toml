@@ -9,8 +9,8 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 # The lint level for crates that have been yanked from their source registry
 yanked = "deny"
 # A list of advisory IDs to ignore
-# Note: wasmtime vulnerabilities are transitive via yara-x
-# Note: rsa, bincode, intaglio vulnerabilities are transitive via yara-x, no safe upgrade available
+# Note: rsa vulnerability (RUSTSEC-2023-0071) is transitive via yara-x, no safe upgrade available
+# Note: bincode unmaintained (RUSTSEC-2025-0141) is transitive via yara-x, no safe upgrade available
 ignore = [
     "RUSTSEC-2023-0071",
     "RUSTSEC-2025-0141",
