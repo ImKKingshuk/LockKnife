@@ -72,6 +72,20 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     render_case(frame, app, &styles);
     render_output(frame, app, &styles);
     render_status(frame, app, &styles);
+    
+    // Render exploitation panels if active
+    if matches!(app.active_panel, Panel::Exploit) {
+        render_exploit_panel(frame, app, &styles);
+    }
+    if matches!(app.active_panel, Panel::ExploitStatus) {
+        render_exploit_status_panel(frame, app, &styles);
+    }
+    if matches!(app.active_panel, Panel::Evidence) {
+        render_evidence_viewer_panel(frame, app, &styles);
+    }
+    if matches!(app.active_panel, Panel::ScanResults) {
+        render_scan_results_panel(frame, app, &styles);
+    }
 
     match &app.overlay {
         Overlay::Help => render_help(frame, app, &styles),
