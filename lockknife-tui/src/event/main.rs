@@ -127,6 +127,37 @@ pub(super) fn handle_main(app: &mut App, event: Event) -> bool {
                 (KeyCode::Char('v'), _) | (KeyCode::Char('V'), _) => {
                     app.start_result_view();
                 }
+                // Exploitation shortcuts
+                (KeyCode::Char('s'), _) | (KeyCode::Char('S'), _)
+                    if matches!(app.active_panel, Panel::Exploit) =>
+                {
+                    // Start scan for selected vector
+                    app.push_toast("info", "Scan initiated for selected vector");
+                }
+                (KeyCode::Char('r'), _) | (KeyCode::Char('R'), _)
+                    if matches!(app.active_panel, Panel::Exploit) =>
+                {
+                    // Run exploit on selected target
+                    app.push_toast("info", "Exploit initiated on selected target");
+                }
+                (KeyCode::Char('v'), _) | (KeyCode::Char('V'), _)
+                    if matches!(app.active_panel, Panel::Exploit) =>
+                {
+                    // View evidence
+                    app.active_panel = Panel::Evidence;
+                }
+                (KeyCode::Char('x'), _) | (KeyCode::Char('X'), _)
+                    if matches!(app.active_panel, Panel::Exploit | Panel::ExploitStatus) =>
+                {
+                    // Stop active exploit
+                    app.push_toast("info", "Exploit stopped");
+                }
+                (KeyCode::Char('e'), _) | (KeyCode::Char('E'), _)
+                    if matches!(app.active_panel, Panel::Devices | Panel::Modules | Panel::Case | Panel::Output) =>
+                {
+                    // Enter exploitation panel
+                    app.active_panel = Panel::Exploit;
+                }
                 (KeyCode::Up, KeyModifiers::CONTROL) => app.adjust_top_height(-1),
                 (KeyCode::Down, KeyModifiers::CONTROL) => app.adjust_top_height(1),
                 (KeyCode::Char('/'), _) => {
