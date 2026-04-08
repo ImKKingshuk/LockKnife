@@ -134,18 +134,6 @@ pub(super) fn handle_main(app: &mut App, event: Event) -> bool {
                     // Start scan for selected vector
                     app.push_toast("info", "Scan initiated for selected vector");
                 }
-                (KeyCode::Char('r'), _) | (KeyCode::Char('R'), _)
-                    if matches!(app.active_panel, Panel::Exploit) =>
-                {
-                    // Run exploit on selected target
-                    app.push_toast("info", "Exploit initiated on selected target");
-                }
-                (KeyCode::Char('v'), _) | (KeyCode::Char('V'), _)
-                    if matches!(app.active_panel, Panel::Exploit) =>
-                {
-                    // View evidence
-                    app.active_panel = Panel::Evidence;
-                }
                 (KeyCode::Char('x'), _) | (KeyCode::Char('X'), _)
                     if matches!(app.active_panel, Panel::Exploit | Panel::ExploitStatus) =>
                 {
@@ -163,12 +151,6 @@ pub(super) fn handle_main(app: &mut App, event: Event) -> bool {
                 {
                     // Filter targets or evidence
                     app.push_toast("info", "Filter feature - to be implemented");
-                }
-                (KeyCode::Char('?'), _)
-                    if matches!(app.active_panel, Panel::Exploit | Panel::ExploitStatus | Panel::Evidence | Panel::ScanResults) =>
-                {
-                    // Show help for exploitation panel
-                    app.overlay = Overlay::Help;
                 }
                 (KeyCode::Up, KeyModifiers::CONTROL) => app.adjust_top_height(-1),
                 (KeyCode::Down, KeyModifiers::CONTROL) => app.adjust_top_height(1),
@@ -251,6 +233,10 @@ pub(super) fn handle_main(app: &mut App, event: Event) -> bool {
                     Panel::Output => {
                         app.output_scroll = app.output_scroll.saturating_sub(1);
                     }
+                    Panel::Exploit => {}
+                    Panel::ExploitStatus => {}
+                    Panel::Evidence => {}
+                    Panel::ScanResults => {}
                 },
                 (KeyCode::Down, _) => match app.active_panel {
                     Panel::Devices => {
@@ -265,6 +251,10 @@ pub(super) fn handle_main(app: &mut App, event: Event) -> bool {
                     Panel::Output => {
                         app.output_scroll = app.output_scroll.saturating_add(1);
                     }
+                    Panel::Exploit => {}
+                    Panel::ExploitStatus => {}
+                    Panel::Evidence => {}
+                    Panel::ScanResults => {}
                 },
                 (KeyCode::Left, _) => {
                     if matches!(app.active_panel, Panel::Modules) {

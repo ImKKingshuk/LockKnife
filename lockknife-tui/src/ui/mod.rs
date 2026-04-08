@@ -4,11 +4,11 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
 
-use crate::app::{App, Overlay, Theme};
+use crate::app::{App, Overlay, Theme, Panel};
 
 mod overlays;
 mod panels;
-mod exploit;
+pub mod exploit;
 #[cfg(test)]
 mod tests;
 

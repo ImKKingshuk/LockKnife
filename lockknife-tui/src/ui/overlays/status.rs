@@ -241,6 +241,10 @@ pub(in crate::ui) fn active_panel_status(
         Panel::Output => {
             "Panel: Output · ↑/↓ scroll · / filter logs · v latest result".to_string()
         }
+        Panel::Exploit => "Panel: Exploit · s scan · r run · v evidence · x stop".to_string(),
+        Panel::ExploitStatus => "Panel: Exploit Status · ↑/↓ scroll".to_string(),
+        Panel::Evidence => "Panel: Evidence · ↑/↓ scroll · f filter".to_string(),
+        Panel::ScanResults => "Panel: Scan Results · ↑/↓ scroll".to_string(),
     })
 }
 

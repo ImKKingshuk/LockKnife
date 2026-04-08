@@ -89,7 +89,7 @@ dependencies = [
  "objc2-foundation",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
  "x11rb",
 ]
 
@@ -1529,6 +1529,7 @@ name = "lockknife-core"
 version = "1.0.0"
 dependencies = [
  "aho-corasick",
+ "crc32fast",
  "goblin",
  "hex",
  "lockknife-tui",
@@ -1542,6 +1543,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "socket2",
  "yara-x",
 ]
 
@@ -2727,7 +2729,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2957,6 +2959,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "socket2"
+version = "0.5.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e22376abed350d73dd1cd119b57ffccad95b4e585a7cda43e286245ce23c0678"
+dependencies = [
+ "libc",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
