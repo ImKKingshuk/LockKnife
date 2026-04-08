@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 import pathlib
 import re
-import subprocess  # nosec B404
+import subprocess  # nosec B404 - subprocess is essential for ADB CLI interaction; all calls use controlled arguments
 import time
 from collections.abc import Sequence
 from typing import Any
@@ -58,7 +58,7 @@ class AdbClient:
             "adb_run_start", adb_path=self._adb_path, args=list(args), timeout_s=timeout_s
         )
         try:
-            proc = subprocess.run(  # nosec B603
+            proc = subprocess.run(  # nosec B603 - shell=False and list of arguments prevents shell injection
                 [self._adb_path, *args],
                 check=False,
                 capture_output=True,

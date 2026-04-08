@@ -12,7 +12,7 @@ documentation = "https://lockknife.vercel.app"
 name = "lockknife_tui"
 
 [dependencies]
-pyo3 = { version = "0.22", features = ["abi3", "abi3-py312"] }
+pyo3 = { version = "0.24", features = ["abi3", "abi3-py312"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 ratatui = { version = "0.30", features = ["crossterm"] }

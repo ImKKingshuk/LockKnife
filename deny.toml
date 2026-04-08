@@ -1,0 +1,70 @@
+# Cargo-deny configuration for LockKnife
+# This configuration enforces supply chain security policies for Rust dependencies
+
+[advisories]
+# The path where the advisory database is cloned/fetched from
+db-path = "~/.cargo/advisory-db"
+# The url(s) of the advisory databases to use
+db-urls = ["https://github.com/rustsec/advisory-db"]
+# The lint level for crates that have been yanked from their source registry
+yanked = "deny"
+# A list of advisory IDs to ignore
+# Note: wasmtime vulnerabilities are transitive via yara-x v0.11.1
+# These will be fixed when yara-x releases an update
+# Note: rsa, bincode, intaglio vulnerabilities are transitive via yara-x, no safe upgrade available
+# Note: paste is unmaintained but transitive via wasmtime
+ignore = [
+    "RUSTSEC-2025-0118",
+    "RUSTSEC-2026-0020",
+    "RUSTSEC-2026-0021",
+    "RUSTSEC-2023-0071",
+    "RUSTSEC-2025-0046",
+    "RUSTSEC-2026-0078",
+    "RUSTSEC-2024-0436",
+    "RUSTSEC-2025-0141",
+]
+
+[bans]
+# Lint level for when multiple versions of the same crate are detected
+multiple-versions = "allow"
+# Lint level for when a crate version requirement is `*`
+wildcards = "allow"
+# The graph highlighting used when creating dotgraphs for crates
+highlight = "all"
+# List of crates that are allowed to use wildcard dependencies
+allow-wildcard-paths = true
+# Allow workspace path dependencies
+allow-workspace = true
+# List of crates to explicitly deny
+deny = []
+
+[licenses]
+# List of explicitly allowed licenses
+allow = [
+    "GPL-3.0",
+    "GPL-3.0-only",
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "0BSD",
+    "BSL-1.0",
+    "Zlib",
+    "Unicode-3.0",
+]
+# Confidence threshold for license detection
+confidence-threshold = 0.8
+
+[sources]
+# Lint level for what to happen when a crate from a crate registry that is not
+# in the allow list is encountered
+unknown-registry = "warn"
+# Lint level for what to happen when a crate from a git repository that is not
+# in the allow list is encountered
+unknown-git = "warn"
+# List of URLs for allowed crate registries
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# List of URLs for allowed git repositories
+allow-git = []

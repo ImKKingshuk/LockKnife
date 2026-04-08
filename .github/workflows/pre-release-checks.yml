@@ -14,6 +14,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
       - run: uv run maturin develop
@@ -22,6 +24,7 @@ jobs:
       - run: uv run cargo test --workspace
       - run: uv run cargo fmt --all --check
       - run: uv run cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: cargo deny check
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run ty check
