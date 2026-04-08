@@ -38,6 +38,37 @@ fn lockknife_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(network::parse_ipv4_header_json, m)?)?;
     m.add_function(wrap_pyfunction!(yara_scan::yara_scan_bytes, m)?)?;
     m.add_function(wrap_pyfunction!(yara_scan::yara_scan_file_rules, m)?)?;
+    
+    // Exploitation functions
+    m.add_function(wrap_pyfunction!(exploit::craft_wifi_beacon, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::craft_wifi_probe_request, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::craft_wifi_deauth, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::craft_wifi_auth, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::craft_wifi_association, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::craft_bluetooth_lmp, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::parse_wifi_frame, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::validate_wifi_checksum, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::bruteforce_wps_pin_checksum, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::bruteforce_wps_pin_parallel, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::wps_pixie_dust_accelerated, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::generate_wps_pins, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::bruteforce_wps_pin_with_checksum, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::pbkdf2_sha1, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::pbkdf2_sha1_parallel, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::hmac_sha1_vector, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::derive_psk, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::validate_handshake, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::crack_handshake, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::crack_handshake_parallel, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::scan_ports_parallel, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::scan_port_range, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::scan_common_ports, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::scan_service_banner, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::ping_sweep_parallel, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::tcp_syn_scan, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::udp_scan, m)?)?;
+    m.add_function(wrap_pyfunction!(exploit::scan_top_ports, m)?)?;
+    
     m.add_function(wrap_pyfunction!(run_tui, m)?)?;
     Ok(())
 }
