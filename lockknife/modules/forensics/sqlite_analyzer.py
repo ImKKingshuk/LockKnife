@@ -141,7 +141,7 @@ def analyze_sqlite(
 def _safe_scalar(con: sqlite3.Connection, sql: str) -> int | None:
     try:
         row = con.execute(sql).fetchone()
-    except Exception:
+    except (sqlite3.OperationalError, sqlite3.DatabaseError):
         return None
     if row is None:
         return None
@@ -152,7 +152,7 @@ def _safe_scalar(con: sqlite3.Connection, sql: str) -> int | None:
 def _string_scalar(con: sqlite3.Connection, sql: str) -> str | None:
     try:
         row = con.execute(sql).fetchone()
-    except Exception:
+    except (sqlite3.OperationalError, sqlite3.DatabaseError):
         return None
     if row is None or row[0] is None:
         return None
@@ -168,7 +168,7 @@ def _quote_identifier(name: str) -> str:
 def _columns_for_table(con: sqlite3.Connection, table_name: str) -> list[ColumnInfo]:
     try:
         rows = con.execute(f"PRAGMA table_info({_quote_identifier(table_name)})").fetchall()  # nosec B608
-    except Exception:
+    except (sqlite3.OperationalError, sqlite3.DatabaseError):
         return []
     return [
         ColumnInfo(
@@ -188,7 +188,7 @@ def _sample_rows(con: sqlite3.Connection, table_name: str, *, limit: int) -> lis
         rows = con.execute(
             f"SELECT * FROM {_quote_identifier(table_name)} LIMIT {row_limit}"
         ).fetchall()  # nosec B608
-    except Exception:
+    except (sqlite3.OperationalError, sqlite3.DatabaseError):
         return []
     out: list[dict[str, Any]] = []
     for row in rows:
