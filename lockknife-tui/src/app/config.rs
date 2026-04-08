@@ -22,6 +22,10 @@ impl App {
             case: Rect::default(),
             output: Rect::default(),
             status: Rect::default(),
+            exploit: Rect::default(),
+            exploit_status: Rect::default(),
+            evidence: Rect::default(),
+            scan_results: Rect::default(),
         };
         let theme = cfg
             .as_ref()
@@ -81,6 +85,22 @@ impl App {
             config_viewport_height: 0,
             config_goal_column: None,
             output_scroll: 0,
+            // Exploitation state
+            selected_exploit_vector: 0,
+            selected_target_index: 0,
+            selected_evidence_index: 0,
+            exploit_vectors: vec![
+                crate::ui::exploit::ExploitVector::ADBTCP,
+                crate::ui::exploit::ExploitVector::WiFi,
+                crate::ui::exploit::ExploitVector::Bluetooth,
+                crate::ui::exploit::ExploitVector::Hotspot,
+                crate::ui::exploit::ExploitVector::USB,
+                crate::ui::exploit::ExploitVector::ZeroClick,
+            ],
+            exploit_targets: Vec::new(),
+            active_exploit_status: None,
+            collected_evidence: Vec::new(),
+            scan_results: Vec::new(),
         }
     }
 
