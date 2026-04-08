@@ -258,6 +258,10 @@ pub enum Panel {
     Modules,
     Case,
     Output,
+    Exploit,
+    ExploitStatus,
+    Evidence,
+    ScanResults,
 }
 
 #[derive(Clone, Debug)]
@@ -327,6 +331,10 @@ pub struct UiLayout {
     pub case: Rect,
     pub output: Rect,
     pub status: Rect,
+    pub exploit: Rect,
+    pub exploit_status: Rect,
+    pub evidence: Rect,
+    pub scan_results: Rect,
 }
 
 #[derive(Clone, Debug)]
@@ -434,4 +442,13 @@ pub struct App {
     pub config_viewport_height: u16,
     pub config_goal_column: Option<usize>,
     pub output_scroll: u16,
+    // Exploitation state
+    pub selected_exploit_vector: usize,
+    pub selected_target_index: usize,
+    pub selected_evidence_index: usize,
+    pub exploit_vectors: Vec<crate::ui::exploit::ExploitVector>,
+    pub exploit_targets: Vec<crate::ui::exploit::ExploitTarget>,
+    pub active_exploit_status: Option<crate::ui::exploit::ExploitStatus>,
+    pub collected_evidence: Vec<crate::ui::exploit::EvidenceItem>,
+    pub scan_results: Vec<serde_json::Value>,
 }
