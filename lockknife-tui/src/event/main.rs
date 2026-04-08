@@ -141,7 +141,10 @@ pub(super) fn handle_main(app: &mut App, event: Event) -> bool {
                     app.push_toast("info", "Exploit stopped");
                 }
                 (KeyCode::Char('e'), _) | (KeyCode::Char('E'), _)
-                    if matches!(app.active_panel, Panel::Devices | Panel::Modules | Panel::Case | Panel::Output) =>
+                    if matches!(
+                        app.active_panel,
+                        Panel::Devices | Panel::Modules | Panel::Case | Panel::Output
+                    ) =>
                 {
                     // Enter exploitation panel
                     app.active_panel = Panel::Exploit;

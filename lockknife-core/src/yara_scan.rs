@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn test_yara_invalid_rule_errors() {
         let err = yara_scan_bytes("rule Bad { condition: nonsense }", b"data").unwrap_err();
-        assert!(format!("{err}").contains("compilation failed") || format!("{err}").len() > 0);
+        assert!(format!("{err}").contains("compilation failed") || !format!("{err}").is_empty());
     }
 
     #[test]
