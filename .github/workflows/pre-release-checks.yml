@@ -12,14 +12,16 @@ jobs:
         with:
           python-version: "3.12"
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
       - run: uv run maturin develop
       - run: uv run lockknife --version
       - run: uv run lockknife --cli --help
       - run: uv run cargo test --workspace
-      - run: uv run cargo fmt --check
-      - run: uv run cargo clippy --workspace -- -D warnings
+      - run: uv run cargo fmt --all --check
+      - run: uv run cargo clippy --workspace --all-targets --all-features -- -D warnings
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run ty check
@@ -40,6 +42,8 @@ jobs:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@v5
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
       - uses: PyO3/maturin-action@v1
         with:
           command: build
@@ -77,6 +81,8 @@ jobs:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@v5
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
       - uses: PyO3/maturin-action@v1
         with:
           command: sdist

@@ -4,14 +4,18 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
 
-use crate::app::{App, Overlay, Theme, Panel};
+use crate::app::{App, Overlay, Panel, Theme};
 
+pub mod exploit;
 mod overlays;
 mod panels;
-pub mod exploit;
 #[cfg(test)]
 mod tests;
 
+use self::exploit::{
+    render_evidence_viewer_panel, render_exploit_panel, render_exploit_status_panel,
+    render_scan_results_panel,
+};
 #[cfg(test)]
 use self::overlays::{
     action_menu_detail_lines, config_controls_hint, config_cursor_line_col, config_cursor_position,
@@ -27,7 +31,6 @@ use self::overlays::{
     running_status_label, status_badge, status_spans,
 };
 use self::panels::{render_case, render_devices, render_modules, render_output, render_status};
-use self::exploit::{render_exploit_panel, render_exploit_status_panel, render_evidence_viewer_panel, render_scan_results_panel};
 
 #[derive(Clone)]
 #[allow(dead_code)]
@@ -72,7 +75,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     render_case(frame, app, &styles);
     render_output(frame, app, &styles);
     render_status(frame, app, &styles);
-    
+
     // Render exploitation panels if active
     if matches!(app.active_panel, Panel::Exploit) {
         render_exploit_panel(frame, app, &styles);
