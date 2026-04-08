@@ -6,6 +6,7 @@ import re
 import subprocess  # nosec B404
 import time
 from collections.abc import Sequence
+from typing import Any
 
 from lockknife.core.exceptions import DeviceError, ExternalToolError
 from lockknife.core.logging import get_logger
@@ -684,7 +685,3 @@ class AdbClient:
 
         self._log.info("adb_restore", serial=serial, backup=str(backup_path))
         return self.run(["-s", serial, "restore", str(backup_path)], timeout_s=timeout_s).strip()
-
-
-# Type annotation for Any
-from typing import Any
