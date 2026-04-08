@@ -158,6 +158,18 @@ pub(super) fn handle_main(app: &mut App, event: Event) -> bool {
                     // Enter exploitation panel
                     app.active_panel = Panel::Exploit;
                 }
+                (KeyCode::Char('f'), _) | (KeyCode::Char('F'), _)
+                    if matches!(app.active_panel, Panel::Exploit | Panel::Evidence) =>
+                {
+                    // Filter targets or evidence
+                    app.push_toast("info", "Filter feature - to be implemented");
+                }
+                (KeyCode::Char('?'), _)
+                    if matches!(app.active_panel, Panel::Exploit | Panel::ExploitStatus | Panel::Evidence | Panel::ScanResults) =>
+                {
+                    // Show help for exploitation panel
+                    app.overlay = Overlay::Help;
+                }
                 (KeyCode::Up, KeyModifiers::CONTROL) => app.adjust_top_height(-1),
                 (KeyCode::Down, KeyModifiers::CONTROL) => app.adjust_top_height(1),
                 (KeyCode::Char('/'), _) => {
