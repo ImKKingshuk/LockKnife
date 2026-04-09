@@ -149,6 +149,10 @@ from lockknife.modules.runtime.frida_manager import FridaManager
 from lockknife.modules.runtime.hooks import root_bypass_script, ssl_pinning_bypass_script
 from lockknife.modules.runtime.memory import heap_dump, memory_search
 from lockknife.modules.runtime.tracer import method_tracer_script
+from lockknife.modules.apk.decompile import decompile_apk_report, extract_dex_headers, parse_apk_manifest
+from lockknife.modules.apk.permissions import score_permissions
+from lockknife.modules.apk.static_analysis import analyze_apk
+from lockknife.modules.apk.vulnerability import vulnerability_report
 from lockknife_headless_cli._credential_workflows import (
     export_gesture_recovery,
     export_pin_recovery,
@@ -396,6 +400,25 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["extract_wallet_addresses_from_sqlite"] = extract_wallet_addresses_from_sqlite
     module.__dict__["enrich_wallet_addresses"] = enrich_wallet_addresses
     module.__dict__["list_wallet_transactions"] = list_wallet_transactions
+    module.__dict__["FridaManager"] = FridaManager
+    module.__dict__["root_bypass_script"] = root_bypass_script
+    module.__dict__["ssl_pinning_bypass_script"] = ssl_pinning_bypass_script
+    module.__dict__["heap_dump"] = heap_dump
+    module.__dict__["memory_search"] = memory_search
+    module.__dict__["get_managed_runtime_session"] = get_managed_runtime_session
+    module.__dict__["list_managed_runtime_sessions"] = list_managed_runtime_sessions
+    module.__dict__["reconnect_managed_runtime_session"] = reconnect_managed_runtime_session
+    module.__dict__["reload_managed_runtime_session"] = reload_managed_runtime_session
+    module.__dict__["runtime_preflight"] = runtime_preflight
+    module.__dict__["start_managed_runtime_session"] = start_managed_runtime_session
+    module.__dict__["stop_managed_runtime_session"] = stop_managed_runtime_session
+    module.__dict__["method_tracer_script"] = method_tracer_script
+    module.__dict__["decompile_apk_report"] = decompile_apk_report
+    module.__dict__["extract_dex_headers"] = extract_dex_headers
+    module.__dict__["parse_apk_manifest"] = parse_apk_manifest
+    module.__dict__["score_permissions"] = score_permissions
+    module.__dict__["analyze_apk"] = analyze_apk
+    module.__dict__["vulnerability_report"] = vulnerability_report
     module.__dict__["export_pin_recovery"] = export_pin_recovery
     module.__dict__["export_gesture_recovery"] = export_gesture_recovery
     module.__dict__["export_wifi_credentials"] = export_wifi_credentials
