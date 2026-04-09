@@ -130,6 +130,12 @@ from lockknife.modules._case_enrichment_payloads import (
     virustotal_payload,
 )
 from lockknife.modules.ai.anomaly import anomaly_scores
+from lockknife.modules.ai.password_predictor import PasswordPredictor
+from lockknife.modules.crypto_wallet.wallet import (
+    enrich_wallet_addresses,
+    extract_wallet_addresses_from_sqlite,
+    list_wallet_transactions,
+)
 from lockknife_headless_cli._credential_workflows import (
     export_gesture_recovery,
     export_pin_recovery,
@@ -362,6 +368,7 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["summarize_pcap"] = summarize_pcap
     module.__dict__["capture_pcap"] = capture_pcap
     module.__dict__["anomaly_scores"] = anomaly_scores
+    module.__dict__["PasswordPredictor"] = PasswordPredictor
     module.__dict__["anomaly_payload"] = anomaly_payload
     module.__dict__["api_discovery_payload"] = api_discovery_payload
     module.__dict__["cve_payload"] = cve_payload
@@ -373,6 +380,9 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["stix_payload"] = stix_payload
     module.__dict__["taxii_payload"] = taxii_payload
     module.__dict__["virustotal_payload"] = virustotal_payload
+    module.__dict__["extract_wallet_addresses_from_sqlite"] = extract_wallet_addresses_from_sqlite
+    module.__dict__["enrich_wallet_addresses"] = enrich_wallet_addresses
+    module.__dict__["list_wallet_transactions"] = list_wallet_transactions
     module.__dict__["export_pin_recovery"] = export_pin_recovery
     module.__dict__["export_gesture_recovery"] = export_gesture_recovery
     module.__dict__["export_wifi_credentials"] = export_wifi_credentials
