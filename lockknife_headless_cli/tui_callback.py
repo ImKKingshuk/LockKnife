@@ -38,12 +38,17 @@ from lockknife.core.case import (
     register_case_artifact_with_status,
     summarize_case_manifest,
 )
+from lockknife.core._case_reporting import (
+    case_chain_of_custody_report,
+    generate_case_chain_of_custody,
+)
 from lockknife.core.feature_matrix import iter_features
 from lockknife.core.health import doctor_status, health_status
 from lockknife.core.plugin_loader import plugin_inventory
 from lockknife.core.serialize import write_csv, write_json
 from lockknife.modules.reporting.chain_of_custody import (
     EvidenceItem,
+    build_chain_of_custody_payload,
     generate_chain_of_custody,
 )
 from lockknife.modules.reporting.context import build_report_context
@@ -324,6 +329,9 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["summarize_case_manifest"] = summarize_case_manifest
     module.__dict__["EvidenceItem"] = EvidenceItem
     module.__dict__["generate_chain_of_custody"] = generate_chain_of_custody
+    module.__dict__["build_chain_of_custody_payload"] = build_chain_of_custody_payload
+    module.__dict__["case_chain_of_custody_report"] = case_chain_of_custody_report
+    module.__dict__["generate_case_chain_of_custody"] = generate_case_chain_of_custody
     module.__dict__["build_report_context"] = build_report_context
     module.__dict__["export_csv"] = export_csv
     module.__dict__["write_html_report"] = write_html_report
