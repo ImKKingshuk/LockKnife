@@ -15,6 +15,8 @@ class LockKnifeConfig(BaseModel):
     log_level: str = Field(default="INFO")
     log_format: str = Field(default="console")
     adb_path: str | None = Field(default=None)
+    rate_limit_per_device: int = Field(default=10, description="Operations per second per device")
+    rate_limit_global: int = Field(default=50, description="Operations per second globally")
 
 
 @dataclass(frozen=True)
