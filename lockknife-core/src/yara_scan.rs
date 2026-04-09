@@ -146,7 +146,7 @@ pub fn yara_cache_stats() -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{yara_scan_bytes, yara_scan_file_rules};
+    use super::{yara_scan_bytes, yara_scan_file_rules, yara_cache_stats};
 
     const RULE: &str = r#"
         rule TestRule {
@@ -190,5 +190,44 @@ mod tests {
     fn test_yara_scan_file_rules_missing() {
         let err = yara_scan_file_rules("/nonexistent/path.yar", b"data").unwrap_err();
         assert!(format!("{err}").contains("cannot read"));
+    }
+
+    #[test]
+    fn test_yara_cache_stats() {
+        let stats = yara_cache_stats();
+        assert!(stats.contains("size"));
+        assert!(stats.contains("capacity"));
+    }
+
+    #[test]
+    fn test_yara_cache_hit() {
+        let data = b"This is an EICAR test string.";
+        // First scan - cache miss
+        let _ = yara_scan_bytes(RULE, data).unwrap();
+        let stats1 = yara_cache_stats();
+        // Second scan - cache hit
+        let _ = yara_scan_bytes(RULE, data).unwrap();
+        let stats2 = yara_cache_stats();
+        // Cache size should not increase on hit
+        assert_eq!(stats1, stats2);
+    }
+
+    #[test]
+    fn test_yara_cache_miss_different_rule() {
+        let data = b"This is an EICAR test string.";
+        let rule2 = r#"
+            rule TestRule2 {
+                strings:
+                    $a = "different"
+                condition:
+                    $a
+            }
+        "#;
+        let _ = yara_scan_bytes(RULE, data).unwrap();
+        let stats1 = yara_cache_stats();
+        let _ = yara_scan_bytes(rule2, data).unwrap();
+        let stats2 = yara_cache_stats();
+        // Cache size should increase on miss
+        assert_ne!(stats1, stats2);
     }
 }
