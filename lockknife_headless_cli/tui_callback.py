@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import dataclasses
+import json
+import pathlib
 import sys
 from collections.abc import Callable
 from typing import Any
@@ -26,6 +29,7 @@ from lockknife_headless_cli._tui_callback_helpers import (
     _JOB_TRACKER_STACK,
     _err,
     _maybe_start_case_job,
+    _ok,
 )
 from lockknife_headless_cli._tui_callback_intelligence import handle as _handle_intelligence
 from lockknife_headless_cli._tui_callback_misc import handle as _handle_misc
@@ -98,4 +102,8 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
                 pass
 
     module.__dict__["_dispatch_callback"] = callback
+    module.__dict__["_ok"] = _ok
+    module.__dict__["dataclasses"] = dataclasses
+    module.__dict__["json"] = json
+    module.__dict__["pathlib"] = pathlib
     return callback
