@@ -42,7 +42,94 @@ from lockknife.core.feature_matrix import iter_features
 from lockknife.core.health import doctor_status, health_status
 from lockknife.core.plugin_loader import plugin_inventory
 from lockknife.core.serialize import write_csv, write_json
-from lockknife.modules.reporting.chain_of_custody import EvidenceItem
+from lockknife.modules.reporting.chain_of_custody import (
+    EvidenceItem,
+    generate_chain_of_custody,
+)
+from lockknife.modules.reporting.context import build_report_context
+from lockknife.modules.reporting.csv_export import export_csv
+from lockknife.modules.reporting.html_report import write_html_report
+from lockknife.modules.reporting.json_export import export_json
+from lockknife.modules.reporting.pdf_report import write_pdf_report
+from lockknife.modules.security.attack_surface import assess_attack_surface
+from lockknife.modules.security.bootloader import analyze_bootloader
+from lockknife.modules.security.device_audit import run_device_audit
+from lockknife.modules.security.hardware import analyze_hardware_security
+from lockknife.modules.security.malware import scan_with_yara
+from lockknife.modules.security.network_scan import scan_network
+from lockknife.modules.security.owasp import mastg_summary
+from lockknife.modules.security.selinux import get_selinux_status
+from lockknife.modules.credentials.wifi import extract_wifi_passwords
+from lockknife.modules.extraction._browser_extract_chrome import (
+    extract_chrome_bookmarks,
+    extract_chrome_cookies,
+    extract_chrome_downloads,
+    extract_chrome_history,
+    extract_chrome_saved_logins,
+)
+from lockknife.modules.extraction._browser_extract_firefox import (
+    extract_firefox_bookmarks,
+    extract_firefox_history,
+    extract_firefox_saved_logins,
+)
+from lockknife.modules.extraction.call_logs import extract_call_logs
+from lockknife.modules.extraction.contacts import extract_contacts
+from lockknife.modules.extraction.location import (
+    extract_location_artifacts,
+    extract_location_snapshot,
+)
+from lockknife.modules.extraction.media import extract_media_with_exif
+from lockknife.modules.extraction.messaging import (
+    extract_signal_artifacts,
+    extract_signal_messages,
+    extract_telegram_artifacts,
+    extract_telegram_messages,
+    extract_whatsapp_artifacts,
+    extract_whatsapp_messages,
+)
+from lockknife.modules.extraction.sms import extract_sms
+from lockknife.modules.forensics.correlation import correlate_artifacts_json_blobs
+from lockknife.modules.forensics.recovery import recover_deleted_records
+from lockknife.modules.forensics.snapshot import create_snapshot
+from lockknife.modules.forensics.sqlite_analyzer import analyze_sqlite
+from lockknife.modules.forensics.timeline import build_timeline, build_timeline_report
+from lockknife.modules.intelligence.cve import (
+    android_cve_risk_score,
+    correlate_cves_for_apk_package,
+    correlate_cves_for_kernel_version,
+)
+from lockknife.modules.intelligence.ioc import (
+    detect_iocs,
+    load_stix_indicators_from_url,
+    load_taxii_indicators,
+)
+from lockknife.modules.intelligence.otx import indicator_reputation
+from lockknife.modules.intelligence.virustotal import (
+    domain_report,
+    file_report,
+    ip_report,
+    submit_url_for_analysis,
+    url_report,
+)
+from lockknife.modules.network.api_discovery import (
+    extract_api_endpoints_from_pcap,
+    summarize_pcap,
+)
+from lockknife.modules.network.capture import capture_pcap
+from lockknife.modules._case_enrichment_orchestrator import run_case_enrichment
+from lockknife.modules._case_enrichment_payloads import (
+    anomaly_payload,
+    api_discovery_payload,
+    cve_payload,
+    ioc_payload,
+    network_summary_payload,
+    otx_payload,
+    password_payload,
+    stix_payload,
+    taxii_payload,
+    virustotal_payload,
+)
+from lockknife.modules.ai.anomaly import anomaly_scores
 from lockknife_headless_cli._credential_workflows import (
     export_gesture_recovery,
     export_pin_recovery,
@@ -218,6 +305,74 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["register_case_artifact_with_status"] = register_case_artifact_with_status
     module.__dict__["summarize_case_manifest"] = summarize_case_manifest
     module.__dict__["EvidenceItem"] = EvidenceItem
+    module.__dict__["generate_chain_of_custody"] = generate_chain_of_custody
+    module.__dict__["build_report_context"] = build_report_context
+    module.__dict__["export_csv"] = export_csv
+    module.__dict__["write_html_report"] = write_html_report
+    module.__dict__["export_json"] = export_json
+    module.__dict__["write_pdf_report"] = write_pdf_report
+    module.__dict__["assess_attack_surface"] = assess_attack_surface
+    module.__dict__["analyze_bootloader"] = analyze_bootloader
+    module.__dict__["run_device_audit"] = run_device_audit
+    module.__dict__["analyze_hardware_security"] = analyze_hardware_security
+    module.__dict__["scan_with_yara"] = scan_with_yara
+    module.__dict__["scan_network"] = scan_network
+    module.__dict__["get_selinux_status"] = get_selinux_status
+    module.__dict__["mastg_summary"] = mastg_summary
+    module.__dict__["extract_wifi_passwords"] = extract_wifi_passwords
+    module.__dict__["extract_chrome_bookmarks"] = extract_chrome_bookmarks
+    module.__dict__["extract_chrome_cookies"] = extract_chrome_cookies
+    module.__dict__["extract_chrome_downloads"] = extract_chrome_downloads
+    module.__dict__["extract_chrome_history"] = extract_chrome_history
+    module.__dict__["extract_chrome_saved_logins"] = extract_chrome_saved_logins
+    module.__dict__["extract_firefox_bookmarks"] = extract_firefox_bookmarks
+    module.__dict__["extract_firefox_history"] = extract_firefox_history
+    module.__dict__["extract_firefox_saved_logins"] = extract_firefox_saved_logins
+    module.__dict__["extract_call_logs"] = extract_call_logs
+    module.__dict__["extract_contacts"] = extract_contacts
+    module.__dict__["extract_location_artifacts"] = extract_location_artifacts
+    module.__dict__["extract_location_snapshot"] = extract_location_snapshot
+    module.__dict__["extract_media_with_exif"] = extract_media_with_exif
+    module.__dict__["extract_signal_artifacts"] = extract_signal_artifacts
+    module.__dict__["extract_signal_messages"] = extract_signal_messages
+    module.__dict__["extract_telegram_artifacts"] = extract_telegram_artifacts
+    module.__dict__["extract_telegram_messages"] = extract_telegram_messages
+    module.__dict__["extract_whatsapp_artifacts"] = extract_whatsapp_artifacts
+    module.__dict__["extract_whatsapp_messages"] = extract_whatsapp_messages
+    module.__dict__["extract_sms"] = extract_sms
+    module.__dict__["correlate_artifacts_json_blobs"] = correlate_artifacts_json_blobs
+    module.__dict__["recover_deleted_records"] = recover_deleted_records
+    module.__dict__["create_snapshot"] = create_snapshot
+    module.__dict__["analyze_sqlite"] = analyze_sqlite
+    module.__dict__["build_timeline"] = build_timeline
+    module.__dict__["build_timeline_report"] = build_timeline_report
+    module.__dict__["android_cve_risk_score"] = android_cve_risk_score
+    module.__dict__["correlate_cves_for_apk_package"] = correlate_cves_for_apk_package
+    module.__dict__["correlate_cves_for_kernel_version"] = correlate_cves_for_kernel_version
+    module.__dict__["detect_iocs"] = detect_iocs
+    module.__dict__["load_stix_indicators_from_url"] = load_stix_indicators_from_url
+    module.__dict__["load_taxii_indicators"] = load_taxii_indicators
+    module.__dict__["indicator_reputation"] = indicator_reputation
+    module.__dict__["domain_report"] = domain_report
+    module.__dict__["file_report"] = file_report
+    module.__dict__["ip_report"] = ip_report
+    module.__dict__["submit_url_for_analysis"] = submit_url_for_analysis
+    module.__dict__["url_report"] = url_report
+    module.__dict__["extract_api_endpoints_from_pcap"] = extract_api_endpoints_from_pcap
+    module.__dict__["summarize_pcap"] = summarize_pcap
+    module.__dict__["capture_pcap"] = capture_pcap
+    module.__dict__["anomaly_scores"] = anomaly_scores
+    module.__dict__["anomaly_payload"] = anomaly_payload
+    module.__dict__["api_discovery_payload"] = api_discovery_payload
+    module.__dict__["cve_payload"] = cve_payload
+    module.__dict__["ioc_payload"] = ioc_payload
+    module.__dict__["network_summary_payload"] = network_summary_payload
+    module.__dict__["otx_payload"] = otx_payload
+    module.__dict__["password_payload"] = password_payload
+    module.__dict__["run_case_enrichment"] = run_case_enrichment
+    module.__dict__["stix_payload"] = stix_payload
+    module.__dict__["taxii_payload"] = taxii_payload
+    module.__dict__["virustotal_payload"] = virustotal_payload
     module.__dict__["export_pin_recovery"] = export_pin_recovery
     module.__dict__["export_gesture_recovery"] = export_gesture_recovery
     module.__dict__["export_wifi_credentials"] = export_wifi_credentials
