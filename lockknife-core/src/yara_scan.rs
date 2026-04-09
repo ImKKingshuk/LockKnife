@@ -2,16 +2,16 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use serde_json::json;
 use std::collections::HashMap;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 use yara_x::Compiler;
 use once_cell::sync::Lazy;
-use md5::Md5;
+use md5::{Digest, Md5};
 
 const MAX_DATA_BYTES: usize = 256 * 1024 * 1024; // 256 MB
 const MAX_CACHE_SIZE: usize = 100; // Maximum number of compiled rules to cache
 
 struct RuleCache {
-    cache: RwLock<HashMap<String, yara_x::Rules>>,
+    cache: RwLock<HashMap<String, Arc<yara_x::Rules>>>,
     size: RwLock<usize>,
 }
 
@@ -23,19 +23,19 @@ impl RuleCache {
         }
     }
 
-    fn get(&self, key: &str) -> Option<yara_x::Rules> {
+    fn get(&self, key: &str) -> Option<Arc<yara_x::Rules>> {
         let cache = self.cache.read().unwrap();
         cache.get(key).cloned()
     }
 
-    fn put(&self, key: String, rules: yara_x::Rules) {
+    fn put(&self, key: String, rules: Arc<yara_x::Rules>) {
         let mut cache = self.cache.write().unwrap();
         let mut size = self.size.write().unwrap();
         
         // Evict oldest entry if at capacity (simple FIFO)
         if *size >= MAX_CACHE_SIZE {
-            if let Some(first_key) = cache.keys().next() {
-                cache.remove(first_key);
+            if let Some(first_key) = cache.keys().next().cloned() {
+                cache.remove(&first_key);
                 *size -= 1;
             }
         }
@@ -71,7 +71,7 @@ pub fn yara_scan_bytes(rules_src: &str, data: &[u8]) -> PyResult<String> {
     }
 
     // Compute cache key from rule source
-    let cache_key = format!("{:x}", md5::compute(rules_src.as_bytes()));
+    let cache_key = format!("{:x}", Md5::digest(rules_src.as_bytes()));
     
     // Try to get from cache
     let rules = if let Some(cached_rules) = RULE_CACHE.get(&cache_key) {
@@ -82,12 +82,12 @@ pub fn yara_scan_bytes(rules_src: &str, data: &[u8]) -> PyResult<String> {
         compiler
             .add_source(rules_src)
             .map_err(|e| PyValueError::new_err(format!("rule compilation failed: {e}")))?;
-        let compiled_rules = compiler.build();
+        let compiled_rules = Arc::new(compiler.build());
         RULE_CACHE.put(cache_key, compiled_rules.clone());
         compiled_rules
     };
 
-    let mut scanner = yara_x::Scanner::new(&rules);
+    let mut scanner = yara_x::Scanner::new(&*rules);
     let results = scanner
         .scan(data)
         .map_err(|e| PyValueError::new_err(format!("scan failed: {e}")))?;
@@ -127,6 +127,21 @@ pub fn yara_scan_file_rules(rules_path: &str, data: &[u8]) -> PyResult<String> {
     let src = std::fs::read_to_string(rules_path)
         .map_err(|e| PyValueError::new_err(format!("cannot read rules file: {e}")))?;
     yara_scan_bytes(&src, data)
+}
+
+/// Get YARA rule cache statistics.
+///
+/// Returns a JSON object with cache size and capacity:
+/// ```json
+/// {"size": 10, "capacity": 100}
+/// ```
+#[pyfunction]
+pub fn yara_cache_stats() -> String {
+    let (size, capacity) = RULE_CACHE.stats();
+    json!({
+        "size": size,
+        "capacity": capacity
+    }).to_string()
 }
 
 #[cfg(test)]
