@@ -98,6 +98,8 @@ from lockknife.modules.forensics.recovery import recover_deleted_records
 from lockknife.modules.forensics.snapshot import create_snapshot
 from lockknife.modules.forensics.sqlite_analyzer import analyze_sqlite
 from lockknife.modules.forensics.timeline import build_timeline, build_timeline_report
+from lockknife.modules.forensics.carving import carve_deleted_files
+from lockknife.modules.forensics.artifacts import parse_directory_as_aleapp
 from lockknife.modules.intelligence.cve import (
     android_cve_risk_score,
     correlate_cves_for_apk_package,
@@ -156,8 +158,9 @@ from lockknife.modules.runtime.memory import heap_dump, memory_search
 from lockknife.modules.runtime.tracer import method_tracer_script
 from lockknife.modules.apk.decompile import decompile_apk_report, extract_dex_headers, parse_apk_manifest
 from lockknife.modules.apk.permissions import score_permissions
-from lockknife.modules.apk.static_analysis import analyze_apk
+from lockknife.modules.apk.static_analysis import analyze_apk, findings_from_manifest
 from lockknife.modules.apk.vulnerability import vulnerability_report
+from lockknife.modules.apk._risk_summary import build_apk_risk_summary
 from lockknife.modules.credentials.fido2 import pull_passkey_artifacts
 from lockknife.modules.credentials.gesture import export_gesture_recovery, recover_gesture
 from lockknife.modules.credentials.keystore import inspect_keystore, list_keystore
@@ -372,6 +375,8 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["analyze_sqlite"] = analyze_sqlite
     module.__dict__["build_timeline"] = build_timeline
     module.__dict__["build_timeline_report"] = build_timeline_report
+    module.__dict__["carve_deleted_files"] = carve_deleted_files
+    module.__dict__["parse_directory_as_aleapp"] = parse_directory_as_aleapp
     module.__dict__["android_cve_risk_score"] = android_cve_risk_score
     module.__dict__["correlate_cves_for_apk_package"] = correlate_cves_for_apk_package
     module.__dict__["correlate_cves_for_kernel_version"] = correlate_cves_for_kernel_version
