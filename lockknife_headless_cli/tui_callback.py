@@ -427,6 +427,8 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["score_permissions"] = score_permissions
     module.__dict__["analyze_apk"] = analyze_apk
     module.__dict__["vulnerability_report"] = vulnerability_report
+    module.__dict__["findings_from_manifest"] = findings_from_manifest
+    module.__dict__["build_apk_risk_summary"] = build_apk_risk_summary
     module.__dict__["export_pin_recovery"] = export_pin_recovery
     module.__dict__["export_gesture_recovery"] = export_gesture_recovery
     module.__dict__["export_wifi_credentials"] = export_wifi_credentials
