@@ -136,6 +136,19 @@ from lockknife.modules.crypto_wallet.wallet import (
     extract_wallet_addresses_from_sqlite,
     list_wallet_transactions,
 )
+from lockknife.modules.runtime._session_manager_live import (
+    get_managed_runtime_session,
+    list_managed_runtime_sessions,
+    reconnect_managed_runtime_session,
+    reload_managed_runtime_session,
+    start_managed_runtime_session,
+    stop_managed_runtime_session,
+)
+from lockknife.modules.runtime._session_manager_preflight import runtime_preflight
+from lockknife.modules.runtime.frida_manager import FridaManager
+from lockknife.modules.runtime.hooks import root_bypass_script, ssl_pinning_bypass_script
+from lockknife.modules.runtime.memory import heap_dump, memory_search
+from lockknife.modules.runtime.tracer import method_tracer_script
 from lockknife_headless_cli._credential_workflows import (
     export_gesture_recovery,
     export_pin_recovery,
