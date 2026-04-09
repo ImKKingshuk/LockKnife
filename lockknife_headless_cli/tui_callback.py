@@ -38,6 +38,10 @@ from lockknife.core.case import (
     register_case_artifact_with_status,
     summarize_case_manifest,
 )
+from lockknife.core.feature_matrix import iter_features
+from lockknife.core.health import doctor_status, health_status
+from lockknife.core.plugin_loader import plugin_inventory
+from lockknife.core.serialize import write_csv, write_json
 from lockknife.modules.reporting.chain_of_custody import EvidenceItem
 from lockknife_headless_cli._credential_workflows import (
     export_gesture_recovery,
@@ -189,6 +193,12 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["pathlib"] = pathlib
     module.__dict__["time"] = time
     module.__dict__["lockknife_core"] = lockknife_core
+    module.__dict__["plugin_inventory"] = plugin_inventory
+    module.__dict__["iter_features"] = iter_features
+    module.__dict__["doctor_status"] = doctor_status
+    module.__dict__["health_status"] = health_status
+    module.__dict__["write_csv"] = write_csv
+    module.__dict__["write_json"] = write_json
     module.__dict__["case_chain_of_custody_items"] = case_chain_of_custody_items
     module.__dict__["case_artifact_details"] = case_artifact_details
     module.__dict__["case_artifact_lineage"] = case_artifact_lineage
