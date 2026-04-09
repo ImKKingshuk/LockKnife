@@ -21,7 +21,7 @@ Connect your device and begin advanced Android security research.
 <br>
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20Windows-brightgreen)]()
-[![Version](https://img.shields.io/badge/Release-v1.0.0-red)]()
+[![Version](https://img.shields.io/badge/Release-v1.0.1-red)]()
 [![License](https://img.shields.io/badge/License-GPLv3-blue)]()
 
 <a href="https://lockknife.vercel.app">
@@ -160,16 +160,23 @@ Use LockKnife when you want one operator surface for the broader investigation l
 
 ---
 
-## Current Capabilities (v1.0.0)
+## Current Capabilities (v1.0.1)
 
 ### Core Platform
 
-- ✅ Python CLI with subcommands: `device`, `crack`, `extract`, `forensics`, `apk`, `report`, `security`, `intel`, `ai`, `network`, `crypto-wallet`
-- 🔧 Full-screen TUI by default (`lockknife`) as the primary product surface; Click CLI via `--cli` / `--headless` for quick/headless tasks
+- ✅ Python CLI with subcommands: `device`, `crack`, `extract`, `forensics`, `apk`, `report`, `security`, `intel`, `ai`, `network`, `crypto-wallet`, `exploit`
+- 🔧 Full-screen TUI by default (`lockknife`) as the primary product surface; headless CLI via `--cli` / `--headless` for quick/headless tasks
 - ✅ Classic menu UI via `lockknife interactive`
 - ✅ Config loading via `lockknife.toml` (with legacy `lockknife.conf` mapping)
 - ✅ Structured logging (console/JSON) and consistent output formatting
 - ✅ Shell completion via `lockknife completion <shell>`
+- ✅ Structured error hierarchy with unique error codes (LK-0001 through LK-7001) for precise troubleshooting
+- ✅ Rate limiter module for API call throttling
+- ✅ Code quality enforcement with ruff, ty (Python) and clippy, rustfmt (Rust)
+- ✅ Fuzz testing for critical Rust parsers (correlate, parse_dex_header, sqlite_table)
+- ✅ TUI exploit management panel with evidence analysis, scan results, and navigation controls
+- ✅ Graceful TUI shutdown with signal handling and terminal state restoration
+- ✅ Reorganized TUI callback modules for better maintainability and performance
 
 ### Rust Core (Native)
 
@@ -177,6 +184,8 @@ Use LockKnife when you want one operator surface for the broader investigation l
 - ✅ High-speed PIN bruteforce and dictionary attacks
 - ✅ Binary helpers (DEX/ELF headers), pattern scanning, IPv4 parsing
 - ✅ SQLite bulk table extraction to JSON and artifact correlation primitives
+- ✅ MD5-based YARA rule caching with Arc shared ownership and FIFO eviction policy
+- ✅ Rust exploitation primitives: packet crafting/parsing for WiFi/Bluetooth, WPS utilities, parallel network port scanner, WPA handshake cracking with Rayon
 
 ### Device & Orchestration
 
@@ -252,16 +261,17 @@ Use LockKnife when you want one operator surface for the broader investigation l
 - 🔧 Malware scanning (Rust pattern engine)
 - 🔧 OWASP MASTG mapping helpers (`lockknife security owasp`)
 
-### Exploitation Framework (NEW)
+### Exploitation Framework
 
 - 🔑 **Wireless Device Exploitation** (`lockknife exploit ...`) (requires `lockknife[exploitation]`)
-  - **ADB over TCP**: Network scanning, connection, shell access
-  - **Bluetooth**: Classic + BLE discovery, BlueBorne/KNOB PoCs
-  - **WiFi**: Network scanning, WPS attacks (Pixie Dust, brute force)
-  - **Zero-Click**: CVE-based vulnerability fingerprinting
-  - **USB Debugging**: Lock screen bypass, backup extraction
-- 🔑 **Authorization Framework**: Lab mode, case tracking, audit trails
-- 🔑 **Auto-Exploitation**: Automatic vector selection and exploitation
+  - **ADB over TCP**: Network scanning, connection, shell access, logical/physical data extraction
+  - **Bluetooth**: Classic + BLE discovery, fingerprinting, GATT client, pairing manager, RFCOMM service discovery, BlueBorne/KNOB/Blurtooth PoCs
+  - **WiFi**: Network scanning, WPS attacks, WPA handshake capture and cracking (Rayon-accelerated), rogue AP deployment using hostapd/dnsmasq, P2P exploitation, MITM attacks
+  - **Zero-Click**: CVE intelligence management, payload generation, exploit chain automation, vulnerability fingerprinting
+  - **USB Debugging**: Lock screen bypass, ADB backup creation/extraction/analysis, content provider access, intent injection
+  - **Hotspot Exploitation**: Android tethering detection using iwlist, gateway exploitation, MITM traffic interception
+- 🔑 **Authorization Framework**: Exploit authorization controls, lab mode, case tracking, audit trails
+- 🔑 **Auto-Exploitation**: Automatic vector selection, multi-vector orchestration, exploit chain automation
 
 ---
 
