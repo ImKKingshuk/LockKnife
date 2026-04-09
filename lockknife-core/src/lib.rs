@@ -1,5 +1,4 @@
 #![allow(clippy::useless_conversion)]
-#![allow(deprecated)] // Allow deprecated PyO3 API (upgrade to 0.24 for security, migration to new API deferred)
 
 use pyo3::prelude::*;
 
@@ -14,7 +13,7 @@ mod pattern;
 mod sqlite_bulk;
 mod yara_scan;
 
-#[pymodule]
+#[pymodule(gil_used = true)]
 fn lockknife_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(binary::parse_dex_header_json, m)?)?;
     m.add_function(wrap_pyfunction!(binary::parse_elf_header_json, m)?)?;
@@ -78,6 +77,6 @@ fn lockknife_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 }
 
 #[pyfunction]
-fn run_tui(py: Python<'_>, callback: PyObject) -> PyResult<()> {
+fn run_tui(py: Python<'_>, callback: Py<PyAny>) -> PyResult<()> {
     lockknife_tui::run_tui(py, callback)
 }

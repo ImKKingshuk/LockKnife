@@ -1,5 +1,4 @@
 use super::*;
-use pyo3::{IntoPy, Python};
 use std::path::PathBuf;
 use std::sync::Once;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -8,7 +7,7 @@ static INIT: Once = Once::new();
 
 fn init_python() {
     INIT.call_once(|| {
-        pyo3::prepare_freethreaded_python();
+        pyo3::Python::initialize();
     });
 }
 

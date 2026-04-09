@@ -1,5 +1,3 @@
-#![allow(deprecated)] // Allow deprecated PyO3 API (upgrade to 0.24 for security, migration to new API deferred)
-
 use std::io::{self, Stdout};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -35,8 +33,7 @@ fn register_signal_handlers(cleanup_flag: Arc<AtomicBool>) -> PyResult<()> {
     Ok(())
 }
 
-pub fn run_tui(py: Python<'_>, callback: PyObject) -> PyResult<()> {
-    let callback = callback.into_py(py);
+pub fn run_tui(py: Python<'_>, callback: Py<PyAny>) -> PyResult<()> {
     let mut terminal = setup_terminal()?;
 
     // Register signal handlers for graceful shutdown
@@ -87,7 +84,7 @@ fn run_app(
             break;
         }
 
-        let quit = py.allow_threads(|| -> io::Result<bool> {
+        let quit = Python::detach(py, || -> io::Result<bool> {
             app.poll_async();
             app.tick();
             terminal.draw(|f| ui::draw(f, app))?;

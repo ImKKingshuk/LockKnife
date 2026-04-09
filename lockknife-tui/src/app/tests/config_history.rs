@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn build_recent_case_prompt_uses_choice_field_for_session_history() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-003".to_string());
     app.recent_case_dirs = vec![
@@ -39,7 +39,7 @@ fn build_recent_case_prompt_uses_choice_field_for_session_history() {
 #[test]
 fn build_recent_case_prompt_reports_when_session_has_no_case_history() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::from_loaded_config(callback, None);
 
     let error = app
@@ -52,7 +52,7 @@ fn build_recent_case_prompt_reports_when_session_has_no_case_history() {
 #[test]
 fn build_recent_artifact_filter_prompt_uses_choice_fields_for_saved_history() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::from_loaded_config(
         callback,
         Some(TuiConfig {
@@ -109,7 +109,7 @@ fn build_recent_artifact_filter_prompt_uses_choice_fields_for_saved_history() {
 #[test]
 fn build_recent_artifact_filter_prompt_reports_when_history_is_missing() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::from_loaded_config(callback, None);
 
     let error = app
@@ -147,7 +147,7 @@ fn default_config_path_is_disabled_for_unit_tests() {
 #[test]
 fn app_from_loaded_config_restores_sanitized_recent_case_history() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::from_loaded_config(
         callback,
         Some(TuiConfig {
@@ -187,7 +187,7 @@ fn app_from_loaded_config_restores_sanitized_recent_case_history() {
 #[test]
 fn current_tui_config_persists_recent_case_history_roundtrip() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::from_loaded_config(callback, None);
     app.theme = Theme::Light;
     app.top_height = 13;
@@ -284,7 +284,7 @@ fn current_tui_config_persists_recent_case_history_roundtrip() {
 #[test]
 fn app_from_loaded_config_restores_sanitized_prompt_defaults() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::from_loaded_config(
         callback,
         Some(TuiConfig {
@@ -322,7 +322,7 @@ fn app_from_loaded_config_restores_sanitized_prompt_defaults() {
 #[test]
 fn app_from_loaded_config_restores_sanitized_artifact_filter_history() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::from_loaded_config(
         callback,
         Some(TuiConfig {

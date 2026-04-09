@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn confirm_lines_include_case_routing_and_destination_context() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-222".to_string());
 
@@ -46,7 +46,7 @@ fn confirm_lines_include_case_routing_and_destination_context() {
 #[test]
 fn confirm_lines_include_device_context_for_device_actions() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.devices.push(DeviceItem {
         serial: "SERIAL-9".to_string(),
@@ -90,7 +90,7 @@ fn confirm_lines_include_device_context_for_device_actions() {
 #[test]
 fn confirm_lines_surface_runtime_preflight_blockers_and_remediation() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
 
     let module_index = app
@@ -133,7 +133,7 @@ fn confirm_lines_surface_runtime_preflight_blockers_and_remediation() {
 #[test]
 fn confirm_lines_surface_dependency_gated_remediation_for_threat_intel_actions() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
 
     let module_index = app

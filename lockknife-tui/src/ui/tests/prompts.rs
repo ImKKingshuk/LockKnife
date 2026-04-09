@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn config_hint_lines_show_controls_and_cursor_position() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.config_text = "[ui]\ntheme='dark'\n".to_string();
     app.config_saved_text = app.config_text.clone();

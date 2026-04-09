@@ -5,7 +5,7 @@ fn renders_header_and_panels() {
     init_python();
     let backend = TestBackend::new(80, 24);
     let mut terminal = Terminal::new(backend).unwrap();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     terminal.draw(|f| draw(f, &mut app)).unwrap();
     let buffer = terminal.backend().buffer();
@@ -29,7 +29,7 @@ fn renders_overlays() {
     init_python();
     let backend = TestBackend::new(80, 24);
     let mut terminal = Terminal::new(backend).unwrap();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
 
     app.overlay = Overlay::Help;
@@ -85,7 +85,7 @@ fn renders_overlays_on_small_terminal() {
     init_python();
     let backend = TestBackend::new(40, 12);
     let mut terminal = Terminal::new(backend).unwrap();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
 
     app.overlay = Overlay::Help;
