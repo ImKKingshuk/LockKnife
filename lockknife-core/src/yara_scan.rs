@@ -1,9 +1,55 @@
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use serde_json::json;
+use std::collections::HashMap;
+use std::sync::RwLock;
 use yara_x::Compiler;
+use once_cell::sync::Lazy;
 
 const MAX_DATA_BYTES: usize = 256 * 1024 * 1024; // 256 MB
+const MAX_CACHE_SIZE: usize = 100; // Maximum number of compiled rules to cache
+
+struct RuleCache {
+    cache: RwLock<HashMap<String, yara_x::Rules>>,
+    size: RwLock<usize>,
+}
+
+impl RuleCache {
+    fn new() -> Self {
+        Self {
+            cache: RwLock::new(HashMap::new()),
+            size: RwLock::new(0),
+        }
+    }
+
+    fn get(&self, key: &str) -> Option<yara_x::Rules> {
+        let cache = self.cache.read().unwrap();
+        cache.get(key).cloned()
+    }
+
+    fn put(&self, key: String, rules: yara_x::Rules) {
+        let mut cache = self.cache.write().unwrap();
+        let mut size = self.size.write().unwrap();
+        
+        // Evict oldest entry if at capacity (simple FIFO)
+        if *size >= MAX_CACHE_SIZE {
+            if let Some(first_key) = cache.keys().next() {
+                cache.remove(first_key);
+                *size -= 1;
+            }
+        }
+        
+        cache.insert(key, rules);
+        *size += 1;
+    }
+
+    fn stats(&self) -> (usize, usize) {
+        let size = self.size.read().unwrap();
+        (*size, MAX_CACHE_SIZE)
+    }
+}
+
+static RULE_CACHE: Lazy<RuleCache> = Lazy::new(|| RuleCache::new());
 
 /// Compile YARA-X rules (source string) and scan `data`.
 ///
