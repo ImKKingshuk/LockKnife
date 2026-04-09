@@ -153,16 +153,11 @@ from lockknife.modules.apk.decompile import decompile_apk_report, extract_dex_he
 from lockknife.modules.apk.permissions import score_permissions
 from lockknife.modules.apk.static_analysis import analyze_apk
 from lockknife.modules.apk.vulnerability import vulnerability_report
-from lockknife_headless_cli._credential_workflows import (
-    export_gesture_recovery,
-    export_pin_recovery,
-    export_wifi_credentials,
-    inspect_keystore,
-    list_keystore,
-    pull_passkey_artifacts,
-    recover_gesture,
-    recover_pin,
-)
+from lockknife.modules.credentials.fido2 import pull_passkey_artifacts
+from lockknife.modules.credentials.gesture import export_gesture_recovery, recover_gesture
+from lockknife.modules.credentials.keystore import inspect_keystore, list_keystore
+from lockknife.modules.credentials.pin import export_pin_recovery, recover_pin
+from lockknife.modules.credentials.wifi import export_wifi_credentials
 from lockknife_headless_cli._tui_callback_apk import handle as _handle_apk
 from lockknife_headless_cli._tui_callback_case import handle as _handle_case
 from lockknife_headless_cli._tui_callback_core import handle as _handle_core
