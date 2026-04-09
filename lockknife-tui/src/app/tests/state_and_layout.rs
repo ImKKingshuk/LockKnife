@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn build_result_followup_prompt_uses_first_artifact_from_search_results_for_lineage() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-881".to_string());
     app.last_result_json = Some(
@@ -34,7 +34,7 @@ fn build_result_followup_prompt_uses_first_artifact_from_search_results_for_line
 #[test]
 fn build_result_followup_prompt_requires_artifact_context_for_lineage() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-900".to_string());
     app.last_result_json = Some(serde_json::json!({"case_dir": "./cases/CASE-900"}).to_string());
@@ -52,7 +52,7 @@ fn build_result_followup_prompt_requires_artifact_context_for_lineage() {
 #[test]
 fn build_result_followup_prompt_requires_registerable_path_for_registration() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-901".to_string());
     app.last_result_json = Some(serde_json::json!({"case_dir": "./cases/CASE-901"}).to_string());
@@ -70,7 +70,7 @@ fn build_result_followup_prompt_requires_registerable_path_for_registration() {
 #[test]
 fn apply_result_records_case_investigation_history_for_partial_and_failed_steps() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.pending_case_dir = Some("./cases/CASE-902".to_string());
 
@@ -120,7 +120,7 @@ fn apply_result_records_case_investigation_history_for_partial_and_failed_steps(
 #[test]
 fn start_result_view_without_result_logs_guidance() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
 
     assert!(!app.start_result_view());
@@ -135,7 +135,7 @@ fn start_result_view_without_result_logs_guidance() {
 #[test]
 fn cycle_theme_emits_feedback() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.theme = Theme::Dark;
 
@@ -152,7 +152,7 @@ fn cycle_theme_emits_feedback() {
 #[test]
 fn apply_search_query_reports_apply_and_clear() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.module_scroll = 7;
 
@@ -181,7 +181,7 @@ fn apply_search_query_reports_apply_and_clear() {
 #[test]
 fn apply_result_device_list_without_message_reports_refresh_summary() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
 
     app.apply_result(
@@ -216,7 +216,7 @@ fn apply_result_device_list_without_message_reports_refresh_summary() {
 #[test]
 fn apply_result_surfaces_recovery_guidance_for_failed_actions() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
 
     app.apply_result(
@@ -252,7 +252,7 @@ fn apply_result_surfaces_recovery_guidance_for_failed_actions() {
 #[test]
 fn apply_result_config_save_without_message_reports_saved_config() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.config_path = Some("./lockknife.toml".to_string());
     app.config_text = "theme = 'light'\n".to_string();
@@ -284,7 +284,7 @@ fn apply_result_config_save_without_message_reports_saved_config() {
 #[test]
 fn config_edit_helpers_track_dirty_state_and_utf8_boundaries() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.config_text = "héllo\nworld".to_string();
     app.config_saved_text = app.config_text.clone();
@@ -311,7 +311,7 @@ fn config_edit_helpers_track_dirty_state_and_utf8_boundaries() {
 #[test]
 fn config_vertical_movement_and_scroll_follow_cursor() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.config_text = "alpha\nb\ngamma\ndelta".to_string();
     app.config_saved_text = app.config_text.clone();
@@ -338,7 +338,7 @@ fn config_vertical_movement_and_scroll_follow_cursor() {
 #[test]
 fn execute_action_without_device_surfaces_toast() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     let (module_index, action_index) = app
         .modules
@@ -376,7 +376,7 @@ fn main_body_height_budget_preserves_output_space_on_short_terminals() {
 #[test]
 fn update_layout_clamps_top_row_for_short_terminals() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.top_height = 20;
 
@@ -393,7 +393,7 @@ fn update_layout_clamps_top_row_for_short_terminals() {
 #[test]
 fn update_layout_keeps_regular_top_row_when_space_allows() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
 
     app.update_layout(Rect::new(0, 0, 80, 24));

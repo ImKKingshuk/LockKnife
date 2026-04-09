@@ -27,7 +27,7 @@ impl CallbackResult {
 }
 
 pub fn call(callback: &Py<PyAny>, action: &str, params: &Value) -> CallbackResult {
-    Python::with_gil(|py| {
+    pyo3::Python::attach(|py| {
         let callable = callback.bind(py);
         let params_obj = to_pyobject(py, params);
         let args = (action, params_obj);
@@ -53,7 +53,7 @@ fn parse_result(value: &Bound<'_, PyAny>) -> CallbackResult {
     let mut logs = None;
     let mut error = None;
 
-    if let Ok(dict) = value.downcast::<PyDict>() {
+    if let Ok(dict) = value.cast::<PyDict>() {
         if let Ok(Some(v)) = dict.get_item("ok") {
             if let Ok(b) = v.extract::<bool>() {
                 ok = b;
@@ -80,10 +80,10 @@ fn parse_result(value: &Bound<'_, PyAny>) -> CallbackResult {
             }
         }
         if let Ok(Some(v)) = dict.get_item("logs") {
-            if let Ok(list) = v.downcast::<PyList>() {
+            if let Ok(list) = v.cast::<PyList>() {
                 let mut out = Vec::new();
                 for item in list.iter() {
-                    if let Ok(log_dict) = item.downcast::<PyDict>() {
+                    if let Ok(log_dict) = item.cast::<PyDict>() {
                         let mut level = "info".to_string();
                         if let Ok(Some(v)) = log_dict.get_item("level") {
                             if let Ok(s) = v.extract::<String>() {
@@ -118,35 +118,35 @@ fn parse_result(value: &Bound<'_, PyAny>) -> CallbackResult {
     }
 }
 
-fn to_pyobject(py: Python<'_>, value: &Value) -> PyObject {
+fn to_pyobject(py: Python<'_>, value: &Value) -> Py<PyAny> {
     match value {
         Value::Null => py.None(),
-        Value::Bool(b) => b.into_py(py),
+        Value::Bool(b) => b.into_pyobject(py).unwrap().as_any().to_owned().unbind(),
         Value::Number(n) => {
             if let Some(i) = n.as_i64() {
-                i.into_py(py)
+                i.into_pyobject(py).unwrap().as_any().to_owned().unbind()
             } else if let Some(u) = n.as_u64() {
-                u.into_py(py)
+                u.into_pyobject(py).unwrap().as_any().to_owned().unbind()
             } else if let Some(f) = n.as_f64() {
-                f.into_py(py)
+                f.into_pyobject(py).unwrap().as_any().to_owned().unbind()
             } else {
                 py.None()
             }
         }
-        Value::String(s) => s.into_py(py),
+        Value::String(s) => s.into_pyobject(py).unwrap().as_any().to_owned().unbind(),
         Value::Array(arr) => {
-            let list = PyList::empty_bound(py);
+            let list = PyList::empty(py);
             for v in arr {
-                list.append(to_pyobject(py, v)).ok();
+                list.append(to_pyobject(py, v)).unwrap();
             }
-            list.into_py(py)
+            list.as_any().to_owned().unbind()
         }
         Value::Object(obj) => {
-            let dict = PyDict::new_bound(py);
+            let dict = PyDict::new(py);
             for (k, v) in obj {
-                dict.set_item(k, to_pyobject(py, v)).ok();
+                dict.set_item(k, to_pyobject(py, v)).unwrap();
             }
-            dict.into_py(py)
+            dict.as_any().to_owned().unbind()
         }
     }
 }

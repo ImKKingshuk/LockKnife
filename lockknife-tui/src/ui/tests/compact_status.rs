@@ -16,7 +16,7 @@ fn config_controls_hint_compacts_with_width() {
 #[test]
 fn config_hint_lines_show_modified_state() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.config_text = "[ui]\ntheme='light'\n".to_string();
     app.config_saved_text = "[ui]\ntheme='dark'\n".to_string();
@@ -34,7 +34,7 @@ fn config_hint_lines_show_modified_state() {
 #[test]
 fn config_cursor_position_respects_scroll_and_width() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.config_text = "alpha\nbeta\ngamma".to_string();
     app.config_cursor = "alpha\nbe".len();
@@ -52,7 +52,7 @@ fn config_cursor_position_respects_scroll_and_width() {
 #[test]
 fn output_empty_lines_explain_how_to_clear_output_search() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.search = Some(SearchState {
         target: SearchTarget::Output,
@@ -73,7 +73,7 @@ fn output_empty_lines_explain_how_to_clear_output_search() {
 #[test]
 fn active_search_status_summarizes_target_and_query() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.search = Some(SearchState {
         target: SearchTarget::Output,
@@ -111,7 +111,7 @@ fn panel_title_compacts_on_narrow_width() {
 #[test]
 fn active_search_status_compacts_on_narrow_width() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.search = Some(SearchState {
         target: SearchTarget::Modules,
@@ -155,7 +155,7 @@ fn status_spans_surface_case_shortcuts_on_wide_layouts() {
 #[test]
 fn module_detail_lines_surface_truth_alignment_metadata() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
     let runtime = app
         .modules
@@ -177,7 +177,7 @@ fn module_detail_lines_surface_truth_alignment_metadata() {
 #[test]
 fn action_menu_detail_lines_surface_status_and_requirements() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
     let action = app
         .modules
@@ -201,7 +201,7 @@ fn renders_action_menu_with_truth_alignment_badges() {
     init_python();
     let backend = TestBackend::new(90, 26);
     let mut terminal = Terminal::new(backend).unwrap();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     let module_index = app
         .modules
@@ -230,7 +230,7 @@ fn renders_action_menu_with_truth_alignment_badges() {
 #[test]
 fn active_panel_status_describes_current_modules_focus() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
 
     assert_eq!(
@@ -242,7 +242,7 @@ fn active_panel_status_describes_current_modules_focus() {
 #[test]
 fn active_panel_status_describes_case_dashboard_focus() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_panel = Panel::Case;
 
@@ -255,7 +255,7 @@ fn active_panel_status_describes_case_dashboard_focus() {
 #[test]
 fn active_panel_status_adapts_to_devices_and_output_panels() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_panel = Panel::Devices;
     assert_eq!(
@@ -273,7 +273,7 @@ fn active_panel_status_adapts_to_devices_and_output_panels() {
 #[test]
 fn active_panel_status_hides_on_compact_layouts() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
 
     assert!(active_panel_status(&app, 56, false).is_none());
@@ -283,7 +283,7 @@ fn active_panel_status_hides_on_compact_layouts() {
 #[test]
 fn active_case_status_reflects_current_case_on_wide_layouts() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-099".to_string());
 
@@ -298,7 +298,7 @@ fn active_case_status_reflects_current_case_on_wide_layouts() {
 #[test]
 fn active_case_status_surfaces_missing_case_state_on_roomy_layouts() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
 
     assert_eq!(
@@ -311,7 +311,7 @@ fn active_case_status_surfaces_missing_case_state_on_roomy_layouts() {
 #[test]
 fn active_target_status_reflects_selected_device_on_roomy_layouts() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.devices.push(DeviceItem {
         serial: "SERIAL-77".to_string(),
@@ -398,7 +398,7 @@ fn help_lines_promote_tui_first_diagnostics_on_wide_overlays() {
 #[test]
 fn config_title_compacts_for_small_widths() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.config_path = Some("/very/long/path/to/configs/lockknife.toml".to_string());
 
@@ -418,7 +418,7 @@ fn adaptive_centered_rect_expands_on_small_terminals() {
 #[test]
 fn confirm_lines_compact_for_small_overlays() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
     let state = ConfirmState {
         title: "Delete bundle?".to_string(),
@@ -439,7 +439,7 @@ fn confirm_lines_compact_for_small_overlays() {
 #[test]
 fn module_empty_detail_lines_explain_how_to_clear_module_search() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.search = Some(SearchState {
         target: SearchTarget::Modules,
@@ -462,7 +462,7 @@ fn tui_first_render_under_100ms() {
     init_python();
     let backend = TestBackend::new(80, 24);
     let mut terminal = Terminal::new(backend).unwrap();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     let start = Instant::now();
     terminal.draw(|f| draw(f, &mut app)).unwrap();

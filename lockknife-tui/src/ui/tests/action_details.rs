@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn action_menu_detail_lines_include_description_and_traits() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
     let action = crate::app::ModuleAction {
         id: "runtime.hook".to_string(),
@@ -59,7 +59,7 @@ fn action_menu_detail_lines_include_description_and_traits() {
 #[test]
 fn action_menu_detail_lines_surface_standardized_preflight_for_optional_modules() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
     let action = app
         .modules
@@ -83,7 +83,7 @@ fn action_menu_detail_lines_surface_standardized_preflight_for_optional_modules(
 #[test]
 fn module_detail_lines_include_description_counts_and_help() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
     let module = crate::app::ModuleEntry {
         id: "runtime".to_string(),
@@ -158,7 +158,7 @@ fn module_detail_lines_include_description_counts_and_help() {
 #[test]
 fn module_detail_lines_surface_device_blockers_when_no_device_is_selected() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
     let module = app
         .modules
@@ -178,7 +178,7 @@ fn module_detail_lines_surface_device_blockers_when_no_device_is_selected() {
 #[test]
 fn action_menu_detail_lines_surface_ready_device_context() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.devices.push(DeviceItem {
         serial: "SERIAL-1".to_string(),
@@ -208,7 +208,7 @@ fn action_menu_detail_lines_surface_ready_device_context() {
 #[test]
 fn module_detail_lines_surface_active_case_context_for_case_aware_modules() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-011".to_string());
     let module = app
@@ -230,7 +230,7 @@ fn module_detail_lines_surface_active_case_context_for_case_aware_modules() {
 #[test]
 fn module_detail_lines_quantify_case_reuse_and_auto_routing() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-777".to_string());
     let module = crate::app::ModuleEntry {
@@ -298,7 +298,7 @@ fn module_detail_lines_quantify_case_reuse_and_auto_routing() {
 #[test]
 fn action_menu_detail_lines_surface_active_case_routing_guidance() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-012".to_string());
     let action = app

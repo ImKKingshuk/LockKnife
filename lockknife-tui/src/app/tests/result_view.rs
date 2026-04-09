@@ -535,7 +535,7 @@ fn build_result_view_content_includes_analysis_and_report_preview_context() {
 #[test]
 fn apply_result_surfaces_result_paths_in_logs_and_result_view() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
 
     app.apply_result(
@@ -602,7 +602,7 @@ fn apply_result_surfaces_result_paths_in_logs_and_result_view() {
 #[test]
 fn start_result_view_includes_case_context_when_active_case_is_known() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-777".to_string());
     app.last_result_json = Some(
@@ -629,7 +629,7 @@ fn start_result_view_includes_case_context_when_active_case_is_known() {
 #[test]
 fn start_result_view_includes_artifact_lineage_context_when_available() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-888".to_string());
     app.last_result_json = Some(
@@ -676,7 +676,7 @@ fn start_result_view_includes_artifact_lineage_context_when_available() {
 #[test]
 fn apply_result_promotes_active_case_from_case_paths() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.pending_case_dir = Some("./cases/CASE-001".to_string());
 

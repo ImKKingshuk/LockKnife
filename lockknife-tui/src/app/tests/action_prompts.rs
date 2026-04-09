@@ -11,7 +11,7 @@ fn apply_action_prompt_context_prefills_active_case_for_case_aware_actions() {
         .clone();
 
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-007".to_string());
 
@@ -42,7 +42,7 @@ fn apply_action_prompt_context_prefills_selected_device_for_case_init() {
         .clone();
 
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::from_loaded_config(callback, None);
     app.devices = vec![DeviceItem {
         serial: "emulator-5554".to_string(),
@@ -79,7 +79,7 @@ fn apply_action_prompt_context_prefills_runtime_device_and_preflight_lines() {
         .clone();
 
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-008".to_string());
     app.devices = vec![DeviceItem {
@@ -127,7 +127,7 @@ fn apply_action_prompt_context_prefills_runtime_device_and_preflight_lines() {
 #[test]
 fn build_case_dashboard_prompt_prefills_case_first_reporting() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-515".to_string());
 
@@ -159,7 +159,7 @@ fn build_case_dashboard_prompt_prefills_case_first_reporting() {
 #[test]
 fn build_case_dashboard_prompt_prefills_case_first_reporting_support_actions() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-616".to_string());
 
@@ -190,7 +190,7 @@ fn build_case_dashboard_prompt_prefills_case_first_reporting_support_actions() {
 #[test]
 fn build_case_dashboard_prompt_prefills_case_job_actions_from_latest_job() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-516".to_string());
     app.last_job_json = Some(
@@ -235,7 +235,7 @@ fn apply_action_prompt_context_prefills_case_filters_from_latest_result() {
         .clone();
 
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::from_loaded_config(callback, None);
     app.last_result_json = Some(
         serde_json::json!({
@@ -277,7 +277,7 @@ fn apply_action_prompt_context_prefills_case_filters_from_latest_result() {
 #[test]
 fn build_action_prompt_prefills_register_metadata_from_general_context() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::from_loaded_config(callback, None);
     app.active_case_dir = Some("./cases/CASE-042".to_string());
     app.devices = vec![DeviceItem {
@@ -334,7 +334,7 @@ fn apply_action_prompt_context_prefills_case_metadata_from_persisted_defaults() 
         .clone();
 
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::from_loaded_config(
         callback,
         Some(TuiConfig {

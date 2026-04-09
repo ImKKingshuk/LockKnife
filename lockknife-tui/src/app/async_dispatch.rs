@@ -3,7 +3,6 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use pyo3::Python;
 use serde_json::Value;
 
 use crate::bridge::{self, CallbackResult};
@@ -155,7 +154,7 @@ impl App {
     fn spawn_async(&mut self, action_id: String, label: String, payload: Value) {
         let (tx, rx): (Sender<AsyncResult>, Receiver<AsyncResult>) = mpsc::channel();
         let (cancel_tx, cancel_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
-        let callback = Python::with_gil(|py| self.callback.clone_ref(py));
+        let callback = pyo3::Python::attach(|py| self.callback.clone_ref(py));
         self.busy = true;
         self.progress = 10;
         self.progress_label = label;

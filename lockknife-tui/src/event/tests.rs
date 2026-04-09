@@ -8,7 +8,6 @@ use crate::app::{
     SearchTarget,
 };
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-use pyo3::{IntoPy, Python};
 use serde_json::{Map, Value};
 use std::sync::Once;
 
@@ -16,13 +15,13 @@ static INIT: Once = Once::new();
 
 fn init_python() {
     INIT.call_once(|| {
-        pyo3::prepare_freethreaded_python();
+        pyo3::Python::initialize();
     });
 }
 
 fn none_callback() -> pyo3::Py<pyo3::PyAny> {
     init_python();
-    Python::with_gil(|py| py.None().into_py(py))
+    pyo3::Python::attach(|py| py.None())
 }
 
 mod action_menu;

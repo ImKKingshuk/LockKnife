@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn output_empty_lines_explain_next_step_without_logs() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let app = App::new(callback);
 
     let rendered = output_empty_lines(&app)
@@ -24,7 +24,7 @@ fn output_empty_lines_explain_next_step_without_logs() {
 #[test]
 fn output_empty_lines_surface_active_case_guidance_after_result() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-314".to_string());
     app.last_result_json = Some("{}".to_string());
@@ -45,7 +45,7 @@ fn output_empty_lines_surface_active_case_guidance_after_result() {
 #[test]
 fn output_empty_lines_surface_active_target_guidance() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.devices.push(DeviceItem {
         serial: "SERIAL-42".to_string(),
@@ -109,7 +109,7 @@ fn result_view_controls_hint_includes_followup_shortcuts_on_roomy_layouts() {
 #[test]
 fn case_detail_lines_surface_history_and_quick_actions() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-222".to_string());
     app.last_result_json = Some(

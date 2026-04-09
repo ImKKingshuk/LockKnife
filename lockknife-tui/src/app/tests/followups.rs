@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn build_result_followup_prompt_prefills_summary_from_latest_case() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-321".to_string());
 
@@ -23,7 +23,7 @@ fn build_result_followup_prompt_prefills_summary_from_latest_case() {
 #[test]
 fn build_result_followup_prompt_prefills_artifact_detail_from_latest_result() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-654".to_string());
     app.last_result_json = Some(
@@ -66,7 +66,7 @@ fn build_result_followup_prompt_prefills_artifact_detail_from_latest_result() {
 #[test]
 fn build_result_followup_prompt_prefills_register_from_result_paths_and_metadata() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-777".to_string());
     app.last_result_paths = vec![
@@ -125,7 +125,7 @@ fn build_result_followup_prompt_prefills_register_from_result_paths_and_metadata
 #[test]
 fn build_result_followup_prompt_prefills_artifact_search_from_latest_result_context() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-778".to_string());
     app.last_result_paths = vec![
@@ -176,7 +176,7 @@ fn build_result_followup_prompt_prefills_artifact_search_from_latest_result_cont
 #[test]
 fn build_result_followup_prompt_uses_artifact_id_as_search_fallback() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-779".to_string());
     app.last_result_json = Some(
@@ -202,7 +202,7 @@ fn build_result_followup_prompt_uses_artifact_id_as_search_fallback() {
 #[test]
 fn build_result_followup_prompt_supports_case_export_and_reporting_followups() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-880".to_string());
     app.last_result_json = Some(
@@ -295,7 +295,7 @@ fn build_result_followup_prompt_supports_case_export_and_reporting_followups() {
 #[test]
 fn build_result_followup_prompt_prefills_apk_runtime_and_security_actions() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-990".to_string());
     app.last_result_json = Some(
@@ -385,7 +385,7 @@ fn apk_decompile_action_exposes_mode_selector_and_updated_guidance() {
 #[test]
 fn build_result_followup_prompt_supports_case_job_actions() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::new(callback);
     app.active_case_dir = Some("./cases/CASE-882".to_string());
     app.last_result_json = Some(

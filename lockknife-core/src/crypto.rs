@@ -83,7 +83,7 @@ pub fn aes256gcm_encrypt(
     in_out.reserve(aead::AES_256_GCM.tag_len());
     key.seal_in_place_append_tag(nonce, aad, &mut in_out)
         .map_err(|_| PyValueError::new_err("encryption failed"))?;
-    Ok(PyBytes::new_bound(py, &in_out).unbind())
+    Ok(PyBytes::new(py, &in_out).into())
 }
 
 #[pyfunction]
@@ -114,7 +114,7 @@ pub fn aes256gcm_decrypt(
     let plain = key
         .open_in_place(nonce, aad, &mut in_out)
         .map_err(|_| PyValueError::new_err("decryption failed"))?;
-    Ok(PyBytes::new_bound(py, plain).unbind())
+    Ok(PyBytes::new(py, plain).into())
 }
 
 #[cfg(test)]
@@ -130,7 +130,7 @@ mod tests {
 
     fn init_python() {
         INIT.call_once(|| {
-            pyo3::prepare_freethreaded_python();
+            pyo3::Python::initialize();
         });
     }
 
@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn test_aes_roundtrip() {
         init_python();
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let key = [0u8; 32];
             let nonce = [1u8; 12];
             let ct = aes256gcm_encrypt(py, &key, &nonce, b"hello", b"").unwrap();
@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn test_invalid_key() {
         init_python();
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let key = [0u8; 16];
             let nonce = [0u8; 12];
             let err = aes256gcm_encrypt(py, &key, &nonce, b"hi", b"").unwrap_err();

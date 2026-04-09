@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn remember_prompt_defaults_from_params_captures_sanitized_metadata() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::from_loaded_config(callback, None);
 
     app.remember_prompt_defaults_from_params(&serde_json::json!({
@@ -46,7 +46,7 @@ fn remember_prompt_defaults_from_params_captures_sanitized_metadata() {
 #[test]
 fn remember_artifact_filter_history_from_params_captures_recent_filters() {
     init_python();
-    let callback = Python::with_gil(|py| py.None().into_py(py));
+    let callback = pyo3::Python::attach(|py| py.None());
     let mut app = App::from_loaded_config(callback, None);
 
     app.remember_artifact_filter_history_from_params(&serde_json::json!({
