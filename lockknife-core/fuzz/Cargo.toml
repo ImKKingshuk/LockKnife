@@ -1,0 +1,35 @@
+[package]
+name = "lockknife-core-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.lockknife-core]
+path = ".."
+
+[[bin]]
+name = "parse_dex_header"
+path = "fuzz_targets/parse_dex_header.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "sqlite_table"
+path = "fuzz_targets/sqlite_table.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "correlate"
+path = "fuzz_targets/correlate.rs"
+test = false
+doc = false
+bench = false

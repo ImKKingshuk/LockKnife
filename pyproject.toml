@@ -57,6 +57,7 @@ dev = [
     "ty>=0.0.29",
     "ruff>=0.15.9",
     "maturin>=1.9.4",
+    "hypothesis>=6.0",
 ]
 
 [tool.pytest.ini_options]
