@@ -12,7 +12,7 @@ from lockknife.core.adb import AdbClient
 from lockknife.core.cli_instrumentation import LockKnifeGroup
 from lockknife.core.config import LoadedConfig, load_config
 from lockknife.core.device import DeviceManager
-from lockknife.core.logging import configure_logging, get_logger
+from lockknife.core.logging import configure_logging, get_logger, trace_context
 from lockknife.core.output import console
 from lockknife.core.plugin import import_submodules
 from lockknife.modules.base import load_registered_modules
@@ -71,60 +71,63 @@ def cli(ctx: click.Context, config_path: pathlib.Path | None, headless: bool) ->
     import_submodules("lockknife.modules")
     load_registered_modules()
 
-    def _handle_signal(signum: int, _frame: FrameType | None) -> None:
-        ctx.obj.log.warning("signal_received", signal=signum)
-        from lockknife.core.cleanup import cleanup_all
+    # Wrap CLI execution with trace context after context is set up
+    with trace_context("lockknife_cli") as trace_id:
+        ctx.obj.log.debug("cli_start", trace_id=trace_id, config_path=str(config_path), headless=headless)
 
-        cleanup_all()
-        ctx.exit(128 + int(signum))
+        def _handle_signal(signum: int, _frame: FrameType | None) -> None:
+            ctx.obj.log.warning("signal_received", signal=signum, trace_id=trace_id)
+            from lockknife.core.cleanup import cleanup_all
 
-    signal.signal(signal.SIGINT, _handle_signal)
-    signal.signal(signal.SIGTERM, _handle_signal)
+            cleanup_all()
+            ctx.exit(128 + int(signum))
 
-    if ctx.invoked_subcommand is None and not headless:
-        try:
-            from lockknife import lockknife_core
-            from lockknife.core.cleanup import register_terminal_cleanup
-            from lockknife_headless_cli.tui_callback import build_tui_callback
-        except Exception as exc:
-            raise click.ClickException(
-                "TUI unavailable: lockknife_core extension not loaded"
-            ) from exc
+        signal.signal(signal.SIGINT, _handle_signal)
+        signal.signal(signal.SIGTERM, _handle_signal)
 
-        # Register terminal cleanup callback for crash recovery
-        def _restore_terminal() -> None:
-            """Python-side terminal restoration as fallback."""
+        if ctx.invoked_subcommand is None and not headless:
             try:
-                import subprocess
+                from lockknife import lockknife_core
+                from lockknife.core.cleanup import register_terminal_cleanup
+                from lockknife_headless_cli.tui_callback import build_tui_callback
+            except Exception as exc:
+                raise click.ClickException(
+                    "TUI unavailable: lockknife_core extension not loaded"
+                ) from exc
 
-                subprocess.run(["stty", "sane"], check=False, capture_output=True)
-            except Exception:
-                pass  # Best effort
+            # Register terminal cleanup callback for crash recovery
+            def _restore_terminal() -> None:
+                """Python-side terminal restoration as fallback."""
+                try:
+                    import subprocess
 
-        register_terminal_cleanup(_restore_terminal)
+                    subprocess.run(["stty", "sane"], check=False, capture_output=True)
+                except Exception:
+                    pass  # Best effort
 
-        callback = build_tui_callback(ctx.obj)
-        try:
+            register_terminal_cleanup(_restore_terminal)
+
+            # Launch TUI
+            callback = build_tui_callback(ctx.obj.adb, ctx.obj.devices, ctx.obj.loaded.config)
+            from lockknife import lockknife_core
+
             lockknife_core.run_tui(callback)
-        except Exception as exc:
-            raise click.ClickException(str(exc)) from exc
-        return
 
-    if ctx.invoked_subcommand is None:
-        banner = "\n".join(
-            [
-                " _                _  __ _      _  __      _  __     ",
-                "| |    ___   ___ | |/ /| |    (_)/ _| ___| |/ / ___ ",
-                "| |   / _ \\ / _ \\| ' / | |    | | |_ / _ \\ ' / / _ \\",
-                "| |__| (_) | (_) | . \\ | |___ | |  _|  __/ . \\|  __/",
-                "|_____\\___/ \\___/|_|\\_\\|_____|/ |_|  \\___|_|\\_\\\\___|",
-                "                                 |__/               ",
-                f"v{__version__}",
-                "",
-                "Tip: run `lockknife interactive` for the classic menu UI.",
-            ]
-        )
-        console.print(Panel.fit(banner, title="LockKnife", border_style="red"))
+        if ctx.invoked_subcommand is None:
+            banner = "\n".join(
+                [
+                    " _                _  __ _      _  __      _  __     ",
+                    "| |    ___   ___ | |/ /| |    (_)/ _| ___| |/ / ___ ",
+                    "| |   / _ \\ / _ \\| ' / | |    | | |_ / _ \\ ' / / _ \\",
+                    "| |__| (_) | (_) | . \\ | |___ | |  _|  __/ . \\|  __/",
+                    "|_____\\___/ \\___/|_|\\_\\|_____|/ |_|  \\___|_|\\_\\\\___|",
+                    "                                 |__/               ",
+                    f"v{__version__}",
+                    "",
+                    "Tip: run `lockknife interactive` for the classic menu UI.",
+                ]
+            )
+            console.print(Panel.fit(banner, title="LockKnife", border_style="red"))
 
 
 cli.add_command(device)

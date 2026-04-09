@@ -14,6 +14,8 @@ __pycache__/
 *$py.class
 *.so
 *.pyd
+*.dylib
+*.dSYM
 .Python
 build/
 dist/

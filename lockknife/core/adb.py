@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import pathlib
 import re
@@ -685,3 +686,194 @@ class AdbClient:
 
         self._log.info("adb_restore", serial=serial, backup=str(backup_path))
         return self.run(["-s", serial, "restore", str(backup_path)], timeout_s=timeout_s).strip()
+
+
+class AsyncAdbClient:
+    """Async wrapper around the `adb` CLI for multi-device parallel operations."""
+
+    def __init__(self, adb_path: str = "adb") -> None:
+        """Create a new async client.
+
+        Args:
+            adb_path: Path to the adb binary.
+        """
+        self._adb_path = adb_path
+        self._log = get_logger()
+
+    @property
+    def adb_path(self) -> str:
+        """Return the adb binary path."""
+        return self._adb_path
+
+    async def run_async(self, args: Sequence[str], timeout_s: float = 30.0) -> str:
+        """Run an adb command asynchronously and return stdout.
+
+        Args:
+            args: adb arguments, excluding the adb binary itself.
+            timeout_s: Maximum runtime.
+
+        Returns:
+            Command stdout.
+
+        Raises:
+            ExternalToolError: If adb is missing, times out, or returns non-zero.
+        """
+        start = time.perf_counter()
+        self._log.debug(
+            "adb_async_run_start", adb_path=self._adb_path, args=list(args), timeout_s=timeout_s
+        )
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                self._adb_path,
+                *args,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(), timeout=timeout_s
+            )
+        except FileNotFoundError as e:
+            self._log.error(
+                "adb_async_run_missing", adb_path=self._adb_path, args=list(args), exc_info=True
+            )
+            raise ExternalToolError(f"adb not found: {self._adb_path}") from e
+        except asyncio.TimeoutError as e:
+            self._log.error(
+                "adb_async_run_timeout",
+                adb_path=self._adb_path,
+                args=list(args),
+                timeout_s=timeout_s,
+                exc_info=True,
+            )
+            raise ExternalToolError(f"adb timed out: {args}") from e
+
+        if proc.returncode != 0:
+            stderr_str = stderr.decode("utf-8", errors="replace").strip()
+            stdout_str = stdout.decode("utf-8", errors="replace").strip()
+            msg = stderr_str or stdout_str or f"adb failed: {args}"
+            self._log.error(
+                "adb_async_run_failed",
+                adb_path=self._adb_path,
+                args=list(args),
+                rc=proc.returncode,
+                elapsed_s=round(time.perf_counter() - start, 6),
+                stderr=stderr_str[:400],
+                stdout=stdout_str[:400],
+            )
+            raise ExternalToolError(msg)
+
+        stdout_str = stdout.decode("utf-8", errors="replace")
+        self._log.debug(
+            "adb_async_run_ok",
+            adb_path=self._adb_path,
+            args=list(args),
+            elapsed_s=round(time.perf_counter() - start, 6),
+        )
+        return stdout_str
+
+    async def list_devices_async(self) -> list[AdbDevice]:
+        """List devices visible to adb asynchronously."""
+        out = await self.run_async(["devices", "-l"])
+        lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
+        devices: list[AdbDevice] = []
+        for ln in lines[1:]:
+            if ln.startswith("*"):
+                continue
+            parts = ln.split()
+            if len(parts) < 2:
+                continue
+            serial, state = parts[0], parts[1]
+            kv = {}
+            for p in parts[2:]:
+                if ":" not in p:
+                    continue
+                k, v = p.split(":", 1)
+                kv[k] = v
+            devices.append(
+                AdbDevice(
+                    serial=serial,
+                    state=state,
+                    model=kv.get("model"),
+                    device=kv.get("device"),
+                    transport_id=kv.get("transport_id"),
+                )
+            )
+        return devices
+
+    async def connect_async(self, host: str, timeout_s: float = 10.0) -> str:
+        """Connect to a TCP/IP device asynchronously.
+
+        Args:
+            host: Host:port endpoint.
+            timeout_s: Maximum runtime.
+        """
+        self._log.info("adb_async_connect", host=host, timeout_s=timeout_s)
+        return (await self.run_async(["connect", host], timeout_s=timeout_s)).strip()
+
+    async def shell_async(
+        self, serial: str, command: str, timeout_s: float = 30.0
+    ) -> str:
+        """Run `adb shell` on a device asynchronously and return stdout.
+
+        Args:
+            serial: Device serial.
+            command: Shell command.
+            timeout_s: Maximum runtime.
+
+        Raises:
+            DeviceError: If serial is missing.
+            ExternalToolError: If adb fails.
+        """
+        if not serial:
+            raise DeviceError("Missing device serial")
+        self._log.debug("adb_async_shell", serial=serial, command=command)
+        return await self.run_async(
+            ["-s", serial, "shell", command], timeout_s=timeout_s
+        )
+
+    async def pull_async(
+        self, serial: str, remote: str, local: pathlib.Path, timeout_s: float = 300.0
+    ) -> None:
+        """Pull a file from device asynchronously.
+
+        Args:
+            serial: Device serial.
+            remote: Remote path on device.
+            local: Local destination path.
+            timeout_s: Maximum runtime.
+
+        Raises:
+            DeviceError: If serial is missing.
+            ExternalToolError: If adb fails.
+        """
+        if not serial:
+            raise DeviceError("Missing device serial")
+        self._log.info("adb_async_pull", serial=serial, remote=remote, local=str(local))
+        local.parent.mkdir(parents=True, exist_ok=True)
+        await self.run_async(
+            ["-s", serial, "pull", remote, str(local)], timeout_s=timeout_s
+        )
+
+    async def push_async(
+        self, serial: str, local: pathlib.Path, remote: str, timeout_s: float = 300.0
+    ) -> None:
+        """Push a file to device asynchronously.
+
+        Args:
+            serial: Device serial.
+            local: Local source path.
+            remote: Remote destination path.
+            timeout_s: Maximum runtime.
+
+        Raises:
+            DeviceError: If serial is missing.
+            ExternalToolError: If adb fails.
+        """
+        if not serial:
+            raise DeviceError("Missing device serial")
+        self._log.info("adb_async_push", serial=serial, local=str(local), remote=remote)
+        if not local.exists():
+            raise DeviceError(f"Local file does not exist: {local}")
+        await self.run_async(
+            ["-s", serial, "push", str(local), remote], timeout_s=timeout_s
+        )
