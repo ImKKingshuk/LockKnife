@@ -153,7 +153,13 @@ from lockknife.modules.runtime._session_manager_live import (
 )
 from lockknife.modules.runtime._session_manager_preflight import runtime_preflight
 from lockknife.modules.runtime.frida_manager import FridaManager
-from lockknife.modules.runtime.hooks import root_bypass_script, ssl_pinning_bypass_script
+from lockknife.modules.runtime.hooks import (
+    get_builtin_runtime_script,
+    list_builtin_runtime_scripts,
+    root_bypass_script,
+    ssl_pinning_bypass_script,
+    suggest_builtin_runtime_scripts,
+)
 from lockknife.modules.runtime.memory import heap_dump, memory_search
 from lockknife.modules.runtime.tracer import method_tracer_script
 from lockknife.modules.apk.decompile import decompile_apk_report, extract_dex_headers, parse_apk_manifest
@@ -411,8 +417,12 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["FridaManager"] = FridaManager
     module.__dict__["root_bypass_script"] = root_bypass_script
     module.__dict__["ssl_pinning_bypass_script"] = ssl_pinning_bypass_script
+    module.__dict__["get_builtin_runtime_script"] = get_builtin_runtime_script
+    module.__dict__["list_builtin_runtime_scripts"] = list_builtin_runtime_scripts
+    module.__dict__["suggest_builtin_runtime_scripts"] = suggest_builtin_runtime_scripts
     module.__dict__["heap_dump"] = heap_dump
     module.__dict__["memory_search"] = memory_search
+    module.__dict__["lockknife_core"] = lockknife_core
     module.__dict__["get_managed_runtime_session"] = get_managed_runtime_session
     module.__dict__["list_managed_runtime_sessions"] = list_managed_runtime_sessions
     module.__dict__["reconnect_managed_runtime_session"] = reconnect_managed_runtime_session
