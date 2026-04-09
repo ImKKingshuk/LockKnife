@@ -2,6 +2,40 @@
 
 All notable changes to `LockKnife : The Ultimate Android Security Research Tool` will be documented in this file.
 
+## [v1.0.1] - 2026-04-09
+
+### The Exploitation Update
+
+This release introduces a massive new Exploitation Framework, bringing professional-grade wireless and physical vulnerability assessment tools to LockKnife. Alongside this, we've executed a comprehensive codebase modernization, streamlining the architecture for performance and safety.
+
+### ⚡ Wireless & USB Exploitation
+
+- **Integrated Exploitation Framework**: A complete suite of modular Python modules and Rust primitives for Bluetooth, Wi-Fi, and USB debugging exploitation.
+- **Advanced Bluetooth Attacks**: Support for protocol-level fingerprinting and automated exploitation of BlueBorne, KNOB, and Bluetooth vulnerabilities.
+- **Wi-Fi Vulnerability Research**: WPS attacks, rogue AP deployment, and Rayon-accelerated WPA handshake cracking.
+- **USB Physical Access**: Exploiting ADB debugging for lock bypass, encrypted backup extraction, and remote management via ADB-TCP.
+- **Zero-Click Intelligence**: Intelligent exploit chain orchestration, automated payload generation, and vulnerability fingerprinting.
+
+### 🛠️ Core Platform & Code Quality
+
+- **Modernized Toolchain**: Fully migrated to `ruff`, `ty` for Python type-safety and `clippy`, `rustfmt` for Rust code quality.
+- **Rust Performance Primitives**: New packet crafting/parsing engines for wireless protocols and high-speed parallel network scanning.
+- **Optimized YARA Scanning**: Implemented MD5-based rule caching with an Arc-shared FIFO eviction policy for near-instant recurring scans.
+- **Fuzz Testing**: Integrated automated fuzzing for critical Rust parsers to ensure memory safety and robustness.
+
+### 🎨 TUI & User Experience
+
+- **Exploit Management UI**: A dedicated interface in the TUI for managing evidence, scan results, and active exploitation workflows with rich terminal feedback.
+- **Refined Event Callbacks**: Reorganized internal bridge and domain-specific handlers for faster UI response times and modular maintenance.
+- **CLI Command Consolidation**: Streamlined CLI entry points with explicit command groups for Bluetooth, Wi-Fi, and USB discovery.
+
+### 🛡️ Reliability & Security
+
+- **Structured Diagnostic Engine**: Comprehensive new error hierarchy (LK-0001 through LK-7001) for precise troubleshooting across Forensics, Extraction, and Exploitation modules.
+- **Dry-Run Mode**: Safely validate complex exploitation operations and payload delivery without altering target device state.
+- **Case Runtime Integrity**: Enhanced session tracking with integrity verification callbacks and automated chain-of-custody reporting.
+- **Hardened Data Handling**: Improved path traversal safety and narrowed Unicode exception handling for resilient forensic artifact processing.
+
 ## [v1.0.0] - 2026-03-18
 
 ### Full Rewrite: Python + Rust (New Era)
