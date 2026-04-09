@@ -108,7 +108,7 @@ def cli(ctx: click.Context, config_path: pathlib.Path | None, headless: bool) ->
             register_terminal_cleanup(_restore_terminal)
 
             # Launch TUI
-            callback = build_tui_callback(ctx.obj.adb, ctx.obj.devices, ctx.obj.loaded.config)
+            callback = build_tui_callback(ctx.obj)
             from lockknife import lockknife_core
 
             lockknife_core.run_tui(callback)
