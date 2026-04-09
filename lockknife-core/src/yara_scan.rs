@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 use yara_x::Compiler;
 use once_cell::sync::Lazy;
+use md5::Md5;
 
 const MAX_DATA_BYTES: usize = 256 * 1024 * 1024; // 256 MB
 const MAX_CACHE_SIZE: usize = 100; // Maximum number of compiled rules to cache
@@ -69,11 +70,22 @@ pub fn yara_scan_bytes(rules_src: &str, data: &[u8]) -> PyResult<String> {
         return Err(PyValueError::new_err("data exceeds size limit (256 MB)"));
     }
 
-    let mut compiler = Compiler::new();
-    compiler
-        .add_source(rules_src)
-        .map_err(|e| PyValueError::new_err(format!("rule compilation failed: {e}")))?;
-    let rules = compiler.build();
+    // Compute cache key from rule source
+    let cache_key = format!("{:x}", md5::compute(rules_src.as_bytes()));
+    
+    // Try to get from cache
+    let rules = if let Some(cached_rules) = RULE_CACHE.get(&cache_key) {
+        cached_rules
+    } else {
+        // Compile and cache
+        let mut compiler = Compiler::new();
+        compiler
+            .add_source(rules_src)
+            .map_err(|e| PyValueError::new_err(format!("rule compilation failed: {e}")))?;
+        let compiled_rules = compiler.build();
+        RULE_CACHE.put(cache_key, compiled_rules.clone());
+        compiled_rules
+    };
 
     let mut scanner = yara_x::Scanner::new(&rules);
     let results = scanner
