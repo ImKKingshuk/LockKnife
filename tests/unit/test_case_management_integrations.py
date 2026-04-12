@@ -292,7 +292,9 @@ def test_crack_credential_workflows_register_case_artifacts(
     assert "crack-pin-manifest" in categories
 
 
-@pytest.mark.skip("Test mocks non-existent module-level functions in runtime_cli - needs function addition")
+@pytest.mark.skip(
+    "Test mocks non-existent module-level functions in runtime_cli - needs function addition"
+)
 def test_runtime_and_security_case_registration(monkeypatch, tmp_path: pathlib.Path) -> None:
     from lockknife.core.case import (
         create_case_workspace,

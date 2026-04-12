@@ -18,7 +18,13 @@ def test_bruteforce_numeric_pin_roundtrip(pin):
 
 
 @settings(max_examples=50, phases=[Phase.generate])
-@given(st.text(min_size=1, max_size=10, alphabet=st.characters(categories=[], whitelist_characters="abcdefghijklmnopqrstuvwxyz")))
+@given(
+    st.text(
+        min_size=1,
+        max_size=10,
+        alphabet=st.characters(categories=[], whitelist_characters="abcdefghijklmnopqrstuvwxyz"),
+    )
+)
 def test_dictionary_attack_roundtrip(password):
     """Property: dictionary_attack finds a password that hashes to the target."""
     target = lockknife_core.sha256_hex(password.encode("utf-8"))
@@ -62,7 +68,15 @@ def test_bruteforce_numeric_pin_pin_length(pin):
 
 
 @settings(max_examples=30, phases=[Phase.generate])
-@given(st.text(min_size=1, max_size=8, alphabet=st.characters(categories=[], whitelist_characters="abcdefghijklmnopqrstuvwxyz0123456789")))
+@given(
+    st.text(
+        min_size=1,
+        max_size=8,
+        alphabet=st.characters(
+            categories=[], whitelist_characters="abcdefghijklmnopqrstuvwxyz0123456789"
+        ),
+    )
+)
 def test_dictionary_attack_not_in_wordlist(password):
     """Property: dictionary_attack returns None if password not in wordlist."""
     target = lockknife_core.sha256_hex(password.encode("utf-8"))

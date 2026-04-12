@@ -107,10 +107,13 @@ from lockknife.modules.extraction.messaging import (
 )
 from lockknife.modules.extraction.sms import extract_sms
 from lockknife.modules.forensics.aleapp_compat import looks_like_aleapp_output
-from lockknife.modules.forensics.artifacts import parse_directory_as_aleapp, parse_forensics_directory
-from lockknife.modules.forensics.parsers import decode_protobuf_file
+from lockknife.modules.forensics.artifacts import (
+    parse_directory_as_aleapp,
+    parse_forensics_directory,
+)
 from lockknife.modules.forensics.carving import carve_deleted_files
 from lockknife.modules.forensics.correlation import correlate_artifacts_json_blobs
+from lockknife.modules.forensics.parsers import decode_protobuf_file
 from lockknife.modules.forensics.recovery import recover_deleted_records
 from lockknife.modules.forensics.snapshot import create_snapshot
 from lockknife.modules.forensics.sqlite_analyzer import analyze_sqlite

@@ -76,7 +76,11 @@ def test_hmac_sha256_different_keys_different_outputs(key, data):
 
 
 @settings(max_examples=50, phases=[Phase.generate])
-@given(st.binary(min_size=32, max_size=32), st.binary(min_size=12, max_size=12), st.binary(min_size=0, max_size=1024))
+@given(
+    st.binary(min_size=32, max_size=32),
+    st.binary(min_size=12, max_size=12),
+    st.binary(min_size=0, max_size=1024),
+)
 def test_aes256gcm_roundtrip(key, nonce, plaintext):
     """Property: aes256gcm_encrypt followed by decrypt recovers original plaintext."""
     ciphertext = lockknife_core.aes256gcm_encrypt(key, nonce, plaintext, b"")
@@ -96,7 +100,11 @@ def test_aes256gcm_different_nonce_different_ciphertext(key, plaintext):
 
 
 @settings(max_examples=50, phases=[Phase.generate])
-@given(st.binary(min_size=32, max_size=32), st.binary(min_size=12, max_size=12), st.binary(min_size=0, max_size=1024))
+@given(
+    st.binary(min_size=32, max_size=32),
+    st.binary(min_size=12, max_size=12),
+    st.binary(min_size=0, max_size=1024),
+)
 def test_aes256gcm_different_aad_different_ciphertext(key, nonce, plaintext):
     """Property: aes256gcm_encrypt with different AAD produces different ciphertext."""
     ciphertext1 = lockknife_core.aes256gcm_encrypt(key, nonce, plaintext, b"")
