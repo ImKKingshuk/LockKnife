@@ -1,6 +1,6 @@
 import pytest
-from hypothesis import given, settings, strategies as st
-from hypothesis import Phase
+from hypothesis import Phase, given, settings
+from hypothesis import strategies as st
 
 lockknife_core = pytest.importorskip("lockknife.lockknife_core")
 
@@ -23,13 +23,13 @@ def test_dictionary_attack_roundtrip(password):
     """Property: dictionary_attack finds a password that hashes to the target."""
     target = lockknife_core.sha256_hex(password.encode("utf-8"))
     # Create a temporary wordlist containing the password
-    import tempfile
     import os
-    
+    import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
         f.write(password + "\n")
         wordlist_path = f.name
-    
+
     try:
         found = lockknife_core.dictionary_attack(target, "sha256", wordlist_path)
         # The found password should hash to the target
@@ -66,18 +66,18 @@ def test_bruteforce_numeric_pin_pin_length(pin):
 def test_dictionary_attack_not_in_wordlist(password):
     """Property: dictionary_attack returns None if password not in wordlist."""
     target = lockknife_core.sha256_hex(password.encode("utf-8"))
-    
+
     # Create a wordlist that does NOT contain the password
-    import tempfile
     import os
-    
+    import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
         # Write some other passwords
         f.write("other\n")
         f.write("password\n")
         f.write("123456\n")
         wordlist_path = f.name
-    
+
     try:
         found = lockknife_core.dictionary_attack(target, "sha256", wordlist_path)
         # Should return None or raise an error if not found

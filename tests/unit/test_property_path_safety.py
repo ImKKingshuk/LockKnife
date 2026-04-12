@@ -1,13 +1,14 @@
-import pytest
-from hypothesis import given, settings, strategies as st
-from hypothesis import Phase
 from pathlib import Path
 
+import pytest
+from hypothesis import Phase, given, settings
+from hypothesis import strategies as st
+
 from lockknife.core.path_safety import (
-    validate_user_path_text,
-    validate_relative_component,
     ensure_child_path,
     validate_archive_member,
+    validate_relative_component,
+    validate_user_path_text,
 )
 
 
@@ -85,17 +86,17 @@ def test_ensure_child_path_resolves_within_base(path_dict):
     # This test is complex because we need to create actual paths
     # For property testing, we'll use a simpler approach with valid paths
     import tempfile
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
         base = Path(tmpdir)
         # Create a subdirectory
         subdir = base / "subdir"
         subdir.mkdir()
-        
+
         # Valid child path should work
         result = ensure_child_path(base, subdir, label="path")
         assert result == subdir.resolve()
-        
+
         # Path outside base should raise
         outside = base.parent / "outside"
         with pytest.raises(ValueError, match="escapes the expected base directory"):

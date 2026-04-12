@@ -2,7 +2,12 @@
 
 import time
 
-from lockknife.core.rate_limiter import RateLimiter, TokenBucket, get_rate_limiter, reset_rate_limiter
+from lockknife.core.rate_limiter import (
+    RateLimiter,
+    TokenBucket,
+    get_rate_limiter,
+    reset_rate_limiter,
+)
 
 
 def test_token_bucket_acquire() -> None:
@@ -65,11 +70,11 @@ def test_rate_limiter_global_limit() -> None:
 def test_rate_limiter_wrap() -> None:
     """Test rate limiter decorator wrapper."""
     limiter = RateLimiter(per_device_limit=10, global_limit=50)
-    
+
     @limiter.wrap("device1")
     def test_func(x: int) -> int:
         return x * 2
-    
+
     assert test_func(5) == 10
 
 
@@ -80,18 +85,18 @@ def test_rate_limiter_wrap_timeout() -> None:
     # Manually set refill rate to 0 to prevent refill during test
     limiter.per_device_buckets["device1"] = TokenBucket(1, 0.0)
     limiter.global_bucket = TokenBucket(1, 0.0)
-    
+
     @limiter.wrap("device1")
     def test_func(x: int) -> int:
         return x * 2
-    
+
     # First call should succeed
     assert test_func(5) == 10
-    
+
     # Second call should fail due to rate limit (bucket is empty)
     try:
         test_func(5)
-        assert False, "Should have raised RuntimeError"
+        raise AssertionError("Should have raised RuntimeError")
     except RuntimeError as e:
         assert "Rate limit exceeded" in str(e)
 

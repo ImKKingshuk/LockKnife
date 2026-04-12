@@ -1,11 +1,11 @@
+use md5::{Digest, Md5};
+use once_cell::sync::Lazy;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use yara_x::Compiler;
-use once_cell::sync::Lazy;
-use md5::{Digest, Md5};
 
 const MAX_DATA_BYTES: usize = 256 * 1024 * 1024; // 256 MB
 const MAX_CACHE_SIZE: usize = 100; // Maximum number of compiled rules to cache
@@ -31,7 +31,7 @@ impl RuleCache {
     fn put(&self, key: String, rules: Arc<yara_x::Rules>) {
         let mut cache = self.cache.write().unwrap();
         let mut size = self.size.write().unwrap();
-        
+
         // Evict oldest entry if at capacity (simple FIFO)
         if *size >= MAX_CACHE_SIZE {
             if let Some(first_key) = cache.keys().next().cloned() {
@@ -39,7 +39,7 @@ impl RuleCache {
                 *size -= 1;
             }
         }
-        
+
         cache.insert(key, rules);
         *size += 1;
     }
@@ -50,7 +50,7 @@ impl RuleCache {
     }
 }
 
-static RULE_CACHE: Lazy<RuleCache> = Lazy::new(|| RuleCache::new());
+static RULE_CACHE: Lazy<RuleCache> = Lazy::new(RuleCache::new);
 
 /// Compile YARA-X rules (source string) and scan `data`.
 ///
@@ -72,7 +72,7 @@ pub fn yara_scan_bytes(rules_src: &str, data: &[u8]) -> PyResult<String> {
 
     // Compute cache key from rule source
     let cache_key = format!("{:x}", Md5::digest(rules_src.as_bytes()));
-    
+
     // Try to get from cache
     let rules = if let Some(cached_rules) = RULE_CACHE.get(&cache_key) {
         cached_rules
@@ -87,7 +87,7 @@ pub fn yara_scan_bytes(rules_src: &str, data: &[u8]) -> PyResult<String> {
         compiled_rules
     };
 
-    let mut scanner = yara_x::Scanner::new(&*rules);
+    let mut scanner = yara_x::Scanner::new(&rules);
     let results = scanner
         .scan(data)
         .map_err(|e| PyValueError::new_err(format!("scan failed: {e}")))?;
@@ -141,12 +141,13 @@ pub fn yara_cache_stats() -> String {
     json!({
         "size": size,
         "capacity": capacity
-    }).to_string()
+    })
+    .to_string()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{yara_scan_bytes, yara_scan_file_rules, yara_cache_stats};
+    use super::{yara_cache_stats, yara_scan_bytes, yara_scan_file_rules};
 
     const RULE: &str = r#"
         rule TestRule {

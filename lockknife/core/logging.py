@@ -68,7 +68,7 @@ def configure_logging(cfg: LockKnifeConfig) -> None:
     level = getattr(logging, cfg.log_level.upper(), logging.INFO)
     logging.basicConfig(level=level, format="%(message)s", stream=sys.stderr)
 
-    shared_processors: list[structlog.typing.Processor] = [
+    shared_processors: list[Any] = [
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),

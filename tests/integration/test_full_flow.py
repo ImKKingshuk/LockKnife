@@ -2,6 +2,7 @@ import pathlib
 import sqlite3
 from unittest import mock
 
+
 def test_full_cli_flow_with_mocked_device(tmp_path: pathlib.Path) -> None:
     """Integration test for full CLI flow: device mock → extract → forensics."""
     from lockknife.modules.credentials.gesture import recover_gesture
