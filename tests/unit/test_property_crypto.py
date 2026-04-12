@@ -1,6 +1,6 @@
 import pytest
-from hypothesis import given, settings, strategies as st
-from hypothesis import Phase
+from hypothesis import Phase, given, settings
+from hypothesis import strategies as st
 
 lockknife_core = pytest.importorskip("lockknife.lockknife_core")
 

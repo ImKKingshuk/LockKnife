@@ -737,7 +737,7 @@ class AsyncAdbClient:
                 "adb_async_run_missing", adb_path=self._adb_path, args=list(args), exc_info=True
             )
             raise ExternalToolError(f"adb not found: {self._adb_path}") from e
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             self._log.error(
                 "adb_async_run_timeout",
                 adb_path=self._adb_path,

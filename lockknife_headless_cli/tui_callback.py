@@ -16,8 +16,10 @@ else:
     lockknife_core = _lockknife_core
 
 
-from lockknife_headless_cli._tui_callback_ai import handle as _handle_ai
-from lockknife_headless_cli._tui_callback_analyze import handle as _handle_analyze
+from lockknife.core._case_reporting import (
+    case_chain_of_custody_report,
+    generate_case_chain_of_custody,
+)
 from lockknife.core.case import (
     case_artifact_details,
     case_artifact_lineage,
@@ -38,33 +40,44 @@ from lockknife.core.case import (
     register_case_artifact_with_status,
     summarize_case_manifest,
 )
-from lockknife.core._case_reporting import (
-    case_chain_of_custody_report,
-    generate_case_chain_of_custody,
-)
 from lockknife.core.feature_matrix import iter_features
 from lockknife.core.health import doctor_status, health_status
 from lockknife.core.plugin_loader import plugin_inventory
 from lockknife.core.serialize import write_csv, write_json
-from lockknife.modules.reporting.chain_of_custody import (
-    EvidenceItem,
-    build_chain_of_custody_payload,
-    generate_chain_of_custody,
+from lockknife.modules._case_enrichment_orchestrator import run_case_enrichment
+from lockknife.modules._case_enrichment_payloads import (
+    anomaly_payload,
+    api_discovery_payload,
+    cve_payload,
+    ioc_payload,
+    network_summary_payload,
+    otx_payload,
+    password_payload,
+    stix_payload,
+    taxii_payload,
+    virustotal_payload,
 )
-from lockknife.modules.reporting.context import build_report_context
-from lockknife.modules.reporting.csv_export import export_csv
-from lockknife.modules.reporting.html_report import write_html_report
-from lockknife.modules.reporting.json_export import export_json
-from lockknife.modules.reporting.pdf_report import write_pdf_report
-from lockknife.modules.security.attack_surface import assess_attack_surface
-from lockknife.modules.security.bootloader import analyze_bootloader
-from lockknife.modules.security.device_audit import run_device_audit
-from lockknife.modules.security.hardware import analyze_hardware_security
-from lockknife.modules.security.malware import scan_with_yara
-from lockknife.modules.security.network_scan import scan_network
-from lockknife.modules.security.owasp import mastg_summary
-from lockknife.modules.security.selinux import get_selinux_status
-from lockknife.modules.credentials.wifi import extract_wifi_passwords
+from lockknife.modules.ai.anomaly import anomaly_scores
+from lockknife.modules.ai.password_predictor import PasswordPredictor
+from lockknife.modules.apk._risk_summary import build_apk_risk_summary
+from lockknife.modules.apk.decompile import (
+    decompile_apk_report,
+    extract_dex_headers,
+    parse_apk_manifest,
+)
+from lockknife.modules.apk.permissions import score_permissions
+from lockknife.modules.apk.static_analysis import analyze_apk, findings_from_manifest
+from lockknife.modules.apk.vulnerability import vulnerability_report
+from lockknife.modules.credentials.fido2 import pull_passkey_artifacts
+from lockknife.modules.credentials.gesture import export_gesture_recovery, recover_gesture
+from lockknife.modules.credentials.keystore import inspect_keystore, list_keystore
+from lockknife.modules.credentials.pin import export_pin_recovery, recover_pin
+from lockknife.modules.credentials.wifi import export_wifi_credentials, extract_wifi_passwords
+from lockknife.modules.crypto_wallet.wallet import (
+    enrich_wallet_addresses,
+    extract_wallet_addresses_from_sqlite,
+    list_wallet_transactions,
+)
 from lockknife.modules.extraction._browser_extract_chrome import (
     extract_chrome_bookmarks,
     extract_chrome_cookies,
@@ -93,13 +106,13 @@ from lockknife.modules.extraction.messaging import (
     extract_whatsapp_messages,
 )
 from lockknife.modules.extraction.sms import extract_sms
+from lockknife.modules.forensics.artifacts import parse_directory_as_aleapp
+from lockknife.modules.forensics.carving import carve_deleted_files
 from lockknife.modules.forensics.correlation import correlate_artifacts_json_blobs
 from lockknife.modules.forensics.recovery import recover_deleted_records
 from lockknife.modules.forensics.snapshot import create_snapshot
 from lockknife.modules.forensics.sqlite_analyzer import analyze_sqlite
 from lockknife.modules.forensics.timeline import build_timeline, build_timeline_report
-from lockknife.modules.forensics.carving import carve_deleted_files
-from lockknife.modules.forensics.artifacts import parse_directory_as_aleapp
 from lockknife.modules.intelligence.cve import (
     android_cve_risk_score,
     correlate_cves_for_apk_package,
@@ -123,26 +136,16 @@ from lockknife.modules.network.api_discovery import (
     summarize_pcap,
 )
 from lockknife.modules.network.capture import capture_pcap
-from lockknife.modules._case_enrichment_orchestrator import run_case_enrichment
-from lockknife.modules._case_enrichment_payloads import (
-    anomaly_payload,
-    api_discovery_payload,
-    cve_payload,
-    ioc_payload,
-    network_summary_payload,
-    otx_payload,
-    password_payload,
-    stix_payload,
-    taxii_payload,
-    virustotal_payload,
+from lockknife.modules.reporting.chain_of_custody import (
+    EvidenceItem,
+    build_chain_of_custody_payload,
+    generate_chain_of_custody,
 )
-from lockknife.modules.ai.anomaly import anomaly_scores
-from lockknife.modules.ai.password_predictor import PasswordPredictor
-from lockknife.modules.crypto_wallet.wallet import (
-    enrich_wallet_addresses,
-    extract_wallet_addresses_from_sqlite,
-    list_wallet_transactions,
-)
+from lockknife.modules.reporting.context import build_report_context
+from lockknife.modules.reporting.csv_export import export_csv
+from lockknife.modules.reporting.html_report import write_html_report
+from lockknife.modules.reporting.json_export import export_json
+from lockknife.modules.reporting.pdf_report import write_pdf_report
 from lockknife.modules.runtime._session_manager_live import (
     get_managed_runtime_session,
     list_managed_runtime_sessions,
@@ -162,16 +165,16 @@ from lockknife.modules.runtime.hooks import (
 )
 from lockknife.modules.runtime.memory import heap_dump, memory_search
 from lockknife.modules.runtime.tracer import method_tracer_script
-from lockknife.modules.apk.decompile import decompile_apk_report, extract_dex_headers, parse_apk_manifest
-from lockknife.modules.apk.permissions import score_permissions
-from lockknife.modules.apk.static_analysis import analyze_apk, findings_from_manifest
-from lockknife.modules.apk.vulnerability import vulnerability_report
-from lockknife.modules.apk._risk_summary import build_apk_risk_summary
-from lockknife.modules.credentials.fido2 import pull_passkey_artifacts
-from lockknife.modules.credentials.gesture import export_gesture_recovery, recover_gesture
-from lockknife.modules.credentials.keystore import inspect_keystore, list_keystore
-from lockknife.modules.credentials.pin import export_pin_recovery, recover_pin
-from lockknife.modules.credentials.wifi import export_wifi_credentials
+from lockknife.modules.security.attack_surface import assess_attack_surface
+from lockknife.modules.security.bootloader import analyze_bootloader
+from lockknife.modules.security.device_audit import run_device_audit
+from lockknife.modules.security.hardware import analyze_hardware_security
+from lockknife.modules.security.malware import scan_with_yara
+from lockknife.modules.security.network_scan import scan_network
+from lockknife.modules.security.owasp import mastg_summary
+from lockknife.modules.security.selinux import get_selinux_status
+from lockknife_headless_cli._tui_callback_ai import handle as _handle_ai
+from lockknife_headless_cli._tui_callback_analyze import handle as _handle_analyze
 from lockknife_headless_cli._tui_callback_apk import handle as _handle_apk
 from lockknife_headless_cli._tui_callback_case import handle as _handle_case
 from lockknife_headless_cli._tui_callback_core import handle as _handle_core
@@ -182,8 +185,8 @@ from lockknife_headless_cli._tui_callback_extraction import handle as _handle_ex
 from lockknife_headless_cli._tui_callback_forensics import handle as _handle_forensics
 from lockknife_headless_cli._tui_callback_helpers import (
     _JOB_TRACKER_STACK,
-    _asdict,
     _artifact_ref_from_params,
+    _asdict,
     _bool_param,
     _case_filter_kwargs,
     _case_job_filter_kwargs,
@@ -200,12 +203,12 @@ from lockknife_headless_cli._tui_callback_helpers import (
     _path_param,
     _register_case_output,
     _render_integrity_text,
+    _report_rows,
     _require,
     _require_runtime_case_dir,
     _resolve_case_output,
     _resolve_report_case_id,
     _resolve_report_examiner,
-    _report_rows,
     _runtime_session_name,
     _safe_name,
     _template_path,
