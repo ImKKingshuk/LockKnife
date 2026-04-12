@@ -73,7 +73,9 @@ def cli(ctx: click.Context, config_path: pathlib.Path | None, headless: bool) ->
 
     # Wrap CLI execution with trace context after context is set up
     with trace_context("lockknife_cli") as trace_id:
-        ctx.obj.log.debug("cli_start", trace_id=trace_id, config_path=str(config_path), headless=headless)
+        ctx.obj.log.debug(
+            "cli_start", trace_id=trace_id, config_path=str(config_path), headless=headless
+        )
 
         def _handle_signal(signum: int, _frame: FrameType | None) -> None:
             ctx.obj.log.warning("signal_received", signal=signum, trace_id=trace_id)

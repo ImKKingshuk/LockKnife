@@ -729,9 +729,7 @@ class AsyncAdbClient:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(), timeout=timeout_s
-            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
         except FileNotFoundError as e:
             self._log.error(
                 "adb_async_run_missing", adb_path=self._adb_path, args=list(args), exc_info=True
@@ -810,9 +808,7 @@ class AsyncAdbClient:
         self._log.info("adb_async_connect", host=host, timeout_s=timeout_s)
         return (await self.run_async(["connect", host], timeout_s=timeout_s)).strip()
 
-    async def shell_async(
-        self, serial: str, command: str, timeout_s: float = 30.0
-    ) -> str:
+    async def shell_async(self, serial: str, command: str, timeout_s: float = 30.0) -> str:
         """Run `adb shell` on a device asynchronously and return stdout.
 
         Args:
@@ -827,9 +823,7 @@ class AsyncAdbClient:
         if not serial:
             raise DeviceError("Missing device serial")
         self._log.debug("adb_async_shell", serial=serial, command=command)
-        return await self.run_async(
-            ["-s", serial, "shell", command], timeout_s=timeout_s
-        )
+        return await self.run_async(["-s", serial, "shell", command], timeout_s=timeout_s)
 
     async def pull_async(
         self, serial: str, remote: str, local: pathlib.Path, timeout_s: float = 300.0
@@ -850,9 +844,7 @@ class AsyncAdbClient:
             raise DeviceError("Missing device serial")
         self._log.info("adb_async_pull", serial=serial, remote=remote, local=str(local))
         local.parent.mkdir(parents=True, exist_ok=True)
-        await self.run_async(
-            ["-s", serial, "pull", remote, str(local)], timeout_s=timeout_s
-        )
+        await self.run_async(["-s", serial, "pull", remote, str(local)], timeout_s=timeout_s)
 
     async def push_async(
         self, serial: str, local: pathlib.Path, remote: str, timeout_s: float = 300.0
@@ -874,6 +866,4 @@ class AsyncAdbClient:
         self._log.info("adb_async_push", serial=serial, local=str(local), remote=remote)
         if not local.exists():
             raise DeviceError(f"Local file does not exist: {local}")
-        await self.run_async(
-            ["-s", serial, "push", str(local), remote], timeout_s=timeout_s
-        )
+        await self.run_async(["-s", serial, "push", str(local), remote], timeout_s=timeout_s)

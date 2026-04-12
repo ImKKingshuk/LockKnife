@@ -49,7 +49,9 @@ class TokenBucket:
 
             # Wait a bit before retrying
             if time.time() - start >= timeout_s:
-                self._log.warning("rate_limit_timeout", capacity=self.capacity, rate=self.refill_rate)
+                self._log.warning(
+                    "rate_limit_timeout", capacity=self.capacity, rate=self.refill_rate
+                )
                 return False
             time.sleep(0.01)
 
