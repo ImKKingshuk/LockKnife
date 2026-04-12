@@ -7,7 +7,7 @@ import pytest
 from tests.unit.test_tui_callback import DummyApp, DummyFridaManager, build_tui_callback
 
 
-@pytest.mark.skip("Test mocks non-existent functions in tui_callback module")
+@pytest.mark.skip("Test requires many missing functions in tui_callback module - needs comprehensive function addition")
 def test_tui_callback_runtime_session_actions_route_outputs_into_case_dir(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -114,7 +114,7 @@ def test_tui_callback_runtime_session_actions_route_outputs_into_case_dir(
     )
 
 
-@pytest.mark.skip("Test mocks non-existent functions in tui_callback module")
+@pytest.mark.skip("Test requires many missing functions in tui_callback module - needs comprehensive function addition")
 def test_tui_callback_runtime_session_messages_use_session_terminology(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -164,7 +164,7 @@ def test_tui_callback_runtime_session_messages_use_session_terminology(
     )["message"].startswith("Managed built-in runtime session saved to ")
 
 
-@pytest.mark.skip("Test mocks non-existent functions in tui_callback module")
+@pytest.mark.skip("Test requires many missing functions in tui_callback module - needs comprehensive function addition")
 def test_tui_callback_runtime_session_management_actions_work(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -263,7 +263,7 @@ def test_tui_callback_runtime_session_management_actions_work(
     assert stop_payload["runtime_dashboard"]["mode"] == "session-detail"
 
 
-@pytest.mark.skip("Test mocks non-existent functions in tui_callback module")
+@pytest.mark.skip("Test requires many missing functions in tui_callback module - needs comprehensive function addition")
 def test_runtime_session_detach_is_recorded(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -298,7 +298,7 @@ def test_runtime_session_detach_is_recorded(
     assert payload["session"]["event_summary"]["recent"][-1]["event_type"] == "detached"
 
 
-@pytest.mark.skip("Test mocks non-existent functions in tui_callback module")
+@pytest.mark.skip("Test requires many missing functions in tui_callback module - needs comprehensive function addition")
 def test_tui_callback_runtime_preflight_supports_session_kind_guidance(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
