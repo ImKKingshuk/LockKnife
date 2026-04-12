@@ -164,7 +164,7 @@ class DummyApp:
         self.selected_device_serial = "SERIAL"
 
 
-@pytest.mark.skip("Test mocks non-existent functions in tui_callback module")
+@pytest.mark.skip("Test requires many missing functions in tui_callback module - needs comprehensive function addition")
 def test_tui_callback_export_json(tmp_path: pathlib.Path) -> None:
     callback = build_tui_callback(DummyApp())
     out = tmp_path / "export.json"
@@ -175,7 +175,7 @@ def test_tui_callback_export_json(tmp_path: pathlib.Path) -> None:
     assert json.loads(out.read_text(encoding="utf-8")) == {"ok": True}
 
 
-@pytest.mark.skip("Test mocks non-existent functions in tui_callback module")
+@pytest.mark.skip("Test requires many missing functions in tui_callback module - needs comprehensive function addition")
 def test_tui_callback_apk_permissions_includes_manifest_and_risk_summary(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

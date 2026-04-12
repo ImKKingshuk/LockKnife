@@ -106,7 +106,9 @@ from lockknife.modules.extraction.messaging import (
     extract_whatsapp_messages,
 )
 from lockknife.modules.extraction.sms import extract_sms
-from lockknife.modules.forensics.artifacts import parse_directory_as_aleapp
+from lockknife.modules.forensics.aleapp_compat import looks_like_aleapp_output
+from lockknife.modules.forensics.artifacts import parse_directory_as_aleapp, parse_forensics_directory
+from lockknife.modules.forensics.parsers import decode_protobuf_file
 from lockknife.modules.forensics.carving import carve_deleted_files
 from lockknife.modules.forensics.correlation import correlate_artifacts_json_blobs
 from lockknife.modules.forensics.recovery import recover_deleted_records
@@ -386,6 +388,9 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["build_timeline_report"] = build_timeline_report
     module.__dict__["carve_deleted_files"] = carve_deleted_files
     module.__dict__["parse_directory_as_aleapp"] = parse_directory_as_aleapp
+    module.__dict__["parse_forensics_directory"] = parse_forensics_directory
+    module.__dict__["looks_like_aleapp_output"] = looks_like_aleapp_output
+    module.__dict__["decode_protobuf_file"] = decode_protobuf_file
     module.__dict__["android_cve_risk_score"] = android_cve_risk_score
     module.__dict__["correlate_cves_for_apk_package"] = correlate_cves_for_apk_package
     module.__dict__["correlate_cves_for_kernel_version"] = correlate_cves_for_kernel_version

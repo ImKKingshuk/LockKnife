@@ -108,7 +108,7 @@ def test_cli_device_commands(monkeypatch) -> None:
     _invoke(dev_cli.device, ["shell", "-s", "S", "--all", "echo", "hi"], obj=app)
 
 
-@pytest.mark.skip("Test mocks non-existent extract module functions")
+@pytest.mark.skip("Test mocks non-existent extract module functions - needs function addition")
 def test_cli_extract_commands(monkeypatch, tmp_path: pathlib.Path) -> None:
     from lockknife_headless_cli import extract as extract_cli
 
@@ -349,7 +349,7 @@ def test_cli_extract_commands(monkeypatch, tmp_path: pathlib.Path) -> None:
     )
 
 
-@pytest.mark.skip("Test mocks non-existent extract module functions")
+@pytest.mark.skip("Test mocks non-existent extract module functions - needs function addition")
 def test_cli_extract_browser_rejects_csv_for_all(monkeypatch) -> None:
     from lockknife_headless_cli import extract as extract_cli
 

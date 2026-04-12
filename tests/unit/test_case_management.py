@@ -34,7 +34,7 @@ def test_case_workspace_create_and_register(tmp_path: pathlib.Path) -> None:
     assert manifest.schema_version == 4
 
 
-@pytest.mark.skip("Test failing due to AssertionError in CLI report registration")
+@pytest.mark.skip("Test failing due to AssertionError in CLI report registration - needs investigation")
 def test_case_cli_and_report_registration(tmp_path: pathlib.Path) -> None:
     from lockknife.core.case import load_case_manifest
     from lockknife_headless_cli.case import case_group
@@ -277,7 +277,7 @@ def test_register_case_artifact_auto_reuses_updates_and_duplicates(tmp_path: pat
         raise AssertionError("Expected collision for unrelated path reuse")
 
 
-@pytest.mark.skip("Test failing due to AssertionError in case sync custody command")
+@pytest.mark.skip("Test failing due to AssertionError in case sync custody command - needs investigation")
 def test_case_sync_custody_records_log(tmp_path: pathlib.Path) -> None:
     from lockknife.core.custody import clear_log, log_pull
     from lockknife_headless_cli.case import case_group
