@@ -93,7 +93,7 @@ lockknife interactive
 - **Headless CLI is the secondary surface.** Use `lockknife --cli ...` or `lockknife --headless` for quick one-off tasks, scripting, CI, and remote/headless environments.
 - **Classic interactive mode is legacy convenience.** Use `lockknife interactive` only when you specifically want the older menu flow.
 
-### TUI (Default)
+### TUI
 
 #### Keybindings
 
