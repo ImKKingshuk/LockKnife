@@ -108,8 +108,15 @@ def test_ensure_child_path_resolves_within_base(path_dict):
 def test_validate_archive_member_absolute_rejected(member_name):
     """Property: validate_archive_member rejects absolute paths."""
     if member_name.startswith("/") or member_name.startswith("\\"):
-        with pytest.raises(ValueError, match="Unsafe archive member path"):
-            validate_archive_member(member_name)
+        # Check for control characters in STRIPPED text (implementation strips before checking)
+        stripped = member_name.strip()
+        has_control = any(ord(ch) < 32 for ch in stripped)
+        if has_control:
+            with pytest.raises(ValueError, match="control characters"):
+                validate_archive_member(member_name)
+        else:
+            with pytest.raises(ValueError, match="Unsafe archive member path"):
+                validate_archive_member(member_name)
     elif member_name:
         # May raise for other reasons, but not for absolute path
         try:
