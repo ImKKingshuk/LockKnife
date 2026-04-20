@@ -22,10 +22,10 @@ pub(super) fn handle_main(app: &mut App, event: Event) -> bool {
                 (KeyCode::Char('?'), _) => app.overlay = Overlay::Help,
                 (KeyCode::Char('t'), _) | (KeyCode::Char('T'), _) => app.cycle_theme(),
                 (KeyCode::Char('c'), _) | (KeyCode::Char('C'), _) => app.open_config(),
-                (KeyCode::Char('d'), _) | (KeyCode::Char('D'), _) => {
-                    if !app.open_diagnostics_menu() {
-                        app.push_toast("error", "Diagnostics shortcuts are unavailable right now");
-                    }
+                (KeyCode::Char('d'), _) | (KeyCode::Char('D'), _)
+                    if !app.open_diagnostics_menu() =>
+                {
+                    app.push_toast("error", "Diagnostics shortcuts are unavailable right now");
                 }
                 (KeyCode::Char('o'), _) | (KeyCode::Char('O'), _) => {
                     match app.build_main_case_prompt("case.summary") {

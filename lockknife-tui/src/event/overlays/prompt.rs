@@ -16,15 +16,11 @@ pub(in crate::event) fn handle_prompt(
     {
         match (code, modifiers) {
             (KeyCode::Esc, _) => return (false, Overlay::None),
-            (KeyCode::Up, _) => {
-                if state.index > 0 {
-                    state.index -= 1;
-                }
+            (KeyCode::Up, _) if state.index > 0 => {
+                state.index -= 1;
             }
-            (KeyCode::Down, _) => {
-                if state.index + 1 < state.fields.len() {
-                    state.index += 1;
-                }
+            (KeyCode::Down, _) if state.index + 1 < state.fields.len() => {
+                state.index += 1;
             }
             (KeyCode::Enter, _) => {
                 if state.index + 1 < state.fields.len() {
