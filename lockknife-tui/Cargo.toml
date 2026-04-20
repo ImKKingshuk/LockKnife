@@ -1,6 +1,6 @@
 [package]
 name = "lockknife-tui"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 description = "Terminal UI crate for LockKnife"
 license = "GPL-3.0-only"

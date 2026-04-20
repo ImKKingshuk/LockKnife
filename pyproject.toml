@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "lockknife"
-version = "1.0.0"
+version = "1.0.1"
 description = "LockKnife: Android security research, forensics, and ethical hacking tool"
 readme = "README.md"
 requires-python = ">=3.12"
