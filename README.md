@@ -160,7 +160,7 @@ Use LockKnife when you want one operator surface for the broader investigation l
 
 ---
 
-## Current Capabilities (v1.0.1)
+## Current Capabilities (v1.1.0)
 
 ### Core Platform
 
@@ -195,7 +195,7 @@ Use LockKnife when you want one operator surface for the broader investigation l
 
 ---
 
-## Feature Matrix
+## Features
 
 ### Credentials & Recovery
 
