@@ -11,10 +11,8 @@ pub(in crate::event) fn handle_action_menu(
     if let Event::Key(KeyEvent { code, .. }) = event {
         match code {
             KeyCode::Esc => return (false, Overlay::None),
-            KeyCode::Up => {
-                if state.action_index > 0 {
-                    state.action_index -= 1;
-                }
+            KeyCode::Up if state.action_index > 0 => {
+                state.action_index -= 1;
             }
             KeyCode::Down => {
                 if let Some(module) = app.modules.get(state.module_index) {

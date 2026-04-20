@@ -32,8 +32,11 @@ impl RuleCache {
         let mut cache = self.cache.write().unwrap();
         let mut size = self.size.write().unwrap();
 
+        // Only increment size if key doesn't already exist
+        let is_new_entry = !cache.contains_key(&key);
+
         // Evict oldest entry if at capacity (simple FIFO)
-        if *size >= MAX_CACHE_SIZE {
+        if is_new_entry && *size >= MAX_CACHE_SIZE {
             if let Some(first_key) = cache.keys().next().cloned() {
                 cache.remove(&first_key);
                 *size -= 1;
@@ -41,7 +44,9 @@ impl RuleCache {
         }
 
         cache.insert(key, rules);
-        *size += 1;
+        if is_new_entry {
+            *size += 1;
+        }
     }
 
     fn stats(&self) -> (usize, usize) {
