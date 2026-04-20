@@ -18,10 +18,8 @@ This release introduces a massive new Exploitation Framework, bringing professio
 
 ### 🛠️ Core Platform & Code Quality
 
-- **Modernized Toolchain**: Fully migrated to `ruff`, `ty` for Python type-safety and `clippy`, `rustfmt` for Rust code quality.
 - **Rust Performance Primitives**: New packet crafting/parsing engines for wireless protocols and high-speed parallel network scanning.
-- **Optimized YARA Scanning**: Implemented MD5-based rule caching with an Arc-shared FIFO eviction policy for near-instant recurring scans.
-- **Fuzz Testing**: Integrated automated fuzzing for critical Rust parsers to ensure memory safety and robustness.
+- **Optimized Scanning**: Implemented MD5-based rule caching with an Arc-shared FIFO eviction policy for near-instant recurring scans.
 
 ### 🎨 TUI & User Experience
 
