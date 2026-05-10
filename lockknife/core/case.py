@@ -50,6 +50,7 @@ from lockknife.core._case_runtime import (
     start_case_runtime_session,
     update_case_runtime_session,
 )
+from lockknife.core._case_store import CaseStore, EventRecord, is_case_workspace
 
 __all__ = [
     "CaseArtifact",
@@ -63,6 +64,9 @@ __all__ = [
     "create_case_workspace",
     "load_case_manifest",
     "save_case_manifest",
+    "CaseStore",
+    "EventRecord",
+    "is_case_workspace",
     "find_case_artifact",
     "find_case_artifact_by_id",
     "query_case_artifacts",

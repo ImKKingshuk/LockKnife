@@ -33,14 +33,14 @@ fn register_signal_handlers(cleanup_flag: Arc<AtomicBool>) -> PyResult<()> {
     Ok(())
 }
 
-pub fn run_tui(py: Python<'_>, callback: Py<PyAny>) -> PyResult<()> {
+pub fn run_tui(py: Python<'_>, callback: Py<PyAny>, catalog_json: Option<&str>) -> PyResult<()> {
     let mut terminal = setup_terminal()?;
 
     // Register signal handlers for graceful shutdown
     let cleanup_flag = Arc::new(AtomicBool::new(false));
     register_signal_handlers(cleanup_flag.clone())?;
 
-    let mut app = app::App::new(callback);
+    let mut app = app::App::new_with_catalog_json(callback, catalog_json);
     app.refresh_devices();
     let res = run_app(py, &mut terminal, &mut app, cleanup_flag);
     restore_terminal(&mut terminal)?;

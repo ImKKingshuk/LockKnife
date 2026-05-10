@@ -10,6 +10,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from lockknife.core.exceptions import DeviceError, ExternalToolError
+from lockknife.core.execution_policy import ExecutionGateway, ExecutionIntent
 from lockknife.core.logging import get_logger
 
 
@@ -27,13 +28,21 @@ class AdbDevice:
 class AdbClient:
     """Type-safe wrapper around the `adb` CLI."""
 
-    def __init__(self, adb_path: str = "adb") -> None:
+    def __init__(
+        self,
+        adb_path: str = "adb",
+        *,
+        execution_gateway: ExecutionGateway | None = None,
+        execution_intent: ExecutionIntent | None = None,
+    ) -> None:
         """Create a new client.
 
         Args:
             adb_path: Path to the adb binary.
         """
         self._adb_path = adb_path
+        self._execution_gateway = execution_gateway
+        self._execution_intent = execution_intent
         self._log = get_logger()
 
     @property
@@ -41,7 +50,14 @@ class AdbClient:
         """Return the adb binary path."""
         return self._adb_path
 
-    def run(self, args: Sequence[str], timeout_s: float = 30.0) -> str:
+    def run(
+        self,
+        args: Sequence[str],
+        timeout_s: float = 30.0,
+        *,
+        execution_intent: ExecutionIntent | None = None,
+        execution_gateway: ExecutionGateway | None = None,
+    ) -> str:
         """Run an adb command and return stdout.
 
         Args:
@@ -59,6 +75,23 @@ class AdbClient:
             "adb_run_start", adb_path=self._adb_path, args=list(args), timeout_s=timeout_s
         )
         try:
+            intent = execution_intent or self._execution_intent
+            if intent is not None:
+                gateway = execution_gateway or self._execution_gateway or ExecutionGateway()
+                result = gateway.run_adb(
+                    intent,
+                    args,
+                    adb_path=self._adb_path,
+                    timeout_s=timeout_s,
+                )
+                if result.return_code != 0:
+                    msg = (
+                        result.stderr.strip()
+                        or result.stdout.strip()
+                        or f"adb failed: {list(args)}"
+                    )
+                    raise ExternalToolError(msg)
+                return result.stdout
             proc = subprocess.run(  # nosec B603 - shell=False and list of arguments prevents shell injection
                 [self._adb_path, *args],
                 check=False,
@@ -140,7 +173,15 @@ class AdbClient:
         self._log.info("adb_connect", host=host, timeout_s=timeout_s)
         return self.run(["connect", host], timeout_s=timeout_s).strip()
 
-    def shell(self, serial: str, command: str, timeout_s: float = 30.0) -> str:
+    def shell(
+        self,
+        serial: str,
+        command: str,
+        timeout_s: float = 30.0,
+        *,
+        execution_intent: ExecutionIntent | None = None,
+        execution_gateway: ExecutionGateway | None = None,
+    ) -> str:
         """Run `adb shell` on a device and return stdout.
 
         Args:
@@ -160,7 +201,12 @@ class AdbClient:
             command=(command[:256] + "…" if len(command) > 256 else command),
             timeout_s=timeout_s,
         )
-        return self.run(["-s", serial, "shell", command], timeout_s=timeout_s)
+        return self.run(
+            ["-s", serial, "shell", command],
+            timeout_s=timeout_s,
+            execution_intent=execution_intent,
+            execution_gateway=execution_gateway,
+        )
 
     def pull(
         self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 120.0

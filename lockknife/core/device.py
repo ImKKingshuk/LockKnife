@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TypeVar
 
 from lockknife.core.adb import AdbClient, AdbDevice
+from lockknife.core.execution_policy import ExecutionGateway, ExecutionIntent
 from lockknife.core.logging import get_logger
 
 
@@ -47,9 +48,17 @@ T = TypeVar("T")
 class DeviceManager:
     """Tracks device state and fans out operations across multiple devices."""
 
-    def __init__(self, adb: AdbClient) -> None:
+    def __init__(
+        self,
+        adb: AdbClient,
+        *,
+        execution_gateway: ExecutionGateway | None = None,
+        execution_intent: ExecutionIntent | None = None,
+    ) -> None:
         """Create a manager bound to an adb client."""
         self._adb = adb
+        self._execution_gateway = execution_gateway
+        self._execution_intent = execution_intent
         self._states: dict[str, DeviceState] = {}
         self._log = get_logger()
 
@@ -114,10 +123,24 @@ class DeviceManager:
         self._log.debug("device_has_root", serial=serial)
         return self._adb.has_su(serial)
 
-    def shell(self, serial: str, command: str, timeout_s: float = 30.0) -> str:
+    def shell(
+        self,
+        serial: str,
+        command: str,
+        timeout_s: float = 30.0,
+        *,
+        execution_intent: ExecutionIntent | None = None,
+        execution_gateway: ExecutionGateway | None = None,
+    ) -> str:
         """Run a shell command on a device."""
         self._log.debug("device_shell", serial=serial, timeout_s=timeout_s)
-        return self._adb.shell(serial, command, timeout_s=timeout_s)
+        return self._adb.shell(
+            serial,
+            command,
+            timeout_s=timeout_s,
+            execution_intent=execution_intent or self._execution_intent,
+            execution_gateway=execution_gateway or self._execution_gateway,
+        )
 
     def pull(
         self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 120.0

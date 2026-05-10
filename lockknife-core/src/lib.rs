@@ -78,6 +78,7 @@ fn lockknife_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 }
 
 #[pyfunction]
-fn run_tui(py: Python<'_>, callback: Py<PyAny>) -> PyResult<()> {
-    lockknife_tui::run_tui(py, callback)
+#[pyo3(signature = (callback, catalog_json=None))]
+fn run_tui(py: Python<'_>, callback: Py<PyAny>, catalog_json: Option<&str>) -> PyResult<()> {
+    lockknife_tui::run_tui(py, callback, catalog_json)
 }

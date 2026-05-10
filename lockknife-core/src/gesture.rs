@@ -80,28 +80,30 @@ fn dfs(
 }
 
 #[pyfunction]
-pub fn recover_android_gesture(gesture_key_bytes: &[u8]) -> PyResult<String> {
+pub fn recover_android_gesture(py: Python<'_>, gesture_key_bytes: &[u8]) -> PyResult<String> {
     let target = parse_gesture_key_sha1(gesture_key_bytes)
         .ok_or_else(|| PyValueError::new_err("gesture_key_bytes is too short"))?;
-    let jump = jump_table();
+    py.detach(move || {
+        let jump = jump_table();
 
-    for len in 4u8..=9 {
-        for start in 1u8..=9 {
-            let mut visited = [false; 10];
-            visited[start as usize] = true;
-            let mut path = vec![start];
-            if dfs(&target, &jump, &mut visited, &mut path, len - 1) {
-                let rendered = path
-                    .iter()
-                    .map(|n| n.to_string())
-                    .collect::<Vec<_>>()
-                    .join("-");
-                return Ok(rendered);
+        for len in 4u8..=9 {
+            for start in 1u8..=9 {
+                let mut visited = [false; 10];
+                visited[start as usize] = true;
+                let mut path = vec![start];
+                if dfs(&target, &jump, &mut visited, &mut path, len - 1) {
+                    let rendered = path
+                        .iter()
+                        .map(|n| n.to_string())
+                        .collect::<Vec<_>>()
+                        .join("-");
+                    return Ok(rendered);
+                }
             }
         }
-    }
 
-    Err(PyValueError::new_err("Gesture pattern not found"))
+        Err(PyValueError::new_err("Gesture pattern not found"))
+    })
 }
 
 #[cfg(test)]
@@ -123,14 +125,14 @@ mod tests {
         init_python();
         let pattern_bytes = [0u8, 1, 2, 3];
         let digest = digest::digest(&digest::SHA1_FOR_LEGACY_USE_ONLY, &pattern_bytes);
-        let out = recover_android_gesture(digest.as_ref()).unwrap();
+        let out = pyo3::Python::attach(|py| recover_android_gesture(py, digest.as_ref()).unwrap());
         assert_eq!(out, "1-2-3-4");
     }
 
     #[test]
     fn test_recover_rejects_short() {
         init_python();
-        let err = recover_android_gesture(&[1, 2, 3]).unwrap_err();
+        let err = pyo3::Python::attach(|py| recover_android_gesture(py, &[1, 2, 3]).unwrap_err());
         assert!(format!("{err}").contains("too short"));
     }
 
@@ -139,7 +141,7 @@ mod tests {
         init_python();
         let pattern_bytes = [0u8, 1, 2, 3, 4, 5, 6, 7, 8];
         let digest = digest::digest(&digest::SHA1_FOR_LEGACY_USE_ONLY, &pattern_bytes);
-        let out = recover_android_gesture(digest.as_ref()).unwrap();
+        let out = pyo3::Python::attach(|py| recover_android_gesture(py, digest.as_ref()).unwrap());
         assert_eq!(out, "1-2-3-4-5-6-7-8-9");
     }
 }

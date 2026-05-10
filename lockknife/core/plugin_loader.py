@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import importlib
 import os
 import re
@@ -11,6 +12,7 @@ from typing import Any, cast
 import click
 
 from lockknife import __version__
+from lockknife.core.execution_policy import ExecutionGateway, ExecutionIntent
 from lockknife.core.logging import get_logger
 from lockknife.core.plugin_contract import (
     LOCKKNIFE_PLUGIN_API_VERSION,
@@ -23,6 +25,8 @@ from lockknife.core.plugin_models import LoadedPlugin, PluginFailure, PluginMeta
 PLUGIN_MODULES_ENV = "LOCKKNIFE_PLUGIN_MODULES"
 PLUGIN_DISABLE_ENV = "LOCKKNIFE_DISABLE_PLUGINS"
 _PLUGIN_MANAGER: PluginManager | None = None
+_ORIGINAL_IMPORT = builtins.__import__
+_SANDBOX_DEPTH = 0
 log = get_logger()
 
 # Sandbox configuration
@@ -115,20 +119,22 @@ def _sandbox_import(
             reason="Module is not in explicit allow list",
         )
 
-    # Use the original __import__
-    return __builtins__.__import__(name, globals, locals, fromlist, level)
+    return _ORIGINAL_IMPORT(name, globals, locals, fromlist, level)
 
 
 def _apply_sandbox() -> None:
     """Apply sandbox restrictions to the current import system."""
-    __builtins__.__import__ = _sandbox_import
+    global _SANDBOX_DEPTH
+    _SANDBOX_DEPTH += 1
+    builtins.__import__ = cast(Any, _sandbox_import)
 
 
 def _remove_sandbox() -> None:
     """Remove sandbox restrictions from the import system."""
-    __builtins__.__import__ = __builtins__.__dict__.get(
-        "__original_import__", __builtins__.__import__
-    )
+    global _SANDBOX_DEPTH
+    _SANDBOX_DEPTH = max(0, _SANDBOX_DEPTH - 1)
+    if _SANDBOX_DEPTH == 0:
+        builtins.__import__ = _ORIGINAL_IMPORT
 
 
 class PluginLoadError(RuntimeError):
@@ -226,12 +232,20 @@ def _coerce_plugin(value: Any) -> LockKnifePlugin:
 
 
 class PluginManager:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        execution_intent: ExecutionIntent | None = None,
+        execution_gateway: ExecutionGateway | None = None,
+    ) -> None:
         self.loaded: list[LoadedPlugin] = []
         self.failures: list[PluginFailure] = []
+        self.previews: list[dict[str, object]] = []
         self._commands: dict[str, click.Command] = {}
         self._health_checks: dict[str, dict[str, Any]] = {}
         self._attached_groups: set[int] = set()
+        self._execution_intent = execution_intent
+        self._execution_gateway = execution_gateway or ExecutionGateway()
         self._discover()
 
     def _discover(self) -> None:
@@ -243,9 +257,25 @@ class PluginManager:
             if source in seen_sources:
                 continue
             seen_sources.add(source)
+            sandbox_applied = False
             try:
+                if self._execution_intent is not None:
+                    preview = self._execution_gateway.authorize_plugin_load(
+                        self._execution_intent,
+                        source=source,
+                    )
+                    if preview.dry_run:
+                        self.previews.append(
+                            {
+                                "source": source,
+                                "dry_run": True,
+                                "preview": preview.to_dict(),
+                            }
+                        )
+                        continue
                 # Apply sandbox before loading plugin
                 _apply_sandbox()
+                sandbox_applied = True
 
                 @with_timeout(30.0)  # 30 second timeout for plugin loading
                 def load_plugin(rec=record) -> LockKnifePlugin:
@@ -267,7 +297,8 @@ class PluginManager:
                 self.failures.append(PluginFailure(source=source, error=str(exc)))
             finally:
                 # Remove sandbox after loading
-                _remove_sandbox()
+                if sandbox_applied:
+                    _remove_sandbox()
 
     def _register_plugin(self, plugin: LockKnifePlugin, source: str) -> None:
         metadata = plugin.metadata
@@ -339,6 +370,7 @@ class PluginManager:
             "module_env_var": PLUGIN_MODULES_ENV,
             "loaded": [item.to_dict() for item in self.loaded],
             "failures": [item.to_dict() for item in self.failures],
+            "previews": list(self.previews),
         }
 
     def health_summary(self) -> dict[str, object]:
@@ -385,8 +417,18 @@ def reset_plugin_manager() -> None:
     _PLUGIN_MANAGER = None
 
 
-def get_plugin_manager(*, reload: bool = False) -> PluginManager:
+def get_plugin_manager(
+    *,
+    reload: bool = False,
+    execution_intent: ExecutionIntent | None = None,
+    execution_gateway: ExecutionGateway | None = None,
+) -> PluginManager:
     global _PLUGIN_MANAGER
+    if execution_intent is not None:
+        return PluginManager(
+            execution_intent=execution_intent,
+            execution_gateway=execution_gateway,
+        )
     if reload or _PLUGIN_MANAGER is None:
         _PLUGIN_MANAGER = PluginManager()
     return _PLUGIN_MANAGER
@@ -396,8 +438,17 @@ def attach_plugin_commands(group: click.Group) -> None:
     get_plugin_manager().attach_group(group)
 
 
-def plugin_inventory(*, reload: bool = False) -> dict[str, object]:
-    return get_plugin_manager(reload=reload).inventory()
+def plugin_inventory(
+    *,
+    reload: bool = False,
+    execution_intent: ExecutionIntent | None = None,
+    execution_gateway: ExecutionGateway | None = None,
+) -> dict[str, object]:
+    return get_plugin_manager(
+        reload=reload,
+        execution_intent=execution_intent,
+        execution_gateway=execution_gateway,
+    ).inventory()
 
 
 def plugin_health_summary(*, reload: bool = False) -> dict[str, object]:

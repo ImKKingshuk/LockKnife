@@ -57,17 +57,7 @@ impl RuleCache {
 
 static RULE_CACHE: Lazy<RuleCache> = Lazy::new(RuleCache::new);
 
-/// Compile YARA-X rules (source string) and scan `data`.
-///
-/// Returns a JSON array of match objects:
-/// ```json
-/// [{"rule": "MyRule", "namespace": "default", "tags": [], "meta": {}}]
-/// ```
-///
-/// YARA-X is VirusTotal's Rust-native rewrite — 99% compatible with classic YARA rules,
-/// runs entirely in Rust (no C dependency), and is the engine behind VirusTotal's Livehunt.
-#[pyfunction]
-pub fn yara_scan_bytes(rules_src: &str, data: &[u8]) -> PyResult<String> {
+fn yara_scan_bytes_inner(rules_src: &str, data: &[u8]) -> PyResult<String> {
     if rules_src.trim().is_empty() {
         return Err(PyValueError::new_err("rules_src must not be empty"));
     }
@@ -126,12 +116,42 @@ pub fn yara_scan_bytes(rules_src: &str, data: &[u8]) -> PyResult<String> {
     Ok(serde_json::to_string(&matches).unwrap_or_else(|_| "[]".to_string()))
 }
 
+/// Compile YARA-X rules (source string) and scan `data`.
+///
+/// Returns a JSON array of match objects:
+/// ```json
+/// [{"rule": "MyRule", "namespace": "default", "tags": [], "meta": {}}]
+/// ```
+///
+/// YARA-X is VirusTotal's Rust-native rewrite — 99% compatible with classic YARA rules,
+/// runs entirely in Rust (no C dependency), and is the engine behind VirusTotal's Livehunt.
+#[pyfunction]
+pub fn yara_scan_bytes(py: Python<'_>, rules_src: &str, data: &[u8]) -> PyResult<String> {
+    if rules_src.trim().is_empty() {
+        return Err(PyValueError::new_err("rules_src must not be empty"));
+    }
+    if data.len() > MAX_DATA_BYTES {
+        return Err(PyValueError::new_err("data exceeds size limit (256 MB)"));
+    }
+
+    let rules_src = rules_src.to_string();
+    let data = data.to_vec();
+    py.detach(move || yara_scan_bytes_inner(&rules_src, &data))
+}
+
 /// Compile YARA-X rules from a file path and scan `data`.
 #[pyfunction]
-pub fn yara_scan_file_rules(rules_path: &str, data: &[u8]) -> PyResult<String> {
-    let src = std::fs::read_to_string(rules_path)
-        .map_err(|e| PyValueError::new_err(format!("cannot read rules file: {e}")))?;
-    yara_scan_bytes(&src, data)
+pub fn yara_scan_file_rules(py: Python<'_>, rules_path: &str, data: &[u8]) -> PyResult<String> {
+    if data.len() > MAX_DATA_BYTES {
+        return Err(PyValueError::new_err("data exceeds size limit (256 MB)"));
+    }
+    let rules_path = rules_path.to_string();
+    let data = data.to_vec();
+    py.detach(move || {
+        let src = std::fs::read_to_string(rules_path)
+            .map_err(|e| PyValueError::new_err(format!("cannot read rules file: {e}")))?;
+        yara_scan_bytes_inner(&src, &data)
+    })
 }
 
 /// Get YARA rule cache statistics.
@@ -153,6 +173,12 @@ pub fn yara_cache_stats() -> String {
 #[cfg(test)]
 mod tests {
     use super::{yara_cache_stats, yara_scan_bytes, yara_scan_file_rules};
+    use pyo3::Python;
+
+    fn with_py<T>(f: impl for<'py> FnOnce(Python<'py>) -> T) -> T {
+        Python::initialize();
+        Python::attach(f)
+    }
 
     const RULE: &str = r#"
         rule TestRule {
@@ -168,7 +194,7 @@ mod tests {
     #[test]
     fn test_yara_scan_matches() {
         let data = b"This is an EICAR test string.";
-        let out = yara_scan_bytes(RULE, data).unwrap();
+        let out = with_py(|py| yara_scan_bytes(py, RULE, data).unwrap());
         assert!(out.contains("TestRule"));
         assert!(out.contains("detects test"));
     }
@@ -176,25 +202,28 @@ mod tests {
     #[test]
     fn test_yara_scan_no_match() {
         let data = b"nothing here";
-        let out = yara_scan_bytes(RULE, data).unwrap();
+        let out = with_py(|py| yara_scan_bytes(py, RULE, data).unwrap());
         assert_eq!(out, "[]");
     }
 
     #[test]
     fn test_yara_invalid_rule_errors() {
-        let err = yara_scan_bytes("rule Bad { condition: nonsense }", b"data").unwrap_err();
+        let err = with_py(|py| {
+            yara_scan_bytes(py, "rule Bad { condition: nonsense }", b"data").unwrap_err()
+        });
         assert!(format!("{err}").contains("compilation failed") || !format!("{err}").is_empty());
     }
 
     #[test]
     fn test_yara_empty_rules_errors() {
-        let err = yara_scan_bytes("", b"data").unwrap_err();
+        let err = with_py(|py| yara_scan_bytes(py, "", b"data").unwrap_err());
         assert!(format!("{err}").contains("empty"));
     }
 
     #[test]
     fn test_yara_scan_file_rules_missing() {
-        let err = yara_scan_file_rules("/nonexistent/path.yar", b"data").unwrap_err();
+        let err =
+            with_py(|py| yara_scan_file_rules(py, "/nonexistent/path.yar", b"data").unwrap_err());
         assert!(format!("{err}").contains("cannot read"));
     }
 
@@ -209,10 +238,10 @@ mod tests {
     fn test_yara_cache_hit() {
         let data = b"This is an EICAR test string.";
         // First scan - cache miss
-        let _ = yara_scan_bytes(RULE, data).unwrap();
+        let _ = with_py(|py| yara_scan_bytes(py, RULE, data).unwrap());
         let stats1 = yara_cache_stats();
         // Second scan - cache hit
-        let _ = yara_scan_bytes(RULE, data).unwrap();
+        let _ = with_py(|py| yara_scan_bytes(py, RULE, data).unwrap());
         let stats2 = yara_cache_stats();
         // Cache size should not increase on hit
         assert_eq!(stats1, stats2);
@@ -229,9 +258,9 @@ mod tests {
                     $a
             }
         "#;
-        let _ = yara_scan_bytes(RULE, data).unwrap();
+        let _ = with_py(|py| yara_scan_bytes(py, RULE, data).unwrap());
         let stats1 = yara_cache_stats();
-        let _ = yara_scan_bytes(rule2, data).unwrap();
+        let _ = with_py(|py| yara_scan_bytes(py, rule2, data).unwrap());
         let stats2 = yara_cache_stats();
         // Cache size should increase on miss
         assert_ne!(stats1, stats2);

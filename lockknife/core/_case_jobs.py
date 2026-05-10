@@ -9,15 +9,16 @@ from typing import Any
 from lockknife.core._case_common import (
     _job_log_path,
     _json_safe_value,
+    _next_case_sequence_id,
     _utc_now,
     load_case_manifest,
-    save_case_manifest,
 )
 from lockknife.core._case_models import CaseJob, CaseJobStep, CaseManifest
+from lockknife.core._case_store import CaseStore
 
 
-def _next_job_id(manifest: CaseManifest) -> str:
-    return f"job-{len(manifest.jobs) + 1:04d}"
+def _allocate_job_id(case_dir: pathlib.Path) -> str:
+    return _next_case_sequence_id(case_dir, kind="job", prefix="job")
 
 
 def _find_job_index(manifest: CaseManifest, job_id: str) -> int | None:
@@ -194,7 +195,7 @@ def start_case_job(
     else:
         job_index = None
         attempt_count = 1
-        job_id = _next_job_id(manifest)
+        job_id = _allocate_job_id(case_dir)
         created_at = now
         steps = []
         result_artifact_ids = []
@@ -229,12 +230,11 @@ def start_case_job(
         result_artifact_ids=result_artifact_ids,
         steps=steps,
     )
-    if job_index is None:
-        manifest.jobs.append(job)
-    else:
-        manifest.jobs[job_index] = job
-    manifest.updated_at_utc = now
-    save_case_manifest(case_dir, manifest)
+    CaseStore.open(case_dir).persist_job(
+        job,
+        case_updated_at_utc=now,
+        event_type="job.started",
+    )
     _job_log_event(
         case_dir,
         job.job_id,
@@ -254,11 +254,9 @@ def complete_case_job(
     recovery_hint: str | None = None,
     status: str = "succeeded",
 ) -> CaseJob:
-    manifest = load_case_manifest(case_dir)
-    job_index = _find_job_index(manifest, job_id)
-    if job_index is None:
+    existing = CaseStore.open(case_dir).get_job(job_id)
+    if existing is None:
         raise ValueError(f"Job {job_id} not found")
-    existing = manifest.jobs[job_index]
     attempt = existing.attempt_count
     steps = _replace_job_step_status(
         existing.steps,
@@ -282,9 +280,11 @@ def complete_case_job(
         or list(existing.result_artifact_ids),
         steps=steps,
     )
-    manifest.jobs[job_index] = job
-    manifest.updated_at_utc = now
-    save_case_manifest(case_dir, manifest)
+    CaseStore.open(case_dir).persist_job(
+        job,
+        case_updated_at_utc=now,
+        event_type="job.completed",
+    )
     _job_log_event(
         case_dir, job_id, level="info", message=message or f"{existing.action_label} completed"
     )
@@ -298,11 +298,9 @@ def fail_case_job(
     error_message: str,
     recovery_hint: str | None = None,
 ) -> CaseJob:
-    manifest = load_case_manifest(case_dir)
-    job_index = _find_job_index(manifest, job_id)
-    if job_index is None:
+    existing = CaseStore.open(case_dir).get_job(job_id)
+    if existing is None:
         raise ValueError(f"Job {job_id} not found")
-    existing = manifest.jobs[job_index]
     attempt = existing.attempt_count
     steps = _replace_job_step_status(
         existing.steps,
@@ -329,9 +327,11 @@ def fail_case_job(
         recovery_hint=recovery_hint,
         steps=steps,
     )
-    manifest.jobs[job_index] = job
-    manifest.updated_at_utc = now
-    save_case_manifest(case_dir, manifest)
+    CaseStore.open(case_dir).persist_job(
+        job,
+        case_updated_at_utc=now,
+        event_type="job.failed",
+    )
     _job_log_event(case_dir, job_id, level="error", message=error_message)
     if recovery_hint:
         _job_log_event(case_dir, job_id, level="warn", message=recovery_hint)

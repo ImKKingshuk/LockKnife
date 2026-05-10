@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import dataclasses
 import datetime as dt
 import hashlib
-import json
 import pathlib
 from typing import Any
 
@@ -15,8 +13,8 @@ from lockknife.core._case_models import (
     CaseRuntimeScript,
     CaseRuntimeSession,
 )
+from lockknife.core._case_store import CaseStore
 from lockknife.core.path_safety import validate_relative_component
-from lockknife.core.serialize import write_json
 
 
 def _utc_now() -> str:
@@ -108,26 +106,19 @@ def create_case_workspace(
 
 
 def load_case_manifest(case_dir: pathlib.Path) -> CaseManifest:
-    raw = json.loads(_manifest_path(case_dir).read_text(encoding="utf-8"))
-    artifacts = [CaseArtifact(**item) for item in raw.pop("artifacts", [])]
-    jobs = []
-    for item in raw.pop("jobs", []):
-        steps = [CaseJobStep(**step) for step in item.pop("steps", [])]
-        jobs.append(CaseJob(steps=steps, **item))
-    runtime_sessions = []
-    for item in raw.pop("runtime_sessions", []):
-        script_inventory = [
-            CaseRuntimeScript(**script) for script in item.pop("script_inventory", [])
-        ]
-        runtime_sessions.append(CaseRuntimeSession(script_inventory=script_inventory, **item))
-    raw.setdefault("schema_version", 2)
-    return CaseManifest(artifacts=artifacts, jobs=jobs, runtime_sessions=runtime_sessions, **raw)
+    return CaseStore.open(case_dir).load_manifest()
 
 
 def save_case_manifest(case_dir: pathlib.Path, manifest: CaseManifest) -> pathlib.Path:
     path = _manifest_path(case_dir)
-    write_json(path, dataclasses.asdict(manifest))
+    CaseStore.open(case_dir).replace_from_manifest(manifest)
     return path
+
+
+def _next_case_sequence_id(
+    case_dir: pathlib.Path, *, kind: str, prefix: str, width: int = 4
+) -> str:
+    return CaseStore.open(case_dir).allocate_id(kind, prefix=prefix, width=width)
 
 
 def _json_safe_value(value: Any) -> Any:

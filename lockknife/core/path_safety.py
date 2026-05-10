@@ -37,6 +37,13 @@ def ensure_child_path(
 
 
 def validate_archive_member(member_name: str) -> PurePosixPath:
+    stripped = member_name.strip()
+    if stripped.startswith(("/", "\\")):
+        raise ValueError(f"Unsafe archive member path: {member_name}")
+    if len(stripped) >= 2 and stripped[1] == ":" and stripped[0].isalpha():
+        raise ValueError(f"Unsafe archive member path: {member_name}")
+    if ".." in stripped:
+        raise ValueError(f"Unsafe archive member path: {member_name}")
     normalized = validate_user_path_text(member_name, label="archive member").replace("\\", "/")
     pure = PurePosixPath(normalized)
     if pure.is_absolute():

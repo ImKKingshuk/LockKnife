@@ -13,8 +13,20 @@ impl App {
         Self::from_loaded_config(callback, load_tui_config())
     }
 
+    pub fn new_with_catalog_json(callback: Py<PyAny>, catalog_json: Option<&str>) -> Self {
+        Self::from_loaded_config_and_catalog(callback, load_tui_config(), catalog_json)
+    }
+
     pub(crate) fn from_loaded_config(callback: Py<PyAny>, cfg: Option<TuiConfig>) -> Self {
-        let modules = default_modules();
+        Self::from_loaded_config_and_catalog(callback, cfg, None)
+    }
+
+    pub(crate) fn from_loaded_config_and_catalog(
+        callback: Py<PyAny>,
+        cfg: Option<TuiConfig>,
+        catalog_json: Option<&str>,
+    ) -> Self {
+        let (modules, catalog_warning) = modules_from_catalog_json(catalog_json);
         let layout = UiLayout {
             header: Rect::default(),
             devices: Rect::default(),
@@ -44,7 +56,7 @@ impl App {
             .as_ref()
             .map(|c| sanitize_artifact_filter_history(&c.artifact_filter_history))
             .unwrap_or_default();
-        Self {
+        let mut app = Self {
             callback,
             devices: Vec::new(),
             modules,
@@ -101,7 +113,11 @@ impl App {
             active_exploit_status: None,
             collected_evidence: Vec::new(),
             scan_results: Vec::new(),
+        };
+        if let Some(warning) = catalog_warning {
+            app.push_feedback("warn", warning);
         }
+        app
     }
 
     pub(crate) fn remember_case_dir(&mut self, case_dir: &str) {
@@ -237,6 +253,153 @@ impl App {
         save_tui_config(&self.current_tui_config());
         self.push_feedback("info", format!("Theme: {}", self.theme.as_str()));
     }
+}
+
+fn modules_from_catalog_json(catalog_json: Option<&str>) -> (Vec<ModuleEntry>, Option<String>) {
+    let Some(raw) = catalog_json.map(str::trim).filter(|raw| !raw.is_empty()) else {
+        return (default_modules(), None);
+    };
+
+    let value = match serde_json::from_str::<Value>(raw) {
+        Ok(value) => value,
+        Err(err) => {
+            return (
+                default_modules(),
+                Some(format!(
+                    "Invalid action catalog JSON; using built-in catalog: {err}"
+                )),
+            );
+        }
+    };
+
+    let Some(module_values) = catalog_modules_array(&value) else {
+        return (
+            default_modules(),
+            Some(
+                "Action catalog JSON did not contain a modules array; using built-in catalog"
+                    .to_string(),
+            ),
+        );
+    };
+
+    let modules: Vec<ModuleEntry> = module_values
+        .iter()
+        .filter_map(parse_catalog_module)
+        .collect();
+    if modules.is_empty() {
+        return (
+            default_modules(),
+            Some("Action catalog contained no usable modules; using built-in catalog".to_string()),
+        );
+    }
+
+    (modules, None)
+}
+
+fn catalog_modules_array(value: &Value) -> Option<&Vec<Value>> {
+    if let Value::Array(modules) = value {
+        return Some(modules);
+    }
+    value.get("modules").and_then(Value::as_array)
+}
+
+fn parse_catalog_module(value: &Value) -> Option<ModuleEntry> {
+    let id = trimmed_string(value, "id")?;
+    let label = trimmed_string(value, "label").unwrap_or_else(|| id.clone());
+    let actions: Vec<ModuleAction> = value
+        .get("actions")
+        .and_then(Value::as_array)
+        .map(|actions| actions.iter().filter_map(parse_catalog_action).collect())
+        .unwrap_or_default();
+    if actions.is_empty() {
+        return None;
+    }
+
+    Some(ModuleEntry { id, label, actions })
+}
+
+fn parse_catalog_action(value: &Value) -> Option<ModuleAction> {
+    let id = trimmed_string(value, "id")?;
+    let label = trimmed_string(value, "label").unwrap_or_else(|| id.clone());
+    let fields = value
+        .get("fields")
+        .and_then(Value::as_array)
+        .map(|fields| fields.iter().filter_map(parse_catalog_field).collect())
+        .unwrap_or_default();
+    let requires_device = bool_field_value(value, "requires_device")
+        .or_else(|| bool_field_value(value, "requiresDevice"))
+        .unwrap_or(false);
+    let confirm = bool_field_value(value, "confirm").unwrap_or(false);
+
+    Some(ModuleAction {
+        id,
+        label,
+        fields,
+        requires_device,
+        confirm,
+    })
+}
+
+fn parse_catalog_field(value: &Value) -> Option<PromptField> {
+    let key = trimmed_string(value, "key")?;
+    let label = trimmed_string(value, "label").unwrap_or_else(|| key.clone());
+    let field_kind = trimmed_string(value, "kind")
+        .as_deref()
+        .map(parse_catalog_field_kind)
+        .unwrap_or(FieldKind::Text);
+    let options = value
+        .get("options")
+        .and_then(Value::as_array)
+        .map(|options| {
+            options
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|option| !option.is_empty())
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Some(PromptField {
+        key,
+        label,
+        value: catalog_field_value(value).unwrap_or_default(),
+        kind: field_kind,
+        options,
+    })
+}
+
+fn catalog_field_value(value: &Value) -> Option<String> {
+    let raw = value.get("value")?;
+    match raw {
+        Value::String(value) => Some(value.clone()),
+        Value::Number(value) => Some(value.to_string()),
+        Value::Bool(value) => Some(value.to_string()),
+        _ => None,
+    }
+}
+
+fn parse_catalog_field_kind(value: &str) -> FieldKind {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "number" => FieldKind::Number,
+        "bool" | "boolean" => FieldKind::Bool,
+        "choice" | "select" => FieldKind::Choice,
+        _ => FieldKind::Text,
+    }
+}
+
+fn trimmed_string(value: &Value, key: &str) -> Option<String> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn bool_field_value(value: &Value, key: &str) -> Option<bool> {
+    value.get(key).and_then(Value::as_bool)
 }
 
 pub(crate) fn config_path() -> Option<PathBuf> {
@@ -436,5 +599,73 @@ pub(crate) fn success_feedback_message(action: &str, config_path: Option<&str>) 
             None => "Saved config".to_string(),
         }),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod catalog_json_tests {
+    use super::*;
+    use std::sync::Once;
+
+    static INIT: Once = Once::new();
+
+    fn init_python() {
+        INIT.call_once(|| {
+            pyo3::Python::initialize();
+        });
+    }
+
+    #[test]
+    fn catalog_json_can_supply_modules() {
+        init_python();
+        let callback = Python::attach(|py| py.None());
+        let app = App::from_loaded_config_and_catalog(
+            callback,
+            None,
+            Some(
+                r#"{
+                    "modules": [{
+                        "id": "custom",
+                        "label": "Custom",
+                        "actions": [{
+                            "id": "custom.run",
+                            "label": "Run",
+                            "requires_device": true,
+                            "confirm": true,
+                            "fields": [{
+                                "key": "mode",
+                                "label": "Mode",
+                                "value": "quick",
+                                "kind": "choice",
+                                "options": ["quick", "deep"]
+                            }]
+                        }]
+                    }]
+                }"#,
+            ),
+        );
+
+        assert_eq!(app.modules.len(), 1);
+        assert_eq!(app.modules[0].id, "custom");
+        assert_eq!(app.modules[0].actions[0].id, "custom.run");
+        assert!(app.modules[0].actions[0].requires_device);
+        assert!(app.modules[0].actions[0].confirm);
+        assert!(matches!(
+            app.modules[0].actions[0].fields[0].kind,
+            FieldKind::Choice
+        ));
+    }
+
+    #[test]
+    fn invalid_catalog_json_falls_back_to_default_modules() {
+        init_python();
+        let callback = Python::attach(|py| py.None());
+        let app = App::from_loaded_config_and_catalog(callback, None, Some("{not-json"));
+
+        assert!(app.modules.iter().any(|module| module.id == "credentials"));
+        assert!(app
+            .logs
+            .iter()
+            .any(|entry| entry.message.contains("using built-in catalog")));
     }
 }

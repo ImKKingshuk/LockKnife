@@ -6,13 +6,14 @@ import pathlib
 from typing import Any
 
 from lockknife.core._case_common import (
+    _next_case_sequence_id,
     _normalize_case_path,
     _sha256_file,
     _utc_now,
     load_case_manifest,
-    save_case_manifest,
 )
 from lockknife.core._case_models import CaseArtifact, CaseArtifactRegistration, CaseManifest
+from lockknife.core._case_store import CaseStore
 
 
 def _artifact_ids_for_paths(
@@ -400,13 +401,15 @@ def register_case_artifact_with_status(
                 parent_artifact_ids=resolved_parent_ids,
                 metadata=resolved_metadata,
             )
-            manifest.artifacts[existing_idx] = updated_artifact
-            manifest.updated_at_utc = created_at
-            save_case_manifest(case_dir, manifest)
+            CaseStore.open(case_dir).persist_artifact(
+                updated_artifact,
+                case_updated_at_utc=created_at,
+                event_type="artifact.updated",
+            )
             return CaseArtifactRegistration(artifact=updated_artifact, action="updated")
 
     artifact = CaseArtifact(
-        artifact_id=f"artifact-{len(manifest.artifacts) + 1:04d}",
+        artifact_id=_next_case_sequence_id(case_dir, kind="artifact", prefix="artifact"),
         path=stored_path,
         category=category,
         source_command=source_command,
@@ -418,7 +421,9 @@ def register_case_artifact_with_status(
         parent_artifact_ids=resolved_parent_ids,
         metadata=resolved_metadata,
     )
-    manifest.artifacts.append(artifact)
-    manifest.updated_at_utc = created_at
-    save_case_manifest(case_dir, manifest)
+    CaseStore.open(case_dir).persist_artifact(
+        artifact,
+        case_updated_at_utc=created_at,
+        event_type="artifact.created",
+    )
     return CaseArtifactRegistration(artifact=artifact, action="created")
