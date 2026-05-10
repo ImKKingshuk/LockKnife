@@ -20,30 +20,34 @@ fn dex_header_fields(input: &[u8]) -> IResult<&[u8], (String, u32, u32, u32, u32
 }
 
 #[pyfunction]
-pub fn parse_dex_header_json(dex_bytes: &[u8]) -> PyResult<String> {
+pub fn parse_dex_header_json(py: Python<'_>, dex_bytes: &[u8]) -> PyResult<String> {
     if dex_bytes.len() > MAX_BINARY_BYTES {
         return Err(PyValueError::new_err("dex_bytes exceeds size limit"));
     }
     if dex_bytes.len() < 0x70 {
         return Err(PyValueError::new_err("dex_bytes too small"));
     }
-    let (_rest, (magic, checksum, file_size, header_size, endian_tag)) =
-        dex_header_fields(dex_bytes).map_err(|_| PyValueError::new_err("invalid DEX header"))?;
-    if !magic.starts_with("dex\n") {
-        return Err(PyValueError::new_err("invalid DEX magic"));
-    }
-    let obj = serde_json::json!({
-        "magic": magic,
-        "checksum_u32": checksum,
-        "file_size": file_size,
-        "header_size": header_size,
-        "endian_tag": endian_tag
-    });
-    Ok(obj.to_string())
+    let dex_bytes = dex_bytes.to_vec();
+    py.detach(move || {
+        let (_rest, (magic, checksum, file_size, header_size, endian_tag)) =
+            dex_header_fields(&dex_bytes)
+                .map_err(|_| PyValueError::new_err("invalid DEX header"))?;
+        if !magic.starts_with("dex\n") {
+            return Err(PyValueError::new_err("invalid DEX magic"));
+        }
+        let obj = serde_json::json!({
+            "magic": magic,
+            "checksum_u32": checksum,
+            "file_size": file_size,
+            "header_size": header_size,
+            "endian_tag": endian_tag
+        });
+        Ok(obj.to_string())
+    })
 }
 
 #[pyfunction]
-pub fn parse_elf_header_json(data: &[u8]) -> PyResult<String> {
+pub fn parse_elf_header_json(py: Python<'_>, data: &[u8]) -> PyResult<String> {
     if data.len() > MAX_BINARY_BYTES {
         return Err(PyValueError::new_err("data exceeds size limit"));
     }
@@ -53,19 +57,22 @@ pub fn parse_elf_header_json(data: &[u8]) -> PyResult<String> {
     if &data[0..4] != b"\x7FELF" {
         return Err(PyValueError::new_err("invalid ELF magic"));
     }
-    let elf = Elf::parse(data).map_err(|e| PyValueError::new_err(e.to_string()))?;
-    let ident = elf.header.e_ident;
-    let obj = serde_json::json!({
-        "class": ident[4],
-        "endianness": ident[5],
-        "osabi": ident[7],
-        "abi_version": ident[8],
-        "machine": elf.header.e_machine,
-        "entry": elf.entry,
-        "program_headers": elf.program_headers.len(),
-        "section_headers": elf.section_headers.len(),
-    });
-    Ok(obj.to_string())
+    let data = data.to_vec();
+    py.detach(move || {
+        let elf = Elf::parse(&data).map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let ident = elf.header.e_ident;
+        let obj = serde_json::json!({
+            "class": ident[4],
+            "endianness": ident[5],
+            "osabi": ident[7],
+            "abi_version": ident[8],
+            "machine": elf.header.e_machine,
+            "entry": elf.entry,
+            "program_headers": elf.program_headers.len(),
+            "section_headers": elf.section_headers.len(),
+        });
+        Ok(obj.to_string())
+    })
 }
 
 #[cfg(test)]
@@ -86,7 +93,7 @@ mod tests {
         init_python();
         let mut buf = vec![0u8; 0x70];
         buf[..8].copy_from_slice(b"dex\n035\0");
-        let out = parse_dex_header_json(&buf).unwrap();
+        let out = pyo3::Python::attach(|py| parse_dex_header_json(py, &buf).unwrap());
         assert!(out.contains("dex"));
     }
 
@@ -94,14 +101,14 @@ mod tests {
     fn test_parse_dex_header_invalid_magic() {
         init_python();
         let buf = vec![0u8; 0x70];
-        let err = parse_dex_header_json(&buf).unwrap_err();
+        let err = pyo3::Python::attach(|py| parse_dex_header_json(py, &buf).unwrap_err());
         assert!(format!("{err}").contains("DEX"));
     }
 
     #[test]
     fn test_parse_elf_invalid() {
         init_python();
-        let err = parse_elf_header_json(b"not-elf").unwrap_err();
+        let err = pyo3::Python::attach(|py| parse_elf_header_json(py, b"not-elf").unwrap_err());
         let msg = format!("{err}");
         assert!(msg.contains("invalid") || msg.contains("too small"));
     }
@@ -120,7 +127,7 @@ mod tests {
         elf[52] = 64;
         elf[54] = 56;
         elf[58] = 64;
-        let out = parse_elf_header_json(&elf).unwrap();
+        let out = pyo3::Python::attach(|py| parse_elf_header_json(py, &elf).unwrap());
         assert!(out.contains("\"class\""));
     }
 }

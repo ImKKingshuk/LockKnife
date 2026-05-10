@@ -113,7 +113,7 @@ def cli(ctx: click.Context, config_path: pathlib.Path | None, headless: bool) ->
             callback = build_tui_callback(ctx.obj)
             from lockknife import lockknife_core
 
-            lockknife_core.run_tui(callback)
+            lockknife_core.run_tui(callback, getattr(callback, "action_catalog_json", None))
 
         if ctx.invoked_subcommand is None:
             banner = "\n".join(
@@ -130,6 +130,41 @@ def cli(ctx: click.Context, config_path: pathlib.Path | None, headless: bool) ->
                 ]
             )
             console.print(Panel.fit(banner, title="LockKnife", border_style="red"))
+
+
+@click.command("actions", help="Inspect the shared CLI/TUI action catalog.")
+@click.option(
+    "--format",
+    "out_format",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+    default="text",
+)
+@click.option("--cli-only", is_flag=True, default=False, help="Show only Click-backed actions.")
+@click.option("--include-hidden", is_flag=True, default=False, help="Include internal actions.")
+def actions_cmd(out_format: str, cli_only: bool, include_hidden: bool) -> None:
+    from lockknife_headless_cli.actions import bind_click_commands
+    from lockknife_headless_cli.tui_callback import build_action_registry
+
+    registry = bind_click_commands(build_action_registry(), cli)
+    if out_format.lower() == "json":
+        payload = (
+            registry.cli_catalog_json(include_hidden=include_hidden)
+            if cli_only
+            else registry.catalog_json(include_hidden=include_hidden)
+        )
+        console.print_json(payload)
+        return
+
+    actions = (
+        registry.cli_actions(include_hidden=include_hidden)
+        if cli_only
+        else tuple(action for action in registry.actions() if include_hidden or not action.hidden)
+    )
+    for action in actions:
+        if action.cli is None:
+            console.print(action.id)
+            continue
+        console.print(f"{action.id} -> {' '.join(action.cli.command_path)}")
 
 
 cli.add_command(device)
@@ -153,3 +188,4 @@ cli.add_command(doctor_cmd)
 cli.add_command(features_cmd)
 cli.add_command(plugins_group)
 cli.add_command(exploit)
+cli.add_command(actions_cmd)

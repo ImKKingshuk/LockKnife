@@ -14,6 +14,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from lockknife.core.exceptions import LockKnifeError
+from lockknife.core.execution_policy import ExecutionGateway, ExecutionIntent
 from lockknife.core.logging import get_logger
 
 
@@ -188,6 +189,19 @@ def _rate_limit(host: str, rate_limit_per_s: float) -> None:
         _rate_last_call[host] = time.monotonic()
 
 
+def _authorize_http(
+    intent: ExecutionIntent | None,
+    gateway: ExecutionGateway | None,
+    *,
+    method: str,
+    url: str,
+) -> bool:
+    if intent is None:
+        return False
+    (gateway or ExecutionGateway()).authorize_external_http(intent, method=method, url=url)
+    return intent.mode == "dry-run"
+
+
 def http_get(
     url: str,
     *,
@@ -197,6 +211,8 @@ def http_get(
     cache_ttl_s: float = 0.0,
     rate_limit_per_s: float = 0.0,
     cache_sensitive: bool = False,
+    execution_intent: ExecutionIntent | None = None,
+    execution_gateway: ExecutionGateway | None = None,
 ) -> bytes:
     """Perform an HTTPS GET with retry/backoff and optional caching.
 
@@ -213,6 +229,8 @@ def http_get(
     Raises:
         HttpError: On invalid URLs, HTTP 4xx, or exhausted retries.
     """
+    if _authorize_http(execution_intent, execution_gateway, method="GET", url=url):
+        return b""
     if cache_sensitive:
         cache_ttl_s = 0.0
     cached = _cache_get(url, headers, ttl_s=cache_ttl_s)
@@ -273,6 +291,8 @@ def http_get_json(
     cache_ttl_s: float = 0.0,
     rate_limit_per_s: float = 0.0,
     cache_sensitive: bool = False,
+    execution_intent: ExecutionIntent | None = None,
+    execution_gateway: ExecutionGateway | None = None,
 ) -> Any:
     """Perform an HTTPS GET and decode JSON.
 
@@ -287,6 +307,8 @@ def http_get_json(
         cache_ttl_s=cache_ttl_s,
         rate_limit_per_s=rate_limit_per_s,
         cache_sensitive=cache_sensitive,
+        execution_intent=execution_intent,
+        execution_gateway=execution_gateway,
     )
     return json.loads(raw.decode("utf-8", errors="ignore") or "null")
 
@@ -301,11 +323,15 @@ def http_post_json(
     cache_ttl_s: float = 0.0,
     rate_limit_per_s: float = 0.0,
     cache_sensitive: bool = False,
+    execution_intent: ExecutionIntent | None = None,
+    execution_gateway: ExecutionGateway | None = None,
 ) -> Any:
     """Perform an HTTPS POST with a JSON body, optional caching, and retries.
 
     The cache key includes a hash of the request payload when caching is enabled.
     """
+    if _authorize_http(execution_intent, execution_gateway, method="POST", url=url):
+        return None
     if cache_sensitive:
         cache_ttl_s = 0.0
     if cache_ttl_s > 0:

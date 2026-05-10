@@ -177,7 +177,23 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         serial = _require(params, "serial")
         command = _require(params, "command")
         timeout = float(params.get("timeout") or 30.0)
-        out = app.devices.shell(serial, command, timeout_s=timeout)
+        execution_intent = None
+        case_dir = _path_param(params.get("case_dir"))
+        if case_dir is not None:
+            from lockknife.core.execution_policy import ExecutionIntent
+
+            execution_intent = ExecutionIntent(
+                operator=str(params.get("operator") or "unknown"),
+                case_dir=case_dir,
+                target=serial,
+                vector="adb_shell",
+                risk="low",
+                mode="dry-run" if _bool_param(params.get("dry_run")) else "lab-live",
+                capability_status="implemented-live",
+            )
+        out = app.devices.shell(
+            serial, command, timeout_s=timeout, execution_intent=execution_intent
+        )
         return _ok(
             {"serial": serial, "command": command, "output": out},
             f"Shell command executed on {serial}",
@@ -196,26 +212,5 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             status = str(row.get("status") or "unknown")
             summary[status] = summary.get(status, 0) + 1
         return _ok({"summary": summary, "features": rows}, "Feature matrix ready")
-
-    if action == "credentials.pin":
-        serial = _require(params, "serial")
-        length = int(params.get("length") or 6)
-        pin = recover_pin(app.devices, serial, length)
-        return _ok({"serial": serial, "pin": pin}, "PIN recovered")
-
-    if action == "credentials.gesture":
-        serial = _require(params, "serial")
-        gesture = recover_gesture(app.devices, serial)
-        return _ok({"serial": serial, "gesture": gesture}, "Gesture recovered")
-
-    if action == "credentials.wifi":
-        serial = _require(params, "serial")
-        rows = [dataclasses.asdict(r) for r in extract_wifi_passwords(app.devices, serial)]
-        return _ok(rows, f"Found {len(rows)} WiFi credentials")
-
-    if action == "credentials.keystore":
-        serial = _require(params, "serial")
-        rows = [dataclasses.asdict(r) for r in list_keystore(app.devices, serial)]
-        return _ok(rows, f"Keystore entries: {len(rows)}")
 
     return None

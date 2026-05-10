@@ -53,6 +53,7 @@ fn validate_wordlist(path: &str) -> PyResult<File> {
 
 #[pyfunction]
 pub fn bruteforce_numeric_pin(
+    py: Python<'_>,
     target_hash_hex: &str,
     algo: &str,
     length: u32,
@@ -64,48 +65,55 @@ pub fn bruteforce_numeric_pin(
     let target = hex::decode(target_hash_hex).map_err(|e| PyValueError::new_err(e.to_string()))?;
     let max = pow10(length).ok_or_else(|| PyValueError::new_err("length too large"))?;
     let width = length as usize;
+    let algo = algo.to_string();
 
-    let found = (0u64..max).into_par_iter().find_any(|candidate| {
-        let pin = format!("{:0width$}", candidate, width = width);
-        match digest_for_algo(algo, pin.as_bytes()) {
-            Ok(d) => d == target,
-            Err(_) => false,
+    py.detach(move || {
+        let found = (0u64..max).into_par_iter().find_any(|candidate| {
+            let pin = format!("{:0width$}", candidate, width = width);
+            match digest_for_algo(&algo, pin.as_bytes()) {
+                Ok(d) => d == target,
+                Err(_) => false,
+            }
+        });
+
+        match found {
+            None => Ok(None),
+            Some(n) => Ok(Some(format!("{:0width$}", n, width = width))),
         }
-    });
-
-    match found {
-        None => Ok(None),
-        Some(n) => Ok(Some(format!("{:0width$}", n, width = width))),
-    }
+    })
 }
 
 #[pyfunction]
 pub fn dictionary_attack(
+    py: Python<'_>,
     target_hash_hex: &str,
     algo: &str,
     wordlist_path: &str,
 ) -> PyResult<Option<String>> {
     let target = hex::decode(target_hash_hex).map_err(|e| PyValueError::new_err(e.to_string()))?;
     let file = validate_wordlist(wordlist_path)?;
-    let reader = BufReader::new(file);
+    let algo = algo.to_string();
 
-    let found = reader.lines().par_bridge().find_any(|line| {
-        let Ok(word) = line else { return false };
-        let w = word.trim_end_matches(&['\r', '\n'][..]);
-        if w.is_empty() {
-            return false;
-        }
-        match digest_for_algo(algo, w.as_bytes()) {
-            Ok(d) => d == target,
-            Err(_) => false,
-        }
-    });
+    py.detach(move || {
+        let reader = BufReader::new(file);
+        let found = reader.lines().par_bridge().find_any(|line| {
+            let Ok(word) = line else { return false };
+            let w = word.trim_end_matches(&['\r', '\n'][..]);
+            if w.is_empty() {
+                return false;
+            }
+            match digest_for_algo(&algo, w.as_bytes()) {
+                Ok(d) => d == target,
+                Err(_) => false,
+            }
+        });
 
-    match found {
-        None => Ok(None),
-        Some(Ok(line)) => Ok(Some(line.trim().to_string())),
-        Some(Err(_)) => Ok(None),
-    }
+        match found {
+            None => Ok(None),
+            Some(Ok(line)) => Ok(Some(line.trim().to_string())),
+            Some(Err(_)) => Ok(None),
+        }
+    })
 }
 
 fn leetify(s: &str) -> String {
@@ -153,6 +161,7 @@ fn variants(word: &str) -> Vec<String> {
 
 #[pyfunction]
 pub fn dictionary_attack_rules(
+    py: Python<'_>,
     target_hash_hex: &str,
     algo: &str,
     wordlist_path: &str,
@@ -160,34 +169,37 @@ pub fn dictionary_attack_rules(
 ) -> PyResult<Option<String>> {
     let target = hex::decode(target_hash_hex).map_err(|e| PyValueError::new_err(e.to_string()))?;
     let file = validate_wordlist(wordlist_path)?;
-    let reader = BufReader::new(file);
+    let algo = algo.to_string();
 
-    let found = reader.lines().par_bridge().find_map_any(|line| {
-        let Ok(word) = line else { return None };
-        let w = word.trim_end_matches(&['\r', '\n'][..]);
-        if w.is_empty() {
-            return None;
-        }
-        let vars = variants(w);
-        for v in vars {
-            if let Ok(d) = digest_for_algo(algo, v.as_bytes()) {
-                if d == target {
-                    return Some(v);
-                }
+    py.detach(move || {
+        let reader = BufReader::new(file);
+        let found = reader.lines().par_bridge().find_map_any(|line| {
+            let Ok(word) = line else { return None };
+            let w = word.trim_end_matches(&['\r', '\n'][..]);
+            if w.is_empty() {
+                return None;
             }
-            for n in 0..=max_suffix {
-                let cand = format!("{v}{n}");
-                if let Ok(d) = digest_for_algo(algo, cand.as_bytes()) {
+            let vars = variants(w);
+            for v in vars {
+                if let Ok(d) = digest_for_algo(&algo, v.as_bytes()) {
                     if d == target {
-                        return Some(cand);
+                        return Some(v);
+                    }
+                }
+                for n in 0..=max_suffix {
+                    let cand = format!("{v}{n}");
+                    if let Ok(d) = digest_for_algo(&algo, cand.as_bytes()) {
+                        if d == target {
+                            return Some(cand);
+                        }
                     }
                 }
             }
-        }
-        None
-    });
+            None
+        });
 
-    Ok(found)
+        Ok(found)
+    })
 }
 
 fn android_password_to_hash_input(salt: i64, secret: &str) -> Vec<u8> {
@@ -196,6 +208,7 @@ fn android_password_to_hash_input(salt: i64, secret: &str) -> Vec<u8> {
 
 #[pyfunction]
 pub fn bruteforce_android_pin_sha1(
+    py: Python<'_>,
     target_sha1_hex: &str,
     salt: i64,
     length: u32,
@@ -212,17 +225,19 @@ pub fn bruteforce_android_pin_sha1(
     let max = pow10(length).ok_or_else(|| PyValueError::new_err("length too large"))?;
     let width = length as usize;
 
-    let found = (0u64..max).into_par_iter().find_any(|candidate| {
-        let pin = format!("{:0width$}", candidate, width = width);
-        let input = android_password_to_hash_input(salt, &pin);
-        let d = digest::digest(&digest::SHA1_FOR_LEGACY_USE_ONLY, &input);
-        d.as_ref() == target.as_slice()
-    });
+    py.detach(move || {
+        let found = (0u64..max).into_par_iter().find_any(|candidate| {
+            let pin = format!("{:0width$}", candidate, width = width);
+            let input = android_password_to_hash_input(salt, &pin);
+            let d = digest::digest(&digest::SHA1_FOR_LEGACY_USE_ONLY, &input);
+            d.as_ref() == target.as_slice()
+        });
 
-    match found {
-        None => Ok(None),
-        Some(n) => Ok(Some(format!("{:0width$}", n, width = width))),
-    }
+        match found {
+            None => Ok(None),
+            Some(n) => Ok(Some(format!("{:0width$}", n, width = width))),
+        }
+    })
 }
 
 #[cfg(test)]
@@ -263,7 +278,9 @@ mod tests {
         init_python();
         let pin = "1234";
         let digest = digest::digest(&digest::SHA256, pin.as_bytes());
-        let out = bruteforce_numeric_pin(&hex::encode(digest.as_ref()), "sha256", 4).unwrap();
+        let out = pyo3::Python::attach(|py| {
+            bruteforce_numeric_pin(py, &hex::encode(digest.as_ref()), "sha256", 4).unwrap()
+        });
         assert_eq!(out, Some(pin.to_string()));
     }
 
@@ -273,12 +290,15 @@ mod tests {
         let word = "secret";
         let digest = digest::digest(&digest::SHA1_FOR_LEGACY_USE_ONLY, word.as_bytes());
         let path = temp_wordlist("alpha\nsecret\nbeta\n");
-        let out = dictionary_attack(
-            &hex::encode(digest.as_ref()),
-            "sha1",
-            path.to_str().unwrap(),
-        )
-        .unwrap();
+        let out = pyo3::Python::attach(|py| {
+            dictionary_attack(
+                py,
+                &hex::encode(digest.as_ref()),
+                "sha1",
+                path.to_str().unwrap(),
+            )
+            .unwrap()
+        });
         assert_eq!(out, Some(word.to_string()));
         fs::remove_file(path).ok();
     }
@@ -289,13 +309,16 @@ mod tests {
         let word = "pass2";
         let digest = digest::digest(&digest::SHA256, word.as_bytes());
         let path = temp_wordlist("pass\n");
-        let out = dictionary_attack_rules(
-            &hex::encode(digest.as_ref()),
-            "sha256",
-            path.to_str().unwrap(),
-            3,
-        )
-        .unwrap();
+        let out = pyo3::Python::attach(|py| {
+            dictionary_attack_rules(
+                py,
+                &hex::encode(digest.as_ref()),
+                "sha256",
+                path.to_str().unwrap(),
+                3,
+            )
+            .unwrap()
+        });
         assert_eq!(out, Some(word.to_string()));
         fs::remove_file(path).ok();
     }
@@ -307,14 +330,17 @@ mod tests {
         let salt = 123;
         let input = format!("{salt}{pin}");
         let digest = digest::digest(&digest::SHA1_FOR_LEGACY_USE_ONLY, input.as_bytes());
-        let out = bruteforce_android_pin_sha1(&hex::encode(digest.as_ref()), salt, 4).unwrap();
+        let out = pyo3::Python::attach(|py| {
+            bruteforce_android_pin_sha1(py, &hex::encode(digest.as_ref()), salt, 4).unwrap()
+        });
         assert_eq!(out, Some(pin.to_string()));
     }
 
     #[test]
     fn test_bruteforce_invalid_length() {
         init_python();
-        let err = bruteforce_numeric_pin("00", "sha1", 0).unwrap_err();
+        let err =
+            pyo3::Python::attach(|py| bruteforce_numeric_pin(py, "00", "sha1", 0).unwrap_err());
         assert!(format!("{err}").contains("length"));
     }
 
@@ -322,10 +348,13 @@ mod tests {
     fn test_bruteforce_length_bounds() {
         init_python();
         let digest = digest::digest(&digest::SHA256, b"000000000000");
-        let out = bruteforce_numeric_pin(&hex::encode(digest.as_ref()), "sha256", 12).unwrap();
+        let out = pyo3::Python::attach(|py| {
+            bruteforce_numeric_pin(py, &hex::encode(digest.as_ref()), "sha256", 12).unwrap()
+        });
         assert_eq!(out, Some("000000000000".to_string()));
 
-        let err = bruteforce_numeric_pin("00", "sha1", 13).unwrap_err();
+        let err =
+            pyo3::Python::attach(|py| bruteforce_numeric_pin(py, "00", "sha1", 13).unwrap_err());
         assert!(format!("{err}").contains("length"));
     }
 }

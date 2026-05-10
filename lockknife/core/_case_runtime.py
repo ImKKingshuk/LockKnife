@@ -8,19 +8,20 @@ from typing import Any
 
 from lockknife.core._case_common import (
     _json_safe_value,
+    _next_case_sequence_id,
     _runtime_session_log_path,
     _runtime_session_summary_path,
     _sha256_file,
     _utc_now,
     load_case_manifest,
-    save_case_manifest,
 )
 from lockknife.core._case_models import CaseManifest, CaseRuntimeScript, CaseRuntimeSession
+from lockknife.core._case_store import CaseStore
 from lockknife.core.serialize import write_json
 
 
-def _next_runtime_session_id(manifest: CaseManifest) -> str:
-    return f"rt-{len(manifest.runtime_sessions) + 1:04d}"
+def _allocate_runtime_session_id(case_dir: pathlib.Path) -> str:
+    return _next_case_sequence_id(case_dir, kind="rt", prefix="rt")
 
 
 def _find_runtime_session_index(manifest: CaseManifest, session_id: str) -> int | None:
@@ -160,9 +161,8 @@ def start_case_runtime_session(
     device_id: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> CaseRuntimeSession:
-    manifest = load_case_manifest(case_dir)
     now = _utc_now()
-    session_id = _next_runtime_session_id(manifest)
+    session_id = _allocate_runtime_session_id(case_dir)
     session = CaseRuntimeSession(
         session_id=session_id,
         name=name,
@@ -191,9 +191,11 @@ def start_case_runtime_session(
         script_inventory=[],
         metadata={str(key): _json_safe_value(value) for key, value in (metadata or {}).items()},
     )
-    manifest.runtime_sessions.append(session)
-    manifest.updated_at_utc = now
-    save_case_manifest(case_dir, manifest)
+    CaseStore.open(case_dir).persist_runtime_session(
+        session,
+        case_updated_at_utc=now,
+        event_type="runtime_session.created",
+    )
     if session.logs_path is not None:
         pathlib.Path(session.logs_path).write_text("", encoding="utf-8")
     _write_runtime_session_summary(case_dir, session)
@@ -211,11 +213,9 @@ def add_case_runtime_session_script(
     source_path: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> CaseRuntimeSession:
-    manifest = load_case_manifest(case_dir)
-    index = _find_runtime_session_index(manifest, session_id)
-    if index is None:
+    existing = CaseStore.open(case_dir).get_runtime_session(session_id)
+    if existing is None:
         raise ValueError(f"Runtime session {session_id} not found")
-    existing = manifest.runtime_sessions[index]
     sha256, _size = _sha256_file(pathlib.Path(path))
     try:
         script_text = pathlib.Path(path).read_text(encoding="utf-8", errors="ignore")
@@ -247,9 +247,11 @@ def add_case_runtime_session_script(
         script_inventory=[*existing.script_inventory, script],
         latest_message=f"Saved script {script.label}",
     )
-    manifest.runtime_sessions[index] = session
-    manifest.updated_at_utc = session.updated_at_utc
-    save_case_manifest(case_dir, manifest)
+    CaseStore.open(case_dir).persist_runtime_session(
+        session,
+        case_updated_at_utc=session.updated_at_utc,
+        event_type="runtime_session.script_added",
+    )
     _write_runtime_session_summary(case_dir, session)
     return session
 
@@ -271,11 +273,9 @@ def update_case_runtime_session(
     ended: bool = False,
     clear_error: bool = False,
 ) -> CaseRuntimeSession:
-    manifest = load_case_manifest(case_dir)
-    index = _find_runtime_session_index(manifest, session_id)
-    if index is None:
+    existing = CaseStore.open(case_dir).get_runtime_session(session_id)
+    if existing is None:
         raise ValueError(f"Runtime session {session_id} not found")
-    existing = manifest.runtime_sessions[index]
     now = _utc_now()
     session = dataclasses.replace(
         existing,
@@ -300,9 +300,11 @@ def update_case_runtime_session(
             },
         },
     )
-    manifest.runtime_sessions[index] = session
-    manifest.updated_at_utc = now
-    save_case_manifest(case_dir, manifest)
+    CaseStore.open(case_dir).persist_runtime_session(
+        session,
+        case_updated_at_utc=now,
+        event_type="runtime_session.updated",
+    )
     _write_runtime_session_summary(case_dir, session)
     return session
 
@@ -313,11 +315,9 @@ def record_case_runtime_session_event(
     session_id: str,
     event: dict[str, Any],
 ) -> CaseRuntimeSession:
-    manifest = load_case_manifest(case_dir)
-    index = _find_runtime_session_index(manifest, session_id)
-    if index is None:
+    existing = CaseStore.open(case_dir).get_runtime_session(session_id)
+    if existing is None:
         raise ValueError(f"Runtime session {session_id} not found")
-    existing = manifest.runtime_sessions[index]
     path = pathlib.Path(existing.logs_path or _runtime_session_log_path(case_dir, session_id))
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(_json_safe_value(event), default=str) + "\n")
@@ -337,9 +337,11 @@ def record_case_runtime_session_event(
         ),
         logs_path=str(path),
     )
-    manifest.runtime_sessions[index] = session
-    manifest.updated_at_utc = now
-    save_case_manifest(case_dir, manifest)
+    CaseStore.open(case_dir).persist_runtime_session(
+        session,
+        case_updated_at_utc=now,
+        event_type="runtime_session.event_recorded",
+    )
     _write_runtime_session_summary(case_dir, session)
     return session
 

@@ -6,7 +6,7 @@ import pathlib
 import sys
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 try:
     import lockknife.lockknife_core as _lockknife_core  # noqa: F401 — Rust extension
@@ -225,6 +225,7 @@ from lockknife_headless_cli._tui_callback_plugins import handle as _handle_plugi
 from lockknife_headless_cli._tui_callback_report import handle as _handle_report
 from lockknife_headless_cli._tui_callback_runtime import handle as _handle_runtime
 from lockknife_headless_cli._tui_callback_security import handle as _handle_security
+from lockknife_headless_cli.actions import ActionRegistry, build_default_registry
 
 _HANDLERS = (
     _handle_credentials,
@@ -247,8 +248,13 @@ _HANDLERS = (
 )
 
 
+def build_action_registry() -> ActionRegistry:
+    return build_default_registry(_HANDLERS, cb=sys.modules[__name__])
+
+
 def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, Any]]:
     module = sys.modules[__name__]
+    registry = build_action_registry()
 
     def callback(action: str, params: dict[str, Any]) -> dict[str, Any]:
         import time as _time
@@ -259,11 +265,7 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
         if _job_tracker is not None:
             _JOB_TRACKER_STACK.append(_job_tracker)
         try:
-            for handler in _HANDLERS:
-                result = handler(app, action, params, cb=module)
-                if result is not None:
-                    return result
-            return _err(f"Unsupported action: {action}")
+            return registry.dispatch(app, action, params)
         except Exception as exc:
             _err_flag = True
             return _err(str(exc))
@@ -289,6 +291,9 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
                 pass
 
     module.__dict__["_dispatch_callback"] = callback
+    module.__dict__["_action_registry"] = registry
+    module.__dict__["_action_catalog_json"] = registry.catalog_json
+    cast(Any, callback).action_catalog_json = registry.catalog_json()
     module.__dict__["_ok"] = _ok
     module.__dict__["_err"] = _err
     module.__dict__["_opt"] = _opt
