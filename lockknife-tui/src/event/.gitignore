@@ -1,5 +1,0 @@
-# Module-level local scratch/temporary files.
-# Root .gitignore remains the primary policy.
-*.local
-*.tmp
-*.temp

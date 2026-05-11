@@ -82,11 +82,16 @@ AGENTS.md
 !.env.example
 .envrc
 .direnv/
+.netrc
+.npmrc
+.yarnrc.yml
 .pypirc
+pip.conf
 lockknife.toml
 lockknife.conf
 .lockknife.toml
 .lockknife.conf
+*.local
 *.local.toml
 *.local.conf
 
@@ -101,6 +106,8 @@ lockknife.conf
 *.keystore
 *.kdbx
 *.mobileprovision
+*.gpg
+*.asc
 id_rsa
 id_ed25519
 id_dsa
@@ -126,6 +133,7 @@ api_keys.json
 *.pcap
 *.pcapng
 *.cap
+*.har
 *.ab
 *.hprof
 *.lkenc
@@ -133,6 +141,9 @@ api_keys.json
 *.dmp
 *.raw
 *.img
+*.ips
+*.crash
+*.trace
 
 # Allow committed DB fixtures in tests when explicitly added
 !tests/**/*.db
