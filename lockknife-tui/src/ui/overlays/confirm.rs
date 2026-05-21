@@ -1,7 +1,7 @@
 use ratatui::layout::Alignment;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, Borders, BorderType, Clear, Paragraph};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph};
 use ratatui::Frame;
 use serde_json::Value;
 
