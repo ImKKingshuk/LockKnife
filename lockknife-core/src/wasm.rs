@@ -1,9 +1,9 @@
-use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
+use std::path::Path;
 use wasmtime::*;
 use wasmtime_wasi::p1::{self, WasiP1Ctx};
-use wasmtime_wasi::{WasiCtxBuilder, DirPerms, FilePerms};
-use std::path::Path;
+use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
 
 #[pyfunction]
 #[pyo3(signature = (wasm_path, input_json, sandbox_dir=None))]
@@ -69,12 +69,7 @@ fn execute_wasm_plugin_inner(
         if !path.is_dir() {
             return Err(format!("Sandbox path is not a directory: {}", dir).into());
         }
-        builder.preopened_dir(
-            path,
-            "./sandbox",
-            DirPerms::all(),
-            FilePerms::all(),
-        )?;
+        builder.preopened_dir(path, "./sandbox", DirPerms::all(), FilePerms::all())?;
     }
 
     let wasi_ctx = builder.build_p1();
@@ -115,7 +110,7 @@ fn execute_wasm_plugin_inner(
     let output_ptr = ((result_packed as u64) >> 32) as i32;
     let output_len = (result_packed & 0xFFFF_FFFF) as i32;
 
-    if output_len < 0 || output_len > 50 * 1024 * 1024 {
+    if !(0..=50 * 1024 * 1024).contains(&output_len) {
         return Err("WASM guest returned invalid or excessively large output length".into());
     }
 

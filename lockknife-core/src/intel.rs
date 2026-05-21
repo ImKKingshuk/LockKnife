@@ -5,9 +5,11 @@ use regex::Regex;
 use std::str::FromStr;
 
 static RE_SHA256: Lazy<Regex> = Lazy::new(|| Regex::new(r"\b[a-fA-F0-9]{64}\b").unwrap());
-static RE_URL: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bhttps?://[a-zA-Z0-9._~:/?#\[\]@!$&'()*+,;=%-]+").unwrap());
+static RE_URL: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\bhttps?://[a-zA-Z0-9._~:/?#\[\]@!$&'()*+,;=%-]+").unwrap());
 static RE_IPV4: Lazy<Regex> = Lazy::new(|| Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").unwrap());
-static RE_DOMAIN: Lazy<Regex> = Lazy::new(|| Regex::new(r"\b[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b").unwrap());
+static RE_DOMAIN: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b").unwrap());
 
 #[derive(serde::Serialize)]
 struct IocMatchItem {
@@ -102,22 +104,33 @@ mod tests {
         let res = detect_iocs_native_inner(text);
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].kind, "sha256");
-        assert_eq!(res[0].ioc, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        assert_eq!(
+            res[0].ioc,
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
     }
 
     #[test]
     fn test_detect_iocs_native_url() {
         let text = "Check out https://google.com/path?query=1 and http://127.0.0.1:8080/foo.";
         let res = detect_iocs_native_inner(text);
-        assert!(res.iter().any(|item| item.kind == "url" && item.ioc == "https://google.com/path?query=1"));
-        assert!(res.iter().any(|item| item.kind == "url" && item.ioc == "http://127.0.0.1:8080/foo."));
+        assert!(res
+            .iter()
+            .any(|item| item.kind == "url" && item.ioc == "https://google.com/path?query=1"));
+        assert!(res
+            .iter()
+            .any(|item| item.kind == "url" && item.ioc == "http://127.0.0.1:8080/foo."));
     }
 
     #[test]
     fn test_detect_iocs_native_ipv4() {
         let text = "Connect to 192.168.1.1 or 8.8.8.8, but ignore 300.400.500.600.";
         let res = detect_iocs_native_inner(text);
-        let ips: Vec<&str> = res.iter().filter(|item| item.kind == "ipv4").map(|item| item.ioc.as_str()).collect();
+        let ips: Vec<&str> = res
+            .iter()
+            .filter(|item| item.kind == "ipv4")
+            .map(|item| item.ioc.as_str())
+            .collect();
         assert!(ips.contains(&"192.168.1.1"));
         assert!(ips.contains(&"8.8.8.8"));
         assert!(!ips.contains(&"300.400.500.600"));
@@ -125,9 +138,14 @@ mod tests {
 
     #[test]
     fn test_detect_iocs_native_domain() {
-        let text = "Visits to google.com, test-domain.co.uk, and .stripme.org. but http.exclude.me.";
+        let text =
+            "Visits to google.com, test-domain.co.uk, and .stripme.org. but http.exclude.me.";
         let res = detect_iocs_native_inner(text);
-        let domains: Vec<&str> = res.iter().filter(|item| item.kind == "domain").map(|item| item.ioc.as_str()).collect();
+        let domains: Vec<&str> = res
+            .iter()
+            .filter(|item| item.kind == "domain")
+            .map(|item| item.ioc.as_str())
+            .collect();
         assert!(domains.contains(&"google.com"));
         assert!(domains.contains(&"test-domain.co.uk"));
         assert!(domains.contains(&"stripme.org"));

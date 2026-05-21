@@ -26,6 +26,7 @@ ignore = [
     "RUSTSEC-2026-0094",
     "RUSTSEC-2026-0095",
     "RUSTSEC-2026-0096",
+    "RUSTSEC-2026-0114",
 ]
 
 [bans]
@@ -59,6 +60,7 @@ allow = [
     "Unicode-3.0",
     "CC0-1.0",
     "bzip2-1.0.6",
+    "MPL-2.0",
 ]
 # Confidence threshold for license detection
 confidence-threshold = 0.8

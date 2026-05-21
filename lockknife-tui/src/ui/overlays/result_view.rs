@@ -1,6 +1,6 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Block, Borders, BorderType, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::{App, ResultViewState};
@@ -122,7 +122,10 @@ pub(in crate::ui) fn render_toasts(frame: &mut Frame, app: &App, styles: &ThemeS
             styles.text
         };
         frame.render_widget(Clear, rect);
-        let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).style(styles.border);
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .style(styles.border);
         let paragraph = Paragraph::new(Text::from(Line::from(Span::styled(
             toast.message.clone(),
             style,

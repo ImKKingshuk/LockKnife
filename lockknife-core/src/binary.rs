@@ -149,8 +149,15 @@ pub fn parse_elf_header_json(py: Python<'_>, data: &[u8]) -> PyResult<String> {
     py.detach(move || {
         let elf = Elf::parse(&data).map_err(|e| PyValueError::new_err(e.to_string()))?;
         let ident = elf.header.e_ident;
-        let dynsyms: Vec<String> = elf.dynsyms.iter()
-            .map(|sym| elf.dynstrtab.get_at(sym.st_name).unwrap_or("<unknown>").to_string())
+        let dynsyms: Vec<String> = elf
+            .dynsyms
+            .iter()
+            .map(|sym| {
+                elf.dynstrtab
+                    .get_at(sym.st_name)
+                    .unwrap_or("<unknown>")
+                    .to_string()
+            })
             .collect();
         let libraries: Vec<String> = elf.libraries.iter().map(|s| s.to_string()).collect();
 
