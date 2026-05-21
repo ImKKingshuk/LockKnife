@@ -35,7 +35,7 @@ def detect_iocs(
     try:
         from lockknife import lockknife_core
     except ImportError:
-        lockknife_core = None
+        lockknife_core = None  # type: ignore
 
     for frag_location, text in _iter_text_fragments(data, location=location):
         matched_items = None

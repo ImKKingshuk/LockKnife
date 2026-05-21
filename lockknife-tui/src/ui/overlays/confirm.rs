@@ -1,7 +1,7 @@
 use ratatui::layout::Alignment;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
+use ratatui::widgets::{Block, Borders, BorderType, Clear, Paragraph};
 use ratatui::Frame;
 use serde_json::Value;
 
@@ -21,6 +21,7 @@ pub(in crate::ui) fn render_confirm(
     frame.render_widget(Clear, area);
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .title(dialog_title("Confirm", area.width.saturating_sub(2), None))
         .style(styles.border);
     let lines = confirm_lines(app, state, area);

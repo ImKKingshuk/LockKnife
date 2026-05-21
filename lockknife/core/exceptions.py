@@ -74,4 +74,3 @@ class CustodyTamperError(LockKnifeError):
 
     def __init__(self, message: str) -> None:
         super().__init__(message, error_code="LK-8001")
-

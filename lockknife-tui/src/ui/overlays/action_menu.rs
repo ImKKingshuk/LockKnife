@@ -1,6 +1,6 @@
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, BorderType, Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::{
@@ -26,6 +26,7 @@ pub(in crate::ui) fn render_action_menu(
         .unwrap_or_else(|| "Actions".to_string());
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .title(dialog_title(
             &title,
             area.width.saturating_sub(2),
