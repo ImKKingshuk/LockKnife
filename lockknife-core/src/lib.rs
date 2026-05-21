@@ -2,19 +2,24 @@
 
 use pyo3::prelude::*;
 
+mod adb_rust;
 mod binary;
 mod bruteforce;
 mod correlation;
 mod crypto;
 mod exploit;
 mod gesture;
+mod intel;
 mod network;
 mod pattern;
+mod pcap;
 mod sqlite_bulk;
+mod wasm;
 mod yara_scan;
 
 #[pymodule(gil_used = true)]
 fn lockknife_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(intel::detect_iocs_native, m)?)?;
     m.add_function(wrap_pyfunction!(binary::parse_dex_header_json, m)?)?;
     m.add_function(wrap_pyfunction!(binary::parse_elf_header_json, m)?)?;
     m.add_function(wrap_pyfunction!(crypto::sha1_hex, m)?)?;
@@ -39,6 +44,14 @@ fn lockknife_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(yara_scan::yara_scan_bytes, m)?)?;
     m.add_function(wrap_pyfunction!(yara_scan::yara_scan_file_rules, m)?)?;
     m.add_function(wrap_pyfunction!(yara_scan::yara_cache_stats, m)?)?;
+    m.add_function(wrap_pyfunction!(pcap::analyze_pcap_native, m)?)?;
+    m.add_function(wrap_pyfunction!(adb_rust::adb_list_devices, m)?)?;
+    m.add_function(wrap_pyfunction!(adb_rust::adb_connect, m)?)?;
+    m.add_function(wrap_pyfunction!(adb_rust::adb_disconnect, m)?)?;
+    m.add_function(wrap_pyfunction!(adb_rust::adb_shell, m)?)?;
+    m.add_function(wrap_pyfunction!(adb_rust::adb_pull, m)?)?;
+    m.add_function(wrap_pyfunction!(adb_rust::adb_push, m)?)?;
+    m.add_function(wrap_pyfunction!(wasm::execute_wasm_plugin, m)?)?;
 
     // Exploitation functions
     m.add_function(wrap_pyfunction!(exploit::craft_wifi_beacon, m)?)?;

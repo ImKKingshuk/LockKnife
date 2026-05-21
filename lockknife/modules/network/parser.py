@@ -42,50 +42,96 @@ def analyze_pcap(path: pathlib.Path) -> dict[str, Any]:
     connection_edges: dict[tuple[str, str, str, int | None, int | None], dict[str, Any]] = {}
     total_packets: int | None = None
     dns_records: list[dict[str, Any]] = []
+    native_success = False
     try:
-        scapy = sys.modules.get("scapy.all") or import_module("scapy.all")
+        import lockknife.lockknife_core as lockknife_core
 
-        DNS = getattr(scapy, "DNS", None)
-        IP = getattr(scapy, "IP", None)
-        IPv6 = getattr(scapy, "IPv6", None)
-        Raw = getattr(scapy, "Raw", None)
-        TCP = getattr(scapy, "TCP", None)
-        UDP = getattr(scapy, "UDP", None)
-        rdpcap = scapy.rdpcap
+        native_res = lockknife_core.analyze_pcap_native(str(path))
+        data = json.loads(native_res)
+        total_packets = int(data["total_packets"])
+        for p, count in data["protocols"].items():
+            protocols[p] = int(count)
+        for port_str, count in data["ports"].items():
+            ports[port_str] = int(count)
+        for record in data["dns_records"]:
+            dns_records.append(record)
+        for text in data["texts"]:
+            if text.strip() and text not in texts:
+                texts.append(text)
+        for edge in data["connection_edges"]:
+            src = edge["src"]
+            dst = edge["dst"]
+            proto = edge["protocol"]
+            sport = edge["source_port"]
+            dport = edge["dest_port"]
+            key = (src or "unknown", dst or "unknown", proto, sport, dport)
+            bucket = connection_edges.setdefault(
+                key,
+                {
+                    "src": src,
+                    "dst": dst,
+                    "protocol": proto,
+                    "source_port": sport,
+                    "dest_port": dport,
+                    "packet_count": 0,
+                    "byte_count": 0,
+                },
+            )
+            bucket["packet_count"] += int(edge["packet_count"])
+            bucket["byte_count"] += int(edge["byte_count"])
+        native_success = True
+    except Exception as e:
+        log.warning("pcap_native_parse_failed_falling_back", exc_info=True, pcap=str(path))
 
-        packets = rdpcap(str(path))
-        total_packets = int(len(packets))
-        for pkt in packets:
-            payload_length = _packet_size(pkt, Raw=Raw)
-            src, dst = _packet_hosts(pkt, IP=IP, IPv6=IPv6)
-            if _has_layer(pkt, TCP):
-                protocols["tcp"] += 1
-                sport = int(getattr(pkt[TCP], "sport", 0) or 0)
-                dport = int(getattr(pkt[TCP], "dport", 0) or 0)
-                ports[str(dport)] += 1
-                _accumulate_edge(connection_edges, src, dst, "tcp", sport, dport, payload_length)
-            elif _has_layer(pkt, UDP):
-                protocols["udp"] += 1
-                sport = int(getattr(pkt[UDP], "sport", 0) or 0)
-                dport = int(getattr(pkt[UDP], "dport", 0) or 0)
-                ports[str(dport)] += 1
-                _accumulate_edge(connection_edges, src, dst, "udp", sport, dport, payload_length)
-            elif src or dst:
-                protocols["ip"] += 1
-                _accumulate_edge(connection_edges, src, dst, "ip", None, None, payload_length)
-            if _has_layer(pkt, DNS):
-                dns_records.extend(_dns_records_from_packet(pkt[DNS]))
-            if _has_layer(pkt, Raw):
-                try:
-                    text = bytes(pkt[Raw].load).decode("utf-8", errors="ignore")
-                except (AttributeError, TypeError, ValueError):
-                    text = ""
-                if text.strip():
-                    texts.append(text)
-    except ModuleNotFoundError:
-        pass
-    except (AttributeError, OSError, TypeError, ValueError):
-        log.warning("pcap_deep_parse_failed", exc_info=True, pcap=str(path))
+    if not native_success:
+        try:
+            scapy = sys.modules.get("scapy.all") or import_module("scapy.all")
+
+            DNS = getattr(scapy, "DNS", None)
+            IP = getattr(scapy, "IP", None)
+            IPv6 = getattr(scapy, "IPv6", None)
+            Raw = getattr(scapy, "Raw", None)
+            TCP = getattr(scapy, "TCP", None)
+            UDP = getattr(scapy, "UDP", None)
+            rdpcap = scapy.rdpcap
+
+            packets = rdpcap(str(path))
+            total_packets = int(len(packets))
+            for pkt in packets:
+                payload_length = _packet_size(pkt, Raw=Raw)
+                src, dst = _packet_hosts(pkt, IP=IP, IPv6=IPv6)
+                if _has_layer(pkt, TCP):
+                    protocols["tcp"] += 1
+                    sport = int(getattr(pkt[TCP], "sport", 0) or 0)
+                    dport = int(getattr(pkt[TCP], "dport", 0) or 0)
+                    ports[str(dport)] += 1
+                    _accumulate_edge(
+                        connection_edges, src, dst, "tcp", sport, dport, payload_length
+                    )
+                elif _has_layer(pkt, UDP):
+                    protocols["udp"] += 1
+                    sport = int(getattr(pkt[UDP], "sport", 0) or 0)
+                    dport = int(getattr(pkt[UDP], "dport", 0) or 0)
+                    ports[str(dport)] += 1
+                    _accumulate_edge(
+                        connection_edges, src, dst, "udp", sport, dport, payload_length
+                    )
+                elif src or dst:
+                    protocols["ip"] += 1
+                    _accumulate_edge(connection_edges, src, dst, "ip", None, None, payload_length)
+                if _has_layer(pkt, DNS):
+                    dns_records.extend(_dns_records_from_packet(pkt[DNS]))
+                if _has_layer(pkt, Raw):
+                    try:
+                        text = bytes(pkt[Raw].load).decode("utf-8", errors="ignore")
+                    except (AttributeError, TypeError, ValueError):
+                        text = ""
+                    if text.strip():
+                        texts.append(text)
+        except ModuleNotFoundError:
+            pass
+        except Exception:
+            log.warning("pcap_deep_parse_failed", exc_info=True, pcap=str(path))
 
     text_dns_records = extract_dns_records(texts)
     seen_dns = {

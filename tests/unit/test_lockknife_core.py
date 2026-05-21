@@ -97,3 +97,67 @@ def test_parse_elf_header_json_rejects_invalid() -> None:
     lockknife_core = pytest.importorskip("lockknife.lockknife_core")
     with pytest.raises(ValueError):
         lockknife_core.parse_elf_header_json(b"not-elf")
+
+
+def test_parse_dex_header_json_valid() -> None:
+    lockknife_core = pytest.importorskip("lockknife.lockknife_core")
+    import json
+    import struct
+
+    buf = bytearray(0x70)
+    buf[0:8] = b"dex\n035\0"
+    struct.pack_into("<I", buf, 32, 1000)  # file_size
+    struct.pack_into("<I", buf, 36, 0x70)  # header_size
+    struct.pack_into("<I", buf, 40, 0x12345678)  # endian_tag
+    struct.pack_into("<I", buf, 60, 0x200)  # string_ids_off
+
+    out_str = lockknife_core.parse_dex_header_json(bytes(buf))
+    res = json.loads(out_str)
+    assert res["magic"] == "dex\n035\0"
+    assert res["file_size"] == 1000
+    assert res["header_size"] == 0x70
+    assert res["endian_tag"] == 0x12345678
+    assert res["string_ids_off"] == 0x200
+
+
+def test_parse_elf_header_json_valid() -> None:
+    lockknife_core = pytest.importorskip("lockknife.lockknife_core")
+    import json
+
+    elf = bytearray(64)
+    elf[0:4] = b"\x7fELF"
+    elf[4] = 2  # 64-bit
+    elf[5] = 1  # Little endian
+    elf[6] = 1  # Version
+    elf[16] = 2  # e_type
+    elf[18] = 0x3E  # e_machine (x86_64)
+    elf[20] = 1  # e_version
+
+    out_str = lockknife_core.parse_elf_header_json(bytes(elf))
+    res = json.loads(out_str)
+    assert res["class"] == 2
+    assert res["endianness"] == 1
+    assert res["machine"] == 0x3E
+    assert isinstance(res["dynsyms"], list)
+    assert isinstance(res["libraries"], list)
+
+
+def test_detect_iocs_native() -> None:
+    lockknife_core = pytest.importorskip("lockknife.lockknife_core")
+    import json
+
+    text = (
+        "Sample hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n"
+        "Sample URL: https://example.com/api?val=1\n"
+        "Sample IP: 1.2.3.4 and invalid IP 999.999.999.999\n"
+        "Sample domain: evil-domain.org"
+    )
+    out_str = lockknife_core.detect_iocs_native(text.encode("utf-8"))
+    res = json.loads(out_str)
+
+    matches = {item["ioc"]: item["kind"] for item in res}
+    assert matches["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"] == "sha256"
+    assert matches["https://example.com/api?val=1"] == "url"
+    assert matches["1.2.3.4"] == "ipv4"
+    assert "999.999.999.999" not in matches
+    assert matches["evil-domain.org"] == "domain"

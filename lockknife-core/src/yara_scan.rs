@@ -3,7 +3,7 @@ use once_cell::sync::Lazy;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use serde_json::json;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, RwLock};
 use yara_x::Compiler;
 
@@ -12,6 +12,7 @@ const MAX_CACHE_SIZE: usize = 100; // Maximum number of compiled rules to cache
 
 struct RuleCache {
     cache: RwLock<HashMap<String, Arc<yara_x::Rules>>>,
+    order: RwLock<VecDeque<String>>,
     size: RwLock<usize>,
 }
 
@@ -19,34 +20,50 @@ impl RuleCache {
     fn new() -> Self {
         Self {
             cache: RwLock::new(HashMap::new()),
+            order: RwLock::new(VecDeque::new()),
             size: RwLock::new(0),
         }
     }
 
     fn get(&self, key: &str) -> Option<Arc<yara_x::Rules>> {
         let cache = self.cache.read().unwrap();
-        cache.get(key).cloned()
+        if let Some(rules) = cache.get(key) {
+            let mut order = self.order.write().unwrap();
+            if let Some(index) = order.iter().position(|x| x == key) {
+                order.remove(index);
+            }
+            order.push_back(key.to_string());
+            Some(rules.clone())
+        } else {
+            None
+        }
     }
 
     fn put(&self, key: String, rules: Arc<yara_x::Rules>) {
         let mut cache = self.cache.write().unwrap();
+        let mut order = self.order.write().unwrap();
         let mut size = self.size.write().unwrap();
 
-        // Only increment size if key doesn't already exist
         let is_new_entry = !cache.contains_key(&key);
 
-        // Evict oldest entry if at capacity (simple FIFO)
-        if is_new_entry && *size >= MAX_CACHE_SIZE {
-            if let Some(first_key) = cache.keys().next().cloned() {
-                cache.remove(&first_key);
-                *size -= 1;
-            }
-        }
-
-        cache.insert(key, rules);
         if is_new_entry {
+            // Evict oldest entry if at capacity (Least Recently Used, which is at the front)
+            if *size >= MAX_CACHE_SIZE {
+                if let Some(oldest_key) = order.pop_front() {
+                    cache.remove(&oldest_key);
+                    *size -= 1;
+                }
+            }
+            order.push_back(key.clone());
             *size += 1;
+        } else {
+            // It is an update. Move the key to the back of the order queue (MRU)
+            if let Some(index) = order.iter().position(|x| x == &key) {
+                order.remove(index);
+            }
+            order.push_back(key.clone());
         }
+        cache.insert(key, rules);
     }
 
     fn stats(&self) -> (usize, usize) {
@@ -264,5 +281,36 @@ mod tests {
         let stats2 = yara_cache_stats();
         // Cache size should increase on miss
         assert_ne!(stats1, stats2);
+    }
+
+    #[test]
+    fn test_yara_cache_lru() {
+        let cache = super::RuleCache::new();
+        let mut compiler = yara_x::Compiler::new();
+        if let Err(e) = compiler.add_source("rule A { condition: true }") {
+            panic!("failed to compile YARA source: {:?}", e);
+        }
+        let rules = std::sync::Arc::new(compiler.build());
+
+        // Fill cache up to capacity (100)
+        for i in 0..100 {
+            cache.put(format!("key_{i}"), rules.clone());
+        }
+        assert_eq!(*cache.size.read().unwrap(), 100);
+
+        // Access "key_0" to make it Most Recently Used (MRU)
+        let _ = cache.get("key_0");
+
+        // Insert a new key "key_100", triggering eviction of the LRU key
+        // If it was FIFO, "key_0" would be evicted.
+        // With LRU, "key_1" should be evicted because "key_0" was recently accessed.
+        cache.put("key_100".to_string(), rules.clone());
+
+        // Check that "key_0" is still in cache
+        assert!(cache.get("key_0").is_some());
+        // Check that "key_1" is evicted
+        assert!(cache.get("key_1").is_none());
+        // Check that "key_100" is in cache
+        assert!(cache.get("key_100").is_some());
     }
 }

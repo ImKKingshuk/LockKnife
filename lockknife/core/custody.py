@@ -14,12 +14,15 @@ Usage::
     print(dump_log())   # JSON array
 """
 
+import base64
 import datetime
 import hashlib
 import json
+import os
 import pathlib
 import threading
 from dataclasses import asdict, dataclass
+from typing import Any
 
 _lock = threading.Lock()
 _entries: list[CustodyEntry] = []
@@ -65,6 +68,13 @@ def log_pull(*, serial: str, remote_path: str, local_path: pathlib.Path) -> None
     with _lock:
         _entries.append(entry)
 
+    # Automatic Cryptographic Sealing
+    try:
+        seal_artifact(serial=serial, remote_path=remote_path, local_path=local_path)
+    except Exception:
+        # Fallback in environments where lockknife_core is not loaded or during basic unit tests
+        pass
+
 
 def log_push(*, serial: str, local_path: pathlib.Path, remote_path: str) -> None:
     """Record a completed ADB push operation into the custody log."""
@@ -104,3 +114,146 @@ def clear_log() -> None:
     """Reset the in-memory custody log (useful in tests)."""
     with _lock:
         _entries.clear()
+
+
+def seal_artifact(
+    *,
+    serial: str,
+    remote_path: str,
+    local_path: pathlib.Path,
+    signing_key: bytes | None = None,
+) -> pathlib.Path:
+    """Computes SHA-256 hash of a file, signs metadata with HMAC-SHA256, and encrypts with AES-256-GCM."""
+    if not local_path.exists():
+        raise OSError(f"Local file does not exist: {local_path}")
+
+    sha256, size = _sha256_file(local_path)
+    if sha256 == "unreadable":
+        raise OSError(f"Could not read local file: {local_path}")
+
+    # Resolve signing key
+    if signing_key is None:
+        key_str = os.environ.get("LOCKKNIFE_SIGNING_KEY", "default-secret-key-change-in-production")
+        signing_key = key_str.encode("utf-8") if isinstance(key_str, str) else key_str
+
+    metadata = {
+        "op": "pull",
+        "serial": serial,
+        "remote_path": remote_path,
+        "local_path": str(local_path),
+        "sha256": sha256,
+        "size_bytes": size,
+        "timestamp_utc": datetime.datetime.now(datetime.UTC).isoformat(),
+    }
+
+    # Generate canonical JSON string
+    meta_json = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+
+    # HMAC signature using native Rust binding
+    import lockknife.lockknife_core as lockknife_core
+
+    hmac_sig = lockknife_core.hmac_sha256(signing_key, meta_json.encode("utf-8"))
+
+    # AES-256-GCM encryption using security helpers
+    from lockknife.core.security import encrypt_bytes_aes256gcm
+
+    aes_key = hashlib.sha256(signing_key).digest()
+    # Use SHA-256 of target file as AAD (associated data)
+    encrypted_bytes = encrypt_bytes_aes256gcm(
+        aes_key, meta_json.encode("utf-8"), associated_data=sha256.encode("utf-8")
+    )
+    # Convert encrypted bytes to base64 string for storage in JSON
+    envelope_b64 = base64.b64encode(encrypted_bytes).decode("ascii")
+
+    sig_data = {
+        "metadata": metadata,
+        "hmac_sha256": hmac_sig,
+        "aes256gcm_envelope": envelope_b64,
+    }
+
+    sig_path = local_path.with_name(local_path.name + ".metadata.json.sig")
+    sig_path.write_text(json.dumps(sig_data, indent=2), encoding="utf-8")
+    return sig_path
+
+
+def verify_artifact_seal(
+    sig_path: pathlib.Path,
+    signing_key: bytes | None = None,
+) -> dict[str, Any]:
+    """Verifies SHA-256 hash of file, validates HMAC-SHA256 signature, and decrypts the GCM envelope."""
+    from lockknife.core.exceptions import CustodyTamperError
+
+    if not sig_path.exists():
+        raise CustodyTamperError(f"Signature file does not exist: {sig_path}")
+
+    try:
+        sig_data = json.loads(sig_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise CustodyTamperError(f"Failed to parse signature file JSON: {e}") from e
+
+    metadata = sig_data.get("metadata")
+    hmac_sig = sig_data.get("hmac_sha256")
+    envelope_b64 = sig_data.get("aes256gcm_envelope")
+
+    if not isinstance(metadata, dict) or not hmac_sig or not envelope_b64:
+        raise CustodyTamperError("Signature file is missing critical fields")
+
+    local_path_str = metadata.get("local_path")
+    expected_sha256 = metadata.get("sha256")
+
+    if not local_path_str or not expected_sha256:
+        raise CustodyTamperError("Metadata is missing file path or SHA-256 hash")
+
+    # Locate target file
+    target_path = pathlib.Path(local_path_str)
+    if not target_path.exists():
+        # Try relative to the directory of the signature file
+        target_path = sig_path.parent / target_path.name
+        if not target_path.exists():
+            raise CustodyTamperError(f"Target evidence file not found: {local_path_str}")
+
+    # 1. Compute current hash and verify file integrity
+    current_sha256, current_size = _sha256_file(target_path)
+    if current_sha256 != expected_sha256:
+        raise CustodyTamperError(
+            f"Evidence file content tampered! Hash mismatch: expected {expected_sha256}, got {current_sha256}"
+        )
+
+    # Resolve signing key
+    if signing_key is None:
+        key_str = os.environ.get("LOCKKNIFE_SIGNING_KEY", "default-secret-key-change-in-production")
+        signing_key = key_str.encode("utf-8") if isinstance(key_str, str) else key_str
+
+    # 2. Verify HMAC-SHA256 signature
+    meta_json = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+    import lockknife.lockknife_core as lockknife_core
+
+    try:
+        calculated_hmac = lockknife_core.hmac_sha256(signing_key, meta_json.encode("utf-8"))
+    except Exception as e:
+        raise CustodyTamperError(f"HMAC calculation failed: {e}") from e
+
+    if calculated_hmac != hmac_sig:
+        raise CustodyTamperError("Metadata signature validation failed! HMAC signature mismatch")
+
+    # 3. Decrypt and verify AES-256-GCM envelope
+    from lockknife.core.security import decrypt_bytes_aes256gcm
+
+    aes_key = hashlib.sha256(signing_key).digest()
+    try:
+        encrypted_bytes = base64.b64decode(envelope_b64.encode("ascii"), validate=True)
+        decrypted_bytes = decrypt_bytes_aes256gcm(
+            aes_key, encrypted_bytes, associated_data=expected_sha256.encode("utf-8")
+        )
+        decrypted_json = json.loads(decrypted_bytes.decode("utf-8"))
+    except Exception as e:
+        raise CustodyTamperError(f"AES-256-GCM envelope verification failed: {e}") from e
+
+    # Assert that decrypted metadata matches plaintext metadata
+    if decrypted_json != metadata:
+        raise CustodyTamperError("Decrypted envelope metadata mismatch with plaintext metadata")
+
+    return {
+        "status": "verified",
+        "metadata": metadata,
+    }

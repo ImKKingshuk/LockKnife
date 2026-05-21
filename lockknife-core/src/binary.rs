@@ -7,16 +7,87 @@ use nom::IResult;
 
 const MAX_BINARY_BYTES: usize = 128 * 1024 * 1024;
 
-fn dex_header_fields(input: &[u8]) -> IResult<&[u8], (String, u32, u32, u32, u32)> {
+struct DexHeader {
+    magic: String,
+    checksum: u32,
+    signature: Vec<u8>,
+    file_size: u32,
+    header_size: u32,
+    endian_tag: u32,
+    link_size: u32,
+    link_off: u32,
+    map_off: u32,
+    string_ids_size: u32,
+    string_ids_off: u32,
+    type_ids_size: u32,
+    type_ids_off: u32,
+    proto_ids_size: u32,
+    proto_ids_off: u32,
+    field_ids_size: u32,
+    field_ids_off: u32,
+    method_ids_size: u32,
+    method_ids_off: u32,
+    class_defs_size: u32,
+    class_defs_off: u32,
+    data_size: u32,
+    data_off: u32,
+}
+
+fn parse_dex_header(input: &[u8]) -> IResult<&[u8], DexHeader> {
     let (input, magic_raw) = nom::bytes::complete::take(8usize)(input)?;
     let magic = std::str::from_utf8(magic_raw).unwrap_or("").to_string();
     let (input, checksum) = le_u32(input)?;
-    let (input, _) = nom::bytes::complete::take(4usize)(input)?;
-    let (input, _) = nom::bytes::complete::take(20usize)(input)?;
+    let (input, signature_raw) = nom::bytes::complete::take(20usize)(input)?;
+    let signature = signature_raw.to_vec();
     let (input, file_size) = le_u32(input)?;
     let (input, header_size) = le_u32(input)?;
     let (input, endian_tag) = le_u32(input)?;
-    Ok((input, (magic, checksum, file_size, header_size, endian_tag)))
+    let (input, link_size) = le_u32(input)?;
+    let (input, link_off) = le_u32(input)?;
+    let (input, map_off) = le_u32(input)?;
+    let (input, string_ids_size) = le_u32(input)?;
+    let (input, string_ids_off) = le_u32(input)?;
+    let (input, type_ids_size) = le_u32(input)?;
+    let (input, type_ids_off) = le_u32(input)?;
+    let (input, proto_ids_size) = le_u32(input)?;
+    let (input, proto_ids_off) = le_u32(input)?;
+    let (input, field_ids_size) = le_u32(input)?;
+    let (input, field_ids_off) = le_u32(input)?;
+    let (input, method_ids_size) = le_u32(input)?;
+    let (input, method_ids_off) = le_u32(input)?;
+    let (input, class_defs_size) = le_u32(input)?;
+    let (input, class_defs_off) = le_u32(input)?;
+    let (input, data_size) = le_u32(input)?;
+    let (input, data_off) = le_u32(input)?;
+
+    Ok((
+        input,
+        DexHeader {
+            magic,
+            checksum,
+            signature,
+            file_size,
+            header_size,
+            endian_tag,
+            link_size,
+            link_off,
+            map_off,
+            string_ids_size,
+            string_ids_off,
+            type_ids_size,
+            type_ids_off,
+            proto_ids_size,
+            proto_ids_off,
+            field_ids_size,
+            field_ids_off,
+            method_ids_size,
+            method_ids_off,
+            class_defs_size,
+            class_defs_off,
+            data_size,
+            data_off,
+        },
+    ))
 }
 
 #[pyfunction]
@@ -29,18 +100,35 @@ pub fn parse_dex_header_json(py: Python<'_>, dex_bytes: &[u8]) -> PyResult<Strin
     }
     let dex_bytes = dex_bytes.to_vec();
     py.detach(move || {
-        let (_rest, (magic, checksum, file_size, header_size, endian_tag)) =
-            dex_header_fields(&dex_bytes)
-                .map_err(|_| PyValueError::new_err("invalid DEX header"))?;
-        if !magic.starts_with("dex\n") {
+        let (_rest, header) = parse_dex_header(&dex_bytes)
+            .map_err(|_| PyValueError::new_err("invalid DEX header"))?;
+        if !header.magic.starts_with("dex\n") {
             return Err(PyValueError::new_err("invalid DEX magic"));
         }
         let obj = serde_json::json!({
-            "magic": magic,
-            "checksum_u32": checksum,
-            "file_size": file_size,
-            "header_size": header_size,
-            "endian_tag": endian_tag
+            "magic": header.magic,
+            "checksum_u32": header.checksum,
+            "signature_hex": hex::encode(&header.signature),
+            "file_size": header.file_size,
+            "header_size": header.header_size,
+            "endian_tag": header.endian_tag,
+            "link_size": header.link_size,
+            "link_off": header.link_off,
+            "map_off": header.map_off,
+            "string_ids_size": header.string_ids_size,
+            "string_ids_off": header.string_ids_off,
+            "type_ids_size": header.type_ids_size,
+            "type_ids_off": header.type_ids_off,
+            "proto_ids_size": header.proto_ids_size,
+            "proto_ids_off": header.proto_ids_off,
+            "field_ids_size": header.field_ids_size,
+            "field_ids_off": header.field_ids_off,
+            "method_ids_size": header.method_ids_size,
+            "method_ids_off": header.method_ids_off,
+            "class_defs_size": header.class_defs_size,
+            "class_defs_off": header.class_defs_off,
+            "data_size": header.data_size,
+            "data_off": header.data_off,
         });
         Ok(obj.to_string())
     })
@@ -61,6 +149,11 @@ pub fn parse_elf_header_json(py: Python<'_>, data: &[u8]) -> PyResult<String> {
     py.detach(move || {
         let elf = Elf::parse(&data).map_err(|e| PyValueError::new_err(e.to_string()))?;
         let ident = elf.header.e_ident;
+        let dynsyms: Vec<String> = elf.dynsyms.iter()
+            .map(|sym| elf.dynstrtab.get_at(sym.st_name).unwrap_or("<unknown>").to_string())
+            .collect();
+        let libraries: Vec<String> = elf.libraries.iter().map(|s| s.to_string()).collect();
+
         let obj = serde_json::json!({
             "class": ident[4],
             "endianness": ident[5],
@@ -70,6 +163,8 @@ pub fn parse_elf_header_json(py: Python<'_>, data: &[u8]) -> PyResult<String> {
             "entry": elf.entry,
             "program_headers": elf.program_headers.len(),
             "section_headers": elf.section_headers.len(),
+            "dynsyms": dynsyms,
+            "libraries": libraries,
         });
         Ok(obj.to_string())
     })
