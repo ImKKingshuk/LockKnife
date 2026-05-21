@@ -87,6 +87,53 @@ def runtime_preflight(
         )
     except Exception as exc:
         checks.append({"check": "device", "status": "fail", "message": str(exc)})
+        try:
+            from lockknife.core.adb import AdbClient
+            from lockknife.modules.runtime.booster import FridaBooster
+
+            serial = device_id or ""
+            if not serial or serial == "usb":
+                try:
+                    devices = AdbClient().list_devices()
+                    if devices:
+                        serial = devices[0].serial
+                except Exception:
+                    pass
+            booster = FridaBooster(AdbClient(), serial)
+            server_running = booster.is_server_running()
+        except Exception:
+            server_running = False
+
+        if not server_running:
+            checks.append(
+                {
+                    "check": "frida-server",
+                    "status": "fail",
+                    "message": "Frida server is not running on target device.",
+                }
+            )
+            rec_action = "Trigger Frida Server Auto-Remediation (FridaBooster.remediate) to automatically deploy the correct daemon version."
+            next_actions_list = [
+                {
+                    "action": "auto-remediate-frida",
+                    "status": "ready",
+                    "message": "Automatically deploy and spawn the correct matching frida-server daemon.",
+                },
+                {
+                    "action": "fix-device-readiness",
+                    "status": "blocked",
+                    "message": _recovery_hint(exc),
+                },
+            ]
+        else:
+            rec_action = _recovery_hint(exc)
+            next_actions_list = [
+                {
+                    "action": "fix-device-readiness",
+                    "status": "blocked",
+                    "message": _recovery_hint(exc),
+                }
+            ]
         return {
             "app_id": app_id,
             "device_id": device_id,
@@ -100,7 +147,7 @@ def runtime_preflight(
                 "warning_count": 0,
                 "fail_count": 0,
                 "findings": [],
-                "recommended_next_action": _recovery_hint(exc),
+                "recommended_next_action": rec_action,
             },
             "target": {
                 "device": None,
@@ -112,16 +159,10 @@ def runtime_preflight(
                 "ready": False,
                 "blocked_checks": [check["check"] for check in checks if check["status"] == "fail"],
                 "warned_checks": [],
-                "recommended_action": _recovery_hint(exc),
-                "next_actions": [
-                    {
-                        "action": "fix-device-readiness",
-                        "status": "blocked",
-                        "message": _recovery_hint(exc),
-                    }
-                ],
+                "recommended_action": rec_action,
+                "next_actions": next_actions_list,
             },
-            "recovery_hint": _recovery_hint(exc),
+            "recovery_hint": rec_action,
         }
 
     available: bool | None = None

@@ -7,7 +7,7 @@ import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 PYPROJECT = ROOT / "pyproject.toml"
-CARGO = ROOT / "rust" / "Cargo.toml"
+CARGO = ROOT / "lockknife-core" / "Cargo.toml"
 INIT = ROOT / "lockknife" / "__init__.py"
 
 

@@ -31,56 +31,87 @@ def detect_iocs(
 ) -> list[IocMatch]:
     out: list[IocMatch] = []
     seen: set[tuple[str, str, str]] = set()
+
+    try:
+        from lockknife import lockknife_core
+    except ImportError:
+        lockknife_core = None
+
     for frag_location, text in _iter_text_fragments(data, location=location):
-        for match in _RE_SHA256.finditer(text):
-            _append_match(
-                out,
-                seen,
-                IocMatch(
-                    ioc=match.group(0).lower(),
-                    kind="sha256",
-                    location=frag_location,
-                    confidence=_confidence_for_match("sha256", frag_location),
-                ),
-            )
-        for match in _RE_URL.finditer(text):
-            _append_match(
-                out,
-                seen,
-                IocMatch(
-                    ioc=match.group(0),
-                    kind="url",
-                    location=frag_location,
-                    confidence=_confidence_for_match("url", frag_location),
-                ),
-            )
-        for match in _RE_IPV4.finditer(text):
-            candidate = match.group(0)
-            if _is_valid_ipv4(candidate):
+        matched_items = None
+        if lockknife_core is not None and hasattr(lockknife_core, "detect_iocs_native"):
+            try:
+                res_json = lockknife_core.detect_iocs_native(text.encode("utf-8", errors="ignore"))
+                matched_items = json.loads(res_json)
+            except Exception:
+                matched_items = None
+
+        if matched_items is not None:
+            for item in matched_items:
+                kind = item["kind"]
+                ioc = item["ioc"]
+                _append_match(
+                    out,
+                    seen,
+                    IocMatch(
+                        ioc=ioc,
+                        kind=kind,
+                        location=frag_location,
+                        confidence=_confidence_for_match(kind, frag_location),
+                    ),
+                )
+        else:
+            # Fall back to pure Python matching
+            for match in _RE_SHA256.finditer(text):
+                _append_match(
+                    out,
+                    seen,
+                    IocMatch(
+                        ioc=match.group(0).lower(),
+                        kind="sha256",
+                        location=frag_location,
+                        confidence=_confidence_for_match("sha256", frag_location),
+                    ),
+                )
+            for match in _RE_URL.finditer(text):
+                _append_match(
+                    out,
+                    seen,
+                    IocMatch(
+                        ioc=match.group(0),
+                        kind="url",
+                        location=frag_location,
+                        confidence=_confidence_for_match("url", frag_location),
+                    ),
+                )
+            for match in _RE_IPV4.finditer(text):
+                candidate = match.group(0)
+                if _is_valid_ipv4(candidate):
+                    _append_match(
+                        out,
+                        seen,
+                        IocMatch(
+                            ioc=candidate,
+                            kind="ipv4",
+                            location=frag_location,
+                            confidence=_confidence_for_match("ipv4", frag_location),
+                        ),
+                    )
+            for match in _RE_DOMAIN.finditer(text):
+                candidate = match.group(0).lower().strip(".")
+                if candidate.startswith("http"):
+                    continue
                 _append_match(
                     out,
                     seen,
                     IocMatch(
                         ioc=candidate,
-                        kind="ipv4",
+                        kind="domain",
                         location=frag_location,
-                        confidence=_confidence_for_match("ipv4", frag_location),
+                        confidence=_confidence_for_match("domain", frag_location),
                     ),
                 )
-        for match in _RE_DOMAIN.finditer(text):
-            candidate = match.group(0).lower().strip(".")
-            if candidate.startswith("http"):
-                continue
-            _append_match(
-                out,
-                seen,
-                IocMatch(
-                    ioc=candidate,
-                    kind="domain",
-                    location=frag_location,
-                    confidence=_confidence_for_match("domain", frag_location),
-                ),
-            )
+
     if composite_rules:
         for composite in evaluate_composite_iocs(out, composite_rules):
             _append_match(out, seen, composite)
