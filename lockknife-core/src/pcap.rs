@@ -6,6 +6,10 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
+const MAX_PCAP_BYTES: u64 = 256 * 1024 * 1024;
+const MAX_NATIVE_PACKETS: usize = 250_000;
+const MAX_PACKET_BYTES: usize = 16 * 1024 * 1024;
+
 #[derive(Serialize)]
 struct ConnectionEdge {
     src: String,
@@ -102,7 +106,13 @@ fn parse_ipv4(ip_data: &[u8]) -> Option<ParsedPacket> {
     if ip_data.len() < 20 {
         return None;
     }
+    if ip_data[0] >> 4 != 4 {
+        return None;
+    }
     let ihl = (ip_data[0] & 0x0f) as usize * 4;
+    if ihl < 20 {
+        return None;
+    }
     let proto = ip_data[9];
     let src = format!(
         "{}.{}.{}.{}",
@@ -128,6 +138,9 @@ fn parse_ipv4(ip_data: &[u8]) -> Option<ParsedPacket> {
         sport = Some(u16::from_be_bytes([payload[0], payload[1]]));
         dport = Some(u16::from_be_bytes([payload[2], payload[3]]));
         let data_off = ((payload[12] >> 4) as usize) * 4;
+        if data_off < 20 {
+            return None;
+        }
         if payload.len() >= data_off {
             let tcp_payload = &payload[data_off..];
             return Some(ParsedPacket {
@@ -194,6 +207,9 @@ fn parse_ipv6(ip_data: &[u8]) -> Option<ParsedPacket> {
     if ip_data.len() < 40 {
         return None;
     }
+    if ip_data[0] >> 4 != 6 {
+        return None;
+    }
     let next_header = ip_data[6];
     let mut src = String::new();
     for i in 0..8 {
@@ -228,6 +244,9 @@ fn parse_ipv6(ip_data: &[u8]) -> Option<ParsedPacket> {
         sport = Some(u16::from_be_bytes([payload[0], payload[1]]));
         dport = Some(u16::from_be_bytes([payload[2], payload[3]]));
         let data_off = ((payload[12] >> 4) as usize) * 4;
+        if data_off < 20 {
+            return None;
+        }
         if payload.len() >= data_off {
             let tcp_payload = &payload[data_off..];
             return Some(ParsedPacket {
@@ -397,6 +416,9 @@ impl<'a> PcapReader<'a> {
                 incl_len_bytes[3],
             ]) as usize
         };
+        if incl_len > MAX_PACKET_BYTES {
+            return None;
+        }
 
         self.offset += 16;
         if self.offset + incl_len > self.data.len() {
@@ -541,6 +563,9 @@ impl<'a> PcapngReader<'a> {
                         cap_len_bytes[3],
                     ]) as usize
                 };
+                if cap_len > MAX_PACKET_BYTES {
+                    return None;
+                }
                 if 28 + cap_len <= current_block_data.len() {
                     return Some(&current_block_data[28..28 + cap_len]);
                 }
@@ -564,6 +589,9 @@ impl<'a> PcapngReader<'a> {
                         cap_len_bytes[3],
                     ]) as usize
                 };
+                if cap_len > MAX_PACKET_BYTES {
+                    return None;
+                }
                 if 12 + cap_len <= current_block_data.len() {
                     return Some(&current_block_data[12..12 + cap_len]);
                 }
@@ -576,6 +604,14 @@ impl<'a> PcapngReader<'a> {
 #[pyfunction]
 #[allow(clippy::type_complexity)]
 pub fn analyze_pcap_native(py: Python<'_>, file_path: &str) -> PyResult<String> {
+    let metadata = std::fs::metadata(file_path)
+        .map_err(|e| PyValueError::new_err(format!("Failed to stat PCAP file: {}", e)))?;
+    if metadata.len() > MAX_PCAP_BYTES {
+        return Err(PyValueError::new_err(format!(
+            "PCAP file exceeds native parser size limit of {} bytes",
+            MAX_PCAP_BYTES
+        )));
+    }
     let mut file = File::open(file_path)
         .map_err(|e| PyValueError::new_err(format!("Failed to open PCAP file: {}", e)))?;
     let mut bytes = Vec::new();
@@ -599,11 +635,17 @@ pub fn analyze_pcap_native(py: Python<'_>, file_path: &str) -> PyResult<String> 
         if let Some(ref mut reader) = pcap_reader {
             link_type = reader.link_type;
             while let Some(pkt) = reader.next_packet() {
+                if packets.len() >= MAX_NATIVE_PACKETS {
+                    return Err(PyValueError::new_err("PCAP native packet limit exceeded"));
+                }
                 packets.push(pkt);
             }
         } else if let Some(ref mut reader) = pcapng_reader {
             link_type = reader.link_type;
             while let Some(pkt) = reader.next_packet() {
+                if packets.len() >= MAX_NATIVE_PACKETS {
+                    return Err(PyValueError::new_err("PCAPNG native packet limit exceeded"));
+                }
                 packets.push(pkt);
             }
         } else {

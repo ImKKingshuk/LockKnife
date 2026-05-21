@@ -112,12 +112,18 @@ def runtime_preflight(
                     "message": "Frida server is not running on target device.",
                 }
             )
-            rec_action = "Trigger Frida Server Auto-Remediation (FridaBooster.remediate) to automatically deploy the correct daemon version."
+            rec_action = (
+                "Prepare policy-gated Frida remediation with an ExecutionIntent and a verified "
+                "frida-server binary checksum before deployment."
+            )
             next_actions_list = [
                 {
-                    "action": "auto-remediate-frida",
+                    "action": "prepare-frida-remediation",
                     "status": "ready",
-                    "message": "Automatically deploy and spawn the correct matching frida-server daemon.",
+                    "message": (
+                        "Create a case-scoped dry-run or lab-live remediation plan; LockKnife will "
+                        "not auto-download or start frida-server without policy approval and SHA-256 verification."
+                    ),
                 },
                 {
                     "action": "fix-device-readiness",

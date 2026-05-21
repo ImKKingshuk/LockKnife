@@ -30,6 +30,3 @@ yara-x = "1.15"
 socket2 = "0.6.1"
 crc32fast = "1.5"
 once_cell = "1.21"
-wasmtime = "40.0.4"
-wasmtime-wasi = "40.0.4"
-

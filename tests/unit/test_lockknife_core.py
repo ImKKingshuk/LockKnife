@@ -148,7 +148,7 @@ def test_detect_iocs_native() -> None:
 
     text = (
         "Sample hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n"
-        "Sample URL: https://example.com/api?val=1\n"
+        "Sample URL: https://example.com/api?val=1,\n"
         "Sample IP: 1.2.3.4 and invalid IP 999.999.999.999\n"
         "Sample domain: evil-domain.org"
     )
@@ -161,3 +161,4 @@ def test_detect_iocs_native() -> None:
     assert matches["1.2.3.4"] == "ipv4"
     assert "999.999.999.999" not in matches
     assert matches["evil-domain.org"] == "domain"
+    assert "example.com" not in matches

@@ -47,7 +47,8 @@ network = ["scapy>=2.5"]
 # exploitation-core = ["bleak>=0.21.0; sys_platform == 'linux'", "impacket>=0.11.0"]
 # exploitation-bluetooth = ["lockknife[exploitation-core]", "pybluez>=0.23; sys_platform == 'linux'"]
 # exploitation = ["lockknife[exploitation-core,exploitation-bluetooth]; sys_platform == 'linux'"]
-full = ["lockknife[apk,frida,ml,yara,threat-intel,network]"]
+# Keep ML opt-in until joblib's unresolved PYSEC-2024-277 advisory has a fixed release.
+full = ["lockknife[apk,frida,yara,threat-intel,network]"]
 dev = [
     "pytest>=8.0",
     "pytest-mock>=3.12",

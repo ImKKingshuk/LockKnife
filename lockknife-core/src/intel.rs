@@ -20,6 +20,7 @@ struct IocMatchItem {
 fn detect_iocs_native_inner(data_str: &str) -> Vec<IocMatchItem> {
     let mut matches = Vec::new();
     let mut seen = std::collections::HashSet::new();
+    let mut url_ranges = Vec::new();
 
     // 1. SHA256
     for mat in RE_SHA256.find_iter(data_str) {
@@ -36,7 +37,14 @@ fn detect_iocs_native_inner(data_str: &str) -> Vec<IocMatchItem> {
 
     // 2. URL
     for mat in RE_URL.find_iter(data_str) {
-        let ioc = mat.as_str().to_string();
+        let ioc = mat
+            .as_str()
+            .trim_end_matches(['.', ',', ';', ':', '!', '?', ')', ']', '}', '\'', '"'])
+            .to_string();
+        if ioc.is_empty() {
+            continue;
+        }
+        url_ranges.push((mat.start(), mat.start() + ioc.len()));
         let key = (String::from("url"), ioc.clone());
         if !seen.contains(&key) {
             seen.insert(key);
@@ -64,8 +72,17 @@ fn detect_iocs_native_inner(data_str: &str) -> Vec<IocMatchItem> {
 
     // 4. Domain
     for mat in RE_DOMAIN.find_iter(data_str) {
+        if url_ranges
+            .iter()
+            .any(|(start, end)| mat.start() >= *start && mat.end() <= *end)
+        {
+            continue;
+        }
         let candidate = mat.as_str().to_lowercase().trim_matches('.').to_string();
         if candidate.starts_with("http") {
+            continue;
+        }
+        if candidate.is_empty() || !candidate.contains('.') {
             continue;
         }
         let key = (String::from("domain"), candidate.clone());
@@ -119,7 +136,7 @@ mod tests {
             .any(|item| item.kind == "url" && item.ioc == "https://google.com/path?query=1"));
         assert!(res
             .iter()
-            .any(|item| item.kind == "url" && item.ioc == "http://127.0.0.1:8080/foo."));
+            .any(|item| item.kind == "url" && item.ioc == "http://127.0.0.1:8080/foo"));
     }
 
     #[test]
@@ -150,5 +167,18 @@ mod tests {
         assert!(domains.contains(&"test-domain.co.uk"));
         assert!(domains.contains(&"stripme.org"));
         assert!(!domains.contains(&"http.exclude.me"));
+    }
+
+    #[test]
+    fn test_detect_iocs_native_does_not_duplicate_domains_inside_urls() {
+        let text = "Visit https://example.org/path, then example.net.";
+        let res = detect_iocs_native_inner(text);
+        let domains: Vec<&str> = res
+            .iter()
+            .filter(|item| item.kind == "domain")
+            .map(|item| item.ioc.as_str())
+            .collect();
+        assert!(!domains.contains(&"example.org"));
+        assert!(domains.contains(&"example.net"));
     }
 }
