@@ -131,7 +131,9 @@ def test_ioc_stix_and_taxii_fallback_paths(monkeypatch) -> None:
     monkeypatch.setattr(
         ioc_mod,
         "http_get",
-        lambda _url, **_kwargs: b"raw indicator 192.0.2.2 https://fallback.example",
+        lambda _url, **_kwargs: (
+            b"raw indicator 192.0.2.2 https://fallback.example standalone.example"
+        ),
     )
     fallback_hits = ioc_mod.load_stix_indicators_from_url("https://fallback.test")
     assert {hit.kind for hit in fallback_hits} >= {"ipv4", "url", "domain"}

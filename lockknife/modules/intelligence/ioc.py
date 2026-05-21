@@ -62,6 +62,7 @@ def detect_iocs(
                 )
         else:
             # Fall back to pure Python matching
+            url_spans: list[tuple[int, int]] = []
             for match in _RE_SHA256.finditer(text):
                 _append_match(
                     out,
@@ -74,11 +75,15 @@ def detect_iocs(
                     ),
                 )
             for match in _RE_URL.finditer(text):
+                ioc = match.group(0).rstrip(".,;:!?)]}'\"")
+                if not ioc:
+                    continue
+                url_spans.append((match.start(), match.start() + len(ioc)))
                 _append_match(
                     out,
                     seen,
                     IocMatch(
-                        ioc=match.group(0),
+                        ioc=ioc,
                         kind="url",
                         location=frag_location,
                         confidence=_confidence_for_match("url", frag_location),
@@ -98,6 +103,8 @@ def detect_iocs(
                         ),
                     )
             for match in _RE_DOMAIN.finditer(text):
+                if any(match.start() >= start and match.end() <= end for start, end in url_spans):
+                    continue
                 candidate = match.group(0).lower().strip(".")
                 if candidate.startswith("http"):
                     continue

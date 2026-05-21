@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import lzma
 import pathlib
+import subprocess
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
+from lockknife.core.case import create_case_workspace
 from lockknife.core.exceptions import DeviceError
+from lockknife.core.execution_policy import ExecutionGateway, ExecutionIntent
 from lockknife.modules.runtime._session_manager_preflight import runtime_preflight
 from lockknife.modules.runtime.booster import FridaBooster
 
@@ -20,6 +23,27 @@ def mock_adb() -> MagicMock:
     adb.has_su.return_value = True
     adb.shell.return_value = ""
     return adb
+
+
+def _intent(tmp_path: pathlib.Path, *, mode: str = "dry-run") -> ExecutionIntent:
+    case_dir = tmp_path / "case"
+    create_case_workspace(case_dir=case_dir, case_id="CASE-FRIDA", examiner="Tester", title="Frida")
+    return ExecutionIntent(
+        operator="Tester",
+        case_dir=case_dir,
+        target="device123",
+        vector="runtime.frida",
+        risk="high",
+        mode=mode,
+        capability_status="implemented-live",
+        confirmed=mode == "lab-live",
+    )
+
+
+def _sha256(data: bytes) -> str:
+    import hashlib
+
+    return hashlib.sha256(data).hexdigest()
 
 
 def test_booster_is_server_running(mock_adb: MagicMock) -> None:
@@ -61,11 +85,14 @@ def test_booster_get_device_abi(mock_adb: MagicMock) -> None:
 def test_booster_download_server(
     mock_adb: MagicMock, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    booster = FridaBooster(mock_adb, "device123")
+    booster = FridaBooster(
+        mock_adb, "device123", execution_intent=_intent(tmp_path, mode="lab-live")
+    )
 
     # Prepare dummy compressed data of size > 1MB to satisfy caching checks
     dummy_binary = b"x" * 1000005
     compressed_data = lzma.compress(dummy_binary)
+    expected_sha256 = _sha256(dummy_binary)
 
     # Mock http_get to return the compressed data
     mock_http_get = MagicMock(return_value=compressed_data)
@@ -75,65 +102,68 @@ def test_booster_download_server(
     mock_home = MagicMock(return_value=tmp_path)
     monkeypatch.setattr("pathlib.Path.home", mock_home)
 
-    dest_path = booster.download_server("16.2.1", "android-arm64")
+    dest_path = booster.download_server("16.2.1", "android-arm64", expected_sha256=expected_sha256)
     assert dest_path.exists()
     assert dest_path.read_bytes() == dummy_binary
     mock_http_get.assert_called_once()
 
     # Call again, should load from cache without downloading
     mock_http_get.reset_mock()
-    dest_path_cached = booster.download_server("16.2.1", "android-arm64")
+    dest_path_cached = booster.download_server(
+        "16.2.1", "android-arm64", expected_sha256=expected_sha256
+    )
     assert dest_path_cached == dest_path
     mock_http_get.assert_not_called()
 
 
-def test_booster_deploy_and_start(mock_adb: MagicMock, tmp_path: pathlib.Path) -> None:
-    booster = FridaBooster(mock_adb, "device123")
-    local_bin = tmp_path / "frida-server-dummy"
-    local_bin.write_bytes(b"dummy")
+def test_booster_download_requires_checksum(mock_adb: MagicMock, tmp_path: pathlib.Path) -> None:
+    booster = FridaBooster(mock_adb, "device123", execution_intent=_intent(tmp_path))
 
-    # 1. Start with SU root access
-    mock_adb.has_su.return_value = True
-    assert booster.deploy_and_start(local_bin) is True
-    mock_adb.push.assert_called_with("device123", local_bin, "/data/local/tmp/frida-server")
-    mock_adb.shell.assert_any_call(
-        "device123", "su -c '/data/local/tmp/frida-server -D'", timeout_s=10.0
+    with pytest.raises(DeviceError, match="pinned SHA-256"):
+        booster.download_server("16.2.1", "android-arm64")
+
+
+def test_booster_deploy_and_start_dry_run_has_no_adb_side_effects(
+    mock_adb: MagicMock, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    intent = _intent(tmp_path)
+    booster = FridaBooster(
+        mock_adb,
+        "device123",
+        execution_intent=intent,
+        execution_gateway=ExecutionGateway(),
     )
+    local_bin = tmp_path / "frida-server-dummy"
+    local_bin.write_bytes(b"dummy-frida-server-binary")
+    expected_sha256 = _sha256(local_bin.read_bytes())
 
-    # 2. Start without SU (fallback to background)
-    mock_adb.reset_mock()
-    mock_adb.has_su.return_value = False
-    assert booster.deploy_and_start(local_bin) is True
-    mock_adb.shell.assert_any_call("device123", "/data/local/tmp/frida-server -D", timeout_s=10.0)
+    def fail_run(*_args, **_kwargs):
+        raise AssertionError("subprocess.run must not execute during Frida dry-run")
+
+    monkeypatch.setattr(subprocess, "run", fail_run)
+
+    assert booster.deploy_and_start(local_bin, expected_sha256=expected_sha256) is True
+    mock_adb.push.assert_not_called()
+    mock_adb.has_su.assert_not_called()
 
 
 def test_booster_remediate_flow(
     mock_adb: MagicMock, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    booster = FridaBooster(mock_adb, "device123")
+    intent = _intent(tmp_path)
+    booster = FridaBooster(mock_adb, "device123", execution_intent=intent)
 
-    # Mock downloads and cache path
-    dummy_binary = b"fake-frida-server-code"
-    compressed_data = lzma.compress(dummy_binary)
-    mock_http_get = MagicMock(return_value=compressed_data)
-    monkeypatch.setattr("lockknife.modules.runtime.booster.http_get", mock_http_get)
-    monkeypatch.setattr("pathlib.Path.home", MagicMock(return_value=tmp_path))
+    local_bin = tmp_path / "frida-server"
+    local_bin.write_bytes(b"fake-frida-server-code")
 
-    # Mock running state sequence: Initially not running, then running after deployment
-    running_states = [
-        "",  # 1. check inside remediate: is_server_running() -> False
-        "",  # 2. check inside deploy_and_start: stop existing
-        "frida-server",  # 3. check inside remediate verification poll: is_server_running() -> True
-    ]
+    monkeypatch.setattr(subprocess, "run", lambda *_a, **_k: (_ for _ in ()).throw(AssertionError))
 
-    def mock_shell(serial: str, cmd: str, timeout_s: float = 30.0) -> str:
-        if "grep frida-server" in cmd:
-            return running_states.pop(0) if running_states else "frida-server"
-        return ""
+    assert (
+        booster.remediate(local_binary=local_bin, expected_sha256=_sha256(local_bin.read_bytes()))
+        is True
+    )
 
-    mock_adb.shell.side_effect = mock_shell
-
-    assert booster.remediate() is True
+    mock_adb.push.assert_not_called()
 
 
 def test_preflight_diagnostics_integration(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -165,11 +195,12 @@ def test_preflight_diagnostics_integration(monkeypatch: pytest.MonkeyPatch) -> N
     assert "not running" in frida_server_check["message"]
 
     # Assert recovery action is injected correctly
-    assert "Trigger Frida Server Auto-Remediation" in res["readiness"]["recommended_action"]
+    assert "policy-gated Frida remediation" in res["readiness"]["recommended_action"]
 
-    # Assert the auto-remediate-frida action is proposed
+    # Assert the safe remediation preparation action is proposed
     remediate_action = next(
-        (a for a in res["readiness"]["next_actions"] if a["action"] == "auto-remediate-frida"), None
+        (a for a in res["readiness"]["next_actions"] if a["action"] == "prepare-frida-remediation"),
+        None,
     )
     assert remediate_action is not None
     assert remediate_action["status"] == "ready"

@@ -50,16 +50,6 @@ class AdbClient:
         """Return the adb binary path."""
         return self._adb_path
 
-    def _use_native(self) -> bool:
-        """Determine whether we should use the high-performance native Rust ADB engine."""
-        import subprocess
-
-        if subprocess.run.__module__ != "subprocess":
-            return False
-        if hasattr(subprocess.run, "mock_calls"):
-            return False
-        return True
-
     def run(
         self,
         args: Sequence[str],
@@ -146,15 +136,7 @@ class AdbClient:
 
     def list_devices(self) -> list[AdbDevice]:
         """List devices visible to adb."""
-        if self._use_native():
-            try:
-                import lockknife.lockknife_core as lockknife_core
-
-                out = lockknife_core.adb_list_devices()
-            except Exception:
-                out = self.run(["devices", "-l"])
-        else:
-            out = self.run(["devices", "-l"])
+        out = self.run(["devices", "-l"])
         lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
         devices: list[AdbDevice] = []
         for ln in lines[1:]:
@@ -189,15 +171,7 @@ class AdbClient:
             timeout_s: Maximum runtime.
         """
         self._log.info("adb_connect", host=host, timeout_s=timeout_s)
-        if self._use_native():
-            try:
-                import lockknife.lockknife_core as lockknife_core
-
-                return lockknife_core.adb_connect(host).strip()
-            except Exception:
-                return self.run(["connect", host], timeout_s=timeout_s).strip()
-        else:
-            return self.run(["connect", host], timeout_s=timeout_s).strip()
+        return self.run(["connect", host], timeout_s=timeout_s).strip()
 
     def shell(
         self,
@@ -227,15 +201,6 @@ class AdbClient:
             command=(command[:256] + "…" if len(command) > 256 else command),
             timeout_s=timeout_s,
         )
-        intent = execution_intent or self._execution_intent
-        gateway = execution_gateway or self._execution_gateway
-        if intent is None and gateway is None and self._use_native():
-            try:
-                import lockknife.lockknife_core as lockknife_core
-
-                return lockknife_core.adb_shell(serial, command)
-            except Exception:
-                self._log.warning("adb_shell_native_failed_falling_back", exc_info=True)
         return self.run(
             ["-s", serial, "shell", command],
             timeout_s=timeout_s,
@@ -264,14 +229,6 @@ class AdbClient:
             local_path=str(local_path),
             timeout_s=timeout_s,
         )
-        if self._use_native():
-            try:
-                import lockknife.lockknife_core as lockknife_core
-
-                lockknife_core.adb_pull(serial, remote_path, str(local_path))
-                return
-            except Exception:
-                self._log.warning("adb_pull_native_failed_falling_back", exc_info=True)
         self.run(["-s", serial, "pull", remote_path, str(local_path)], timeout_s=timeout_s)
 
     def push(
@@ -296,14 +253,6 @@ class AdbClient:
             remote_path=remote_path,
             timeout_s=timeout_s,
         )
-        if self._use_native():
-            try:
-                import lockknife.lockknife_core as lockknife_core
-
-                lockknife_core.adb_push(serial, str(local_path), remote_path)
-                return
-            except Exception:
-                self._log.warning("adb_push_native_failed_falling_back", exc_info=True)
         self.run(["-s", serial, "push", str(local_path), remote_path], timeout_s=timeout_s)
 
     def install(
@@ -380,15 +329,7 @@ class AdbClient:
             Command output.
         """
         self._log.info("adb_disconnect", host=host)
-        if self._use_native():
-            try:
-                import lockknife.lockknife_core as lockknife_core
-
-                return lockknife_core.adb_disconnect(host).strip()
-            except Exception:
-                return self.run(["disconnect", host], timeout_s=timeout_s).strip()
-        else:
-            return self.run(["disconnect", host], timeout_s=timeout_s).strip()
+        return self.run(["disconnect", host], timeout_s=timeout_s).strip()
 
     def tcp_port(self, serial: str, port: int = 5555, timeout_s: float = 10.0) -> str:
         """Restart ADB daemon on device with TCP on specified port.

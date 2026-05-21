@@ -17,6 +17,7 @@ Usage::
 import base64
 import datetime
 import hashlib
+import hmac
 import json
 import os
 import pathlib
@@ -24,8 +25,12 @@ import threading
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from lockknife.core.exceptions import CustodyConfigError
+
 _lock = threading.Lock()
 _entries: list[CustodyEntry] = []
+_SEAL_VERSION = "LK-CUSTODY-SEAL-1"
+_MIN_SIGNING_KEY_BYTES = 32
 
 
 @dataclass
@@ -68,12 +73,8 @@ def log_pull(*, serial: str, remote_path: str, local_path: pathlib.Path) -> None
     with _lock:
         _entries.append(entry)
 
-    # Automatic Cryptographic Sealing
-    try:
+    if os.environ.get("LOCKKNIFE_SIGNING_KEY"):
         seal_artifact(serial=serial, remote_path=remote_path, local_path=local_path)
-    except Exception:
-        # Fallback in environments where lockknife_core is not loaded or during basic unit tests
-        pass
 
 
 def log_push(*, serial: str, local_path: pathlib.Path, remote_path: str) -> None:
@@ -116,6 +117,30 @@ def clear_log() -> None:
         _entries.clear()
 
 
+def _resolve_signing_key(signing_key: bytes | None) -> bytes:
+    key = signing_key
+    if key is None:
+        env_key = os.environ.get("LOCKKNIFE_SIGNING_KEY")
+        if not env_key:
+            raise CustodyConfigError(
+                "Custody sealing requires signing_key or LOCKKNIFE_SIGNING_KEY"
+            )
+        key = env_key.encode("utf-8")
+    if not isinstance(key, bytes):
+        raise CustodyConfigError("Custody signing key must be bytes")
+    if len(key) < _MIN_SIGNING_KEY_BYTES:
+        raise CustodyConfigError(
+            f"Custody signing key must be at least {_MIN_SIGNING_KEY_BYTES} bytes"
+        )
+    return key
+
+
+def _derive_seal_keys(signing_key: bytes) -> tuple[bytes, bytes]:
+    hmac_key = hmac.new(signing_key, b"lockknife-custody-hmac-key-v1", hashlib.sha256).digest()
+    aes_key = hmac.new(signing_key, b"lockknife-custody-aes-key-v1", hashlib.sha256).digest()
+    return hmac_key, aes_key
+
+
 def seal_artifact(
     *,
     serial: str,
@@ -123,7 +148,7 @@ def seal_artifact(
     local_path: pathlib.Path,
     signing_key: bytes | None = None,
 ) -> pathlib.Path:
-    """Computes SHA-256 hash of a file, signs metadata with HMAC-SHA256, and encrypts with AES-256-GCM."""
+    """Seal artifact metadata with versioned HMAC-SHA256 and AES-256-GCM envelope."""
     if not local_path.exists():
         raise OSError(f"Local file does not exist: {local_path}")
 
@@ -131,12 +156,11 @@ def seal_artifact(
     if sha256 == "unreadable":
         raise OSError(f"Could not read local file: {local_path}")
 
-    # Resolve signing key
-    if signing_key is None:
-        key_str = os.environ.get("LOCKKNIFE_SIGNING_KEY", "default-secret-key-change-in-production")
-        signing_key = key_str.encode("utf-8") if isinstance(key_str, str) else key_str
+    resolved_key = _resolve_signing_key(signing_key)
+    hmac_key, aes_key = _derive_seal_keys(resolved_key)
 
     metadata = {
+        "seal_version": _SEAL_VERSION,
         "op": "pull",
         "serial": serial,
         "remote_path": remote_path,
@@ -146,26 +170,26 @@ def seal_artifact(
         "timestamp_utc": datetime.datetime.now(datetime.UTC).isoformat(),
     }
 
-    # Generate canonical JSON string
     meta_json = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
 
-    # HMAC signature using native Rust binding
     import lockknife.lockknife_core as lockknife_core
 
-    hmac_sig = lockknife_core.hmac_sha256(signing_key, meta_json.encode("utf-8"))
+    hmac_sig = lockknife_core.hmac_sha256(hmac_key, meta_json.encode("utf-8"))
 
-    # AES-256-GCM encryption using security helpers
     from lockknife.core.security import encrypt_bytes_aes256gcm
 
-    aes_key = hashlib.sha256(signing_key).digest()
-    # Use SHA-256 of target file as AAD (associated data)
     encrypted_bytes = encrypt_bytes_aes256gcm(
         aes_key, meta_json.encode("utf-8"), associated_data=sha256.encode("utf-8")
     )
-    # Convert encrypted bytes to base64 string for storage in JSON
     envelope_b64 = base64.b64encode(encrypted_bytes).decode("ascii")
 
     sig_data = {
+        "seal_version": _SEAL_VERSION,
+        "algorithms": {
+            "metadata_signature": "HMAC-SHA256",
+            "metadata_envelope": "AES-256-GCM",
+            "key_derivation": "HMAC-SHA256 domain separation",
+        },
         "metadata": metadata,
         "hmac_sha256": hmac_sig,
         "aes256gcm_envelope": envelope_b64,
@@ -197,6 +221,10 @@ def verify_artifact_seal(
 
     if not isinstance(metadata, dict) or not hmac_sig or not envelope_b64:
         raise CustodyTamperError("Signature file is missing critical fields")
+    if sig_data.get("seal_version") != _SEAL_VERSION:
+        raise CustodyTamperError("Unsupported custody seal version")
+    if metadata.get("seal_version") != _SEAL_VERSION:
+        raise CustodyTamperError("Metadata seal version mismatch")
 
     local_path_str = metadata.get("local_path")
     expected_sha256 = metadata.get("sha256")
@@ -219,27 +247,22 @@ def verify_artifact_seal(
             f"Evidence file content tampered! Hash mismatch: expected {expected_sha256}, got {current_sha256}"
         )
 
-    # Resolve signing key
-    if signing_key is None:
-        key_str = os.environ.get("LOCKKNIFE_SIGNING_KEY", "default-secret-key-change-in-production")
-        signing_key = key_str.encode("utf-8") if isinstance(key_str, str) else key_str
+    resolved_key = _resolve_signing_key(signing_key)
+    hmac_key, aes_key = _derive_seal_keys(resolved_key)
 
-    # 2. Verify HMAC-SHA256 signature
     meta_json = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
     import lockknife.lockknife_core as lockknife_core
 
     try:
-        calculated_hmac = lockknife_core.hmac_sha256(signing_key, meta_json.encode("utf-8"))
+        calculated_hmac = lockknife_core.hmac_sha256(hmac_key, meta_json.encode("utf-8"))
     except Exception as e:
         raise CustodyTamperError(f"HMAC calculation failed: {e}") from e
 
-    if calculated_hmac != hmac_sig:
+    if not hmac.compare_digest(calculated_hmac, str(hmac_sig)):
         raise CustodyTamperError("Metadata signature validation failed! HMAC signature mismatch")
 
-    # 3. Decrypt and verify AES-256-GCM envelope
     from lockknife.core.security import decrypt_bytes_aes256gcm
 
-    aes_key = hashlib.sha256(signing_key).digest()
     try:
         encrypted_bytes = base64.b64decode(envelope_b64.encode("ascii"), validate=True)
         decrypted_bytes = decrypt_bytes_aes256gcm(
