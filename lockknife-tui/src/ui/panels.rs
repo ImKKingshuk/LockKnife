@@ -1,6 +1,6 @@
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Block, Borders, Cell, Gauge, Paragraph, Row, Table, Wrap};
+use ratatui::widgets::{Block, Borders, BorderType, Cell, Gauge, Paragraph, Row, Table, Wrap};
 use ratatui::Frame;
 
 use crate::app::{App, Panel};
@@ -50,7 +50,13 @@ pub(super) fn render_devices(frame: &mut Frame, app: &mut App, styles: &ThemeSty
         .map(|serial| format!("Devices · target {}", serial))
         .unwrap_or_else(|| "Devices".to_string());
     let table = Table::new(rows, [Constraint::Percentage(100)])
-        .block(Block::default().borders(Borders::ALL).title(title).style(
+        .block(Block::default().borders(Borders::ALL).border_type(
+            if matches!(app.active_panel, Panel::Devices) {
+                BorderType::Double
+            } else {
+                BorderType::Rounded
+            }
+        ).title(title).style(
             if matches!(app.active_panel, Panel::Devices) {
                 styles.border
             } else {
@@ -67,7 +73,13 @@ pub(super) fn render_modules(frame: &mut Frame, app: &mut App, styles: &ThemeSty
         active_module_search_query(app),
         app.layout.modules.width.saturating_sub(2),
     );
-    let block = Block::default().borders(Borders::ALL).title(title).style(
+    let block = Block::default().borders(Borders::ALL).border_type(
+        if matches!(app.active_panel, Panel::Modules) {
+            BorderType::Double
+        } else {
+            BorderType::Rounded
+        }
+    ).title(title).style(
         if matches!(app.active_panel, Panel::Modules) {
             styles.border
         } else {
@@ -200,7 +212,13 @@ pub(super) fn render_output(frame: &mut Frame, app: &mut App, styles: &ThemeStyl
         lines.extend(output_empty_lines(app));
     }
     let paragraph = Paragraph::new(Text::from(lines))
-        .block(Block::default().borders(Borders::ALL).title(title).style(
+        .block(Block::default().borders(Borders::ALL).border_type(
+            if matches!(app.active_panel, Panel::Output) {
+                BorderType::Double
+            } else {
+                BorderType::Rounded
+            }
+        ).title(title).style(
             if matches!(app.active_panel, Panel::Output) {
                 styles.border
             } else {
@@ -216,7 +234,13 @@ pub(super) fn render_case(frame: &mut Frame, app: &mut App, styles: &ThemeStyles
     let title = case_panel_title(app, app.layout.case.width.saturating_sub(2));
     let lines = case_detail_lines(app, app.layout.case.width.saturating_sub(2));
     let paragraph = Paragraph::new(Text::from(lines))
-        .block(Block::default().borders(Borders::ALL).title(title).style(
+        .block(Block::default().borders(Borders::ALL).border_type(
+            if matches!(app.active_panel, Panel::Case) {
+                BorderType::Double
+            } else {
+                BorderType::Rounded
+            }
+        ).title(title).style(
             if matches!(app.active_panel, Panel::Case) {
                 styles.border
             } else {
@@ -252,7 +276,7 @@ pub(super) fn render_status(frame: &mut Frame, app: &mut App, styles: &ThemeStyl
         spans.push(Span::styled(format!("  {}", search_summary), styles.status));
     }
     let para = Paragraph::new(Line::from(spans))
-        .block(Block::default().borders(Borders::ALL).style(styles.border))
+        .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).style(styles.border))
         .alignment(Alignment::Left);
     frame.render_widget(para, app.layout.status);
     if app.busy {

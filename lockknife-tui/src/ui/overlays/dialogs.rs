@@ -1,6 +1,6 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, BorderType, Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::{App, PromptState};
@@ -15,6 +15,7 @@ pub(in crate::ui) fn render_help(frame: &mut Frame, app: &App, styles: &ThemeSty
     frame.render_widget(Clear, area);
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .title(dialog_title(
             "Help",
             area.width.saturating_sub(2),
@@ -34,6 +35,7 @@ pub(in crate::ui) fn render_config(frame: &mut Frame, app: &mut App, styles: &Th
     let title = config_title(app, area.width.saturating_sub(2));
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .title(title)
         .style(styles.border);
     let inner = block.inner(area);
@@ -87,6 +89,7 @@ pub(in crate::ui) fn render_prompt(
     frame.render_widget(Clear, area);
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .title(dialog_title(
             &state.title,
             area.width.saturating_sub(2),

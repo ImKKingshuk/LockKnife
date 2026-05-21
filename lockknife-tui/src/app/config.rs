@@ -42,7 +42,7 @@ impl App {
         let theme = cfg
             .as_ref()
             .and_then(|c| c.theme.parse().ok())
-            .unwrap_or(Theme::Dark);
+            .unwrap_or(Theme::Adaptive);
         let top_height = cfg.as_ref().map(|c| c.top_height).unwrap_or(9);
         let recent_case_dirs = cfg
             .as_ref()
@@ -248,7 +248,8 @@ impl App {
         self.theme = match self.theme {
             Theme::Dark => Theme::Light,
             Theme::Light => Theme::Hacker,
-            Theme::Hacker => Theme::Dark,
+            Theme::Hacker => Theme::Adaptive,
+            Theme::Adaptive => Theme::Dark,
         };
         save_tui_config(&self.current_tui_config());
         self.push_feedback("info", format!("Theme: {}", self.theme.as_str()));

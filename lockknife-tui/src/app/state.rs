@@ -292,11 +292,12 @@ pub struct SearchState {
     pub query: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Theme {
     Dark,
     Light,
     Hacker,
+    Adaptive,
 }
 
 impl Theme {
@@ -305,6 +306,7 @@ impl Theme {
             Theme::Dark => "dark",
             Theme::Light => "light",
             Theme::Hacker => "hacker",
+            Theme::Adaptive => "adaptive",
         }
     }
 }
@@ -317,6 +319,7 @@ impl FromStr for Theme {
             "dark" => Ok(Theme::Dark),
             "light" => Ok(Theme::Light),
             "hacker" => Ok(Theme::Hacker),
+            "adaptive" | "auto" => Ok(Theme::Adaptive),
             _ => Err(()),
         }
     }

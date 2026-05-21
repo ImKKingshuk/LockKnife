@@ -102,8 +102,32 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     render_toasts(frame, app, &styles);
 }
 
+fn is_terminal_dark() -> bool {
+    if let Ok(colorfgbg) = std::env::var("COLORFGBG") {
+        let parts: Vec<&str> = colorfgbg.split(';').collect();
+        if parts.len() >= 2 {
+            if let Ok(bg) = parts[parts.len() - 1].parse::<i32>() {
+                if bg == 7 || (9..=15).contains(&bg) {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
 fn theme_styles(theme: &Theme) -> ThemeStyles {
-    match theme {
+    let resolved_theme = match theme {
+        Theme::Adaptive => {
+            if is_terminal_dark() {
+                &Theme::Dark
+            } else {
+                &Theme::Light
+            }
+        }
+        other => other,
+    };
+    match resolved_theme {
         Theme::Dark => ThemeStyles {
             border: Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
             highlight: Style::default()
@@ -142,6 +166,7 @@ fn theme_styles(theme: &Theme) -> ThemeStyles {
             header: Style::default().fg(Color::Green),
             status: Style::default().fg(Color::Green),
         },
+        Theme::Adaptive => unreachable!(),
     }
 }
 
