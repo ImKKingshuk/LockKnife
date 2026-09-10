@@ -155,7 +155,7 @@ def test_apk_parse_manifest_with_stub(monkeypatch, tmp_path) -> None:
         archive.writestr("AndroidManifest.xml", "<manifest/>")
         archive.writestr(
             "classes.dex",
-            b"const-string https://example.com api_key=ABCDEF123456 okhttp3 addJavascriptInterface appsflyer",
+            b"const-string https://example.com api_key=TEST_VALUE okhttp3 addJavascriptInterface appsflyer",
         )
     info = decomp.parse_apk_manifest(apk)
     assert info["package"] == "com.example"

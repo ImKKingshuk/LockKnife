@@ -1,0 +1,4 @@
+title = "LockKnife Gitleaks configuration"
+
+[extend]
+useDefault = true

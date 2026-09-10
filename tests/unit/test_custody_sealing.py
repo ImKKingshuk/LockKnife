@@ -154,7 +154,7 @@ def test_custody_sealing_wrong_key_fails(tmp_path: pathlib.Path) -> None:
 def test_custody_sealing_env_key_roundtrip(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("LOCKKNIFE_SIGNING_KEY", "env-key-material-123456789012345678")
+    monkeypatch.setenv("LOCKKNIFE_SIGNING_KEY", "unit-test-key-" + ("x" * 32))
     artifact = tmp_path / "evidence.txt"
     artifact.write_text("evidence", encoding="utf-8")
 

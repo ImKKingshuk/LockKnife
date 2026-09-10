@@ -1,0 +1,5 @@
+# Synthetic custody key used only by the environment-key unit test.
+49329f8ad6bfd07ce2b1a261a29fe415bf7a2a65:tests/unit/test_custody_sealing.py:generic-api-key:157
+
+# Synthetic API-key marker embedded in the APK string-analysis fixture.
+7296dd2eddfc07e01fe619c9af0a1029813439c5:tests/unit/test_core_config_and_decompile.py:generic-api-key:158
