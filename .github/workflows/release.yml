@@ -1,12 +1,6 @@
 name: release
 
 on:
-  # One-time recovery trigger for the existing v1.2.0 release. Remove this
-  # trigger after the repaired workflow has uploaded the release artifacts.
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/release.yml"
   release:
     types: [published]
   workflow_dispatch:
@@ -20,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag || 'v1.2.0' }}
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
 
 jobs:
   rust-tests:
