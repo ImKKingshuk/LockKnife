@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/ImKKingshuk/LockKnife/security/advisories/new
+    about: Do not disclose vulnerabilities, credentials, device data, or forensic evidence in a public issue.

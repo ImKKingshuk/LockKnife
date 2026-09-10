@@ -13,7 +13,6 @@ mod network;
 mod pattern;
 mod pcap;
 mod sqlite_bulk;
-mod yara_scan;
 
 #[pymodule(gil_used = true)]
 fn lockknife_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -39,9 +38,6 @@ fn lockknife_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sqlite_bulk::sqlite_table_to_json, m)?)?;
     m.add_function(wrap_pyfunction!(correlation::correlate_artifacts_json, m)?)?;
     m.add_function(wrap_pyfunction!(network::parse_ipv4_header_json, m)?)?;
-    m.add_function(wrap_pyfunction!(yara_scan::yara_scan_bytes, m)?)?;
-    m.add_function(wrap_pyfunction!(yara_scan::yara_scan_file_rules, m)?)?;
-    m.add_function(wrap_pyfunction!(yara_scan::yara_cache_stats, m)?)?;
     m.add_function(wrap_pyfunction!(pcap::analyze_pcap_native, m)?)?;
 
     // Exploitation functions

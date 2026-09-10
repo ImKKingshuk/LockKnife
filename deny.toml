@@ -8,19 +8,13 @@ db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 # The lint level for crates that have been yanked from their source registry
 yanked = "deny"
-# A list of advisory IDs to ignore
-# Note: rsa vulnerability (RUSTSEC-2023-0071) is transitive via yara-x, no safe upgrade available
-# Note: bincode unmaintained (RUSTSEC-2025-0141) is transitive via yara-x, no safe upgrade available
-ignore = [
-    "RUSTSEC-2023-0071",
-    "RUSTSEC-2025-0141",
-]
+ignore = []
 
 [bans]
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "allow"
 # Lint level for when a crate version requirement is `*`
-wildcards = "allow"
+wildcards = "deny"
 # The graph highlighting used when creating dotgraphs for crates
 highlight = "all"
 # List of crates that are allowed to use wildcard dependencies
@@ -35,7 +29,6 @@ deny = []
 allow = [
     "GPL-3.0-only",
     "MIT",
-    "MIT-0",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",
@@ -45,9 +38,6 @@ allow = [
     "BSL-1.0",
     "Zlib",
     "Unicode-3.0",
-    "CC0-1.0",
-    "bzip2-1.0.6",
-    "MPL-2.0",
 ]
 # Confidence threshold for license detection
 confidence-threshold = 0.8
@@ -55,10 +45,10 @@ confidence-threshold = 0.8
 [sources]
 # Lint level for what to happen when a crate from a crate registry that is not
 # in the allow list is encountered
-unknown-registry = "warn"
+unknown-registry = "deny"
 # Lint level for what to happen when a crate from a git repository that is not
 # in the allow list is encountered
-unknown-git = "warn"
+unknown-git = "deny"
 # List of URLs for allowed crate registries
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # List of URLs for allowed git repositories

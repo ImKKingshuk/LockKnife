@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: repository-hygiene
+        name: repository hygiene
+        entry: python3 scripts/check_repository_hygiene.py
+        language: system
+        pass_filenames: false
+        always_run: true

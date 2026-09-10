@@ -128,10 +128,9 @@ def doctor_status() -> dict[str, Any]:
         "runtime_frida": frida,
         "network_analysis": scapy,
         "malware_scanning": {
-            "ok": bool(rust_ok or yara_py.get("ok")),
-            "rust_extension": rust_ok,
+            "ok": bool(yara_py.get("ok")),
             "yara_python": yara_py,
-            "hint": "Rust core enables yara-x scanning; yara-python is an optional fallback.",
+            "hint": "Install the yara extra to enable malware rule scanning.",
         },
         "pdf_generation": {
             "ok": pdf_ok,

@@ -83,6 +83,8 @@ AGENTS.md
 .envrc
 .direnv/
 .netrc
+.authinfo
+.authinfo.gpg
 .npmrc
 .yarnrc.yml
 .pypirc
@@ -106,12 +108,24 @@ lockknife.conf
 *.keystore
 *.kdbx
 *.mobileprovision
+*.der
+*.csr
+*.pkcs12
 *.gpg
 *.asc
 id_rsa
 id_ed25519
 id_dsa
 *.pub
+.ssh/
+.gnupg/
+.aws/
+.azure/
+.config/gcloud/
+.kube/
+*.ovpn
+wg*.conf
+WireGuard/*.conf
 
 # API keys and secrets
 secrets.json
@@ -119,6 +133,8 @@ credentials.json
 api_keys.json
 .secrets
 .credentials
+google-services.json
+GoogleService-Info.plist
 
 # Local databases and forensic outputs
 *.db
@@ -168,6 +184,7 @@ case_manifest.json
 
 # APK and Android artifacts
 *.apk
+*.aab
 *.dex
 *.odex
 *.vdex
@@ -252,6 +269,11 @@ tmp/
 *.swp
 *~.nib
 local.properties
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crashlytics-build.properties
 .loadpath
 .repl_history
 node_repl_history

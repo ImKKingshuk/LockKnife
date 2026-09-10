@@ -10,6 +10,7 @@ LockKnife uses environment variables for API keys and sensitive configuration:
 
 - **VT_API_KEY**: VirusTotal API key (optional)
 - **OTX_API_KEY**: AlienVault OTX API key (optional)
+- **LOCKKNIFE_SIGNING_KEY**: Artifact-custody sealing key (required for sealing)
 
 **Never commit these values to version control.** Use the `.env` file locally (which is gitignored) or set them as environment variables.
 
@@ -48,9 +49,12 @@ This repository uses:
 
 Run security checks before committing:
 ```bash
+python3 scripts/check_repository_hygiene.py
 bandit -r lockknife/ lockknife_headless_cli/
 pip-audit
 ```
+
+GitHub Actions also runs a full-history secret scan on pull requests and pushes to protected branches. If a real credential is ever committed, revoke or rotate it immediately before considering any history cleanup.
 
 ### Reporting Security Issues
 
