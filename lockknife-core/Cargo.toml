@@ -1,6 +1,6 @@
 [package]
 name = "lockknife-core"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2021"
 description = "Native Rust extension and analysis engine for LockKnife"
 license = "GPL-3.0-only"
@@ -13,7 +13,7 @@ name = "lockknife_core"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-lockknife-tui = { version = "1.1.0", path = "../lockknife-tui" }
+lockknife-tui = { version = "1.2.0", path = "../lockknife-tui" }
 pyo3 = { version = "0.29", features = ["abi3", "abi3-py312"] }
 ring = "0.17.14"
 rayon = "1.11"

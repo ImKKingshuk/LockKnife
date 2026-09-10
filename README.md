@@ -160,7 +160,7 @@ Use LockKnife when you want one operator surface for the broader investigation l
 
 ---
 
-## Current Capabilities (v1.1.0)
+## Current Capabilities (v1.2.0)
 
 ### Core Platform
 
@@ -184,7 +184,7 @@ Use LockKnife when you want one operator surface for the broader investigation l
 - ✅ High-speed PIN bruteforce and dictionary attacks
 - ✅ Binary helpers (DEX/ELF headers), pattern scanning, IPv4 parsing
 - ✅ SQLite bulk table extraction to JSON and artifact correlation primitives
-- ✅ MD5-based YARA rule caching with Arc shared ownership and FIFO eviction policy
+- ✅ Native IOC extraction and bounded PCAP analysis with conservative Python fallbacks
 - ✅ Rust exploitation primitives: packet crafting/parsing for WiFi/Bluetooth, WPS utilities, parallel network port scanner, WPA handshake cracking with Rayon
 
 ### Device & Orchestration
@@ -240,7 +240,7 @@ Use LockKnife when you want one operator surface for the broader investigation l
 - 🔑 Permission risk scoring and heuristic vulnerability checks
 - ✅ DEX header extraction from APK (Rust)
 - 🔬 "Decompile" (APK unpack + manifest.json; not full source decompilation)
-- 🔧 YARA / pattern scanning (`lockknife apk scan`)
+- 🔧 Built-in pattern scanning and dependency-gated YARA scanning (`lockknife apk scan`; install `lockknife[yara]` for YARA rules)
 
 ### Runtime Instrumentation
 
@@ -279,12 +279,19 @@ Use LockKnife when you want one operator surface for the broader investigation l
 
 - 🔑 Threat intelligence (`lockknife intel ...`) (requires `lockknife[threat-intel]` + API keys)
 - 🔑 AI/ML workflows (`lockknife ai ...`) (requires `lockknife[ml]`)
+- 🔑 YARA rule scanning (`lockknife apk scan` and `lockknife security malware`) (requires `lockknife[yara]`)
 - 🔧 Crypto wallet forensics (`lockknife crypto-wallet ...`) (data/network dependent)
+
+## API Compatibility
+
+- The CLI and documented Python modules under `lockknife.core` and `lockknife.modules` are the supported integration surfaces.
+- `lockknife.lockknife_core` is an internal native implementation module. Its exported functions may change in minor releases when required for correctness, security, or platform support.
+- Use `lockknife.modules.security.malware.scan_with_yara` or the corresponding CLI commands for YARA scanning. Direct native YARA-X functions shipped in v1.1.0 were undocumented and have been removed; install `lockknife[yara]` to use the supported backend.
 
 ## Requirements
 
 - **OS**: macOS, Linux, Windows (WSL)
-- **Python**: 3.11+
+- **Python**: 3.12+
 - **ADB**: Android platform-tools (`adb`)
 - **Rust**: required to build the native extension from source
 - **Device constraints**: some features require root/userdebug builds or app-specific DB access

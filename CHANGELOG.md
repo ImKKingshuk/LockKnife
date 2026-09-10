@@ -4,11 +4,41 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 ## [Unreleased]
 
+## [v1.2.0] - 2026-09-11
+
+### Case And Action Architecture
+
+- Added a typed action registry shared by the CLI and TUI, including validated fields, capability metadata, hidden actions, and catalog serialization.
+- Added a SQLite-backed case store with WAL, migrations, transactional ID allocation, compatibility snapshots, and hash-chained audit events for artifacts, jobs, and runtime sessions.
+
+### Security And Evidence Integrity
+
+- Added deny-by-default execution policy and gateway controls for audited, case-scoped, target-scoped, dry-run and authorized lab workflows.
+- Added versioned artifact custody seals with explicit key requirements, derived HMAC/AES-GCM keys, tamper detection, and compatibility verification.
+- Hardened Frida remediation with policy authorization, dry-run previews, target scoping, and SHA-256 verification for local deployment binaries.
+
+### Native Analysis And Performance
+
+- Added native IOC extraction and bounded PCAP analysis with conservative Python/Scapy fallback behavior.
+- Improved DEX and ELF metadata parsing, malformed-input handling, and scoped Rayon thread-pool behavior.
+- Updated the TUI bridge to consume the typed action catalog while retaining fallback compatibility.
+
+### User Experience And Reporting
+
+- Added adaptive TUI themes and refined terminal panels, dialogs, result views, and exploit workflow presentation.
+- Redesigned executive, technical, and chain-of-custody HTML reports with improved provenance and evidence presentation.
+
 ### Security
 
 - Added local and CI repository-hygiene checks, full-history secret scanning, and immutable GitHub Action pins.
 - Upgraded PyO3 and vulnerable Rust transitive dependencies.
 - Removed the native YARA-X backend and its vulnerable Wasmtime dependency; malware rule scanning remains available through the `yara` optional extra.
+
+### Compatibility
+
+- LockKnife now requires Python 3.12 or newer, matching package metadata and release wheels.
+- `lockknife.lockknife_core` is an internal implementation module and is not a stable public API. The undocumented native `yara_scan_bytes`, `yara_scan_file_rules`, and `yara_cache_stats` functions were removed for supply-chain security. Use `lockknife.modules.security.malware.scan_with_yara` or the CLI with `lockknife[yara]` instead.
+- Existing case JSON manifests remain available as generated compatibility snapshots while SQLite is the durable source of truth.
 
 ## [v1.1.0] - 2026-04-20
 

@@ -27,6 +27,10 @@ jobs:
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
       - run: uv sync --extra dev
       - run: uv run python scripts/check_repository_hygiene.py
+      - name: Verify package version matches the release tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: uv run python lockknife/core/version.py check "$RELEASE_TAG"
       - name: Scan the complete Git history for secrets
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:

@@ -870,7 +870,7 @@ dependencies = [
 
 [[package]]
 name = "lockknife-core"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "aho-corasick",
  "crc32fast",
@@ -892,7 +892,7 @@ dependencies = [
 
 [[package]]
 name = "lockknife-tui"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "arboard",
  "crossterm",
