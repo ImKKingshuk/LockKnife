@@ -2,13 +2,18 @@
 
 All notable changes to `LockKnife : The Ultimate Android Security Research Tool` will be documented in this file.
 
-## [Unreleased]
 
 ## [v1.2.0] - 2026-09-11
 
+### Case Integrity And Execution Safety
+
+This release strengthens LockKnife as a case-first Android investigation workbench. It adds
+transactional case storage, explicit capability metadata, policy-gated execution, stronger
+evidence sealing, bounded native analysis.
+
 ### Case And Action Architecture
 
-- Added a typed action registry shared by the CLI and TUI, including validated fields, capability metadata, hidden actions, and catalog serialization.
+- Added a typed action registry and catalog for the TUI and supported CLI bindings, including validated fields, capability metadata, hidden actions, duplicate-registration protection, and JSON serialization.
 - Added a SQLite-backed case store with WAL, migrations, transactional ID allocation, compatibility snapshots, and hash-chained audit events for artifacts, jobs, and runtime sessions.
 
 ### Security And Evidence Integrity
@@ -32,12 +37,16 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 - Upgraded PyO3 and vulnerable Rust transitive dependencies.
 - Removed the native YARA-X backend and its vulnerable Wasmtime dependency; malware rule scanning remains available through the `yara` optional extra.
+- Removed the experimental in-process WASM runtime and direct native ADB shortcuts pending production-grade isolation and execution contracts.
+- Migrated GitHub workflows to maintained Node 24 action releases and expanded wheel and source-distribution smoke tests.
 
 ### Compatibility
 
 - LockKnife now requires Python 3.12 or newer, matching package metadata and release wheels.
 - `lockknife.lockknife_core` is an internal implementation module and is not a stable public API. The undocumented native `yara_scan_bytes`, `yara_scan_file_rules`, and `yara_cache_stats` functions were removed for supply-chain security. Use `lockknife.modules.security.malware.scan_with_yara` or the CLI with `lockknife[yara]` instead.
 - Existing case JSON manifests remain available as generated compatibility snapshots while SQLite is the durable source of truth.
+- Custody sealing now requires an explicit signing key or `LOCKKNIFE_SIGNING_KEY`.
+- Release assets target Linux x86_64, Linux AArch64, macOS Apple Silicon, and Windows x86_64, with a source distribution for other supported build environments.
 
 ## [v1.1.0] - 2026-04-20
 
