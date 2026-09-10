@@ -6,7 +6,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 ### Security
 
-- Added local and CI repository-hygiene checks, full-history secret scanning, immutable GitHub Action pins, and dependency update automation.
+- Added local and CI repository-hygiene checks, full-history secret scanning, and immutable GitHub Action pins.
 - Upgraded PyO3 and vulnerable Rust transitive dependencies.
 - Removed the native YARA-X backend and its vulnerable Wasmtime dependency; malware rule scanning remains available through the `yara` optional extra.
 
