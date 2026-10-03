@@ -7,6 +7,7 @@ import pathlib
 import sqlite3
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 
 import pytest
 
@@ -57,11 +58,11 @@ def test_concurrent_manifest_migration_runs_once(tmp_path: pathlib.Path) -> None
 
 def test_unknown_schema_is_not_silently_downgraded(tmp_path: pathlib.Path) -> None:
     case_dir = _new_case(tmp_path)
-    with sqlite3.connect(case_dir / "case_store.sqlite3") as conn:
+    with closing(sqlite3.connect(case_dir / "case_store.sqlite3")) as conn, conn:
         conn.execute("UPDATE store_meta SET value='999' WHERE key='schema_version'")
     with pytest.raises(ValueError, match="Unsupported case store schema"):
         CaseStore.open(case_dir)
-    with sqlite3.connect(case_dir / "case_store.sqlite3") as conn:
+    with closing(sqlite3.connect(case_dir / "case_store.sqlite3")) as conn:
         assert conn.execute("SELECT value FROM store_meta").fetchone()[0] == "999"
 
 
@@ -99,11 +100,11 @@ def test_audit_verification_detects_truncation_with_external_head(tmp_path: path
 
 def test_sqlite_backup_includes_wal_and_cannot_overwrite(tmp_path: pathlib.Path) -> None:
     store = CaseStore.open(_new_case(tmp_path))
-    with store._connect() as writer:
+    with closing(store._connect()) as writer:
         writer.execute("PRAGMA wal_autocheckpoint=0")
         store.append_event("case", "CASE-TEST", "test.backup", {"value": 42})
         destination = store.backup(tmp_path / "backup.sqlite3")
-        with sqlite3.connect(destination) as backup:
+        with closing(sqlite3.connect(destination)) as backup:
             assert backup.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
             assert (
                 backup.execute("SELECT event_type FROM events ORDER BY event_id DESC").fetchone()[0]
@@ -291,7 +292,7 @@ def test_case_mutations_persist_direct_sqlite_rows_and_manifest_snapshot(
     assert snapshot["jobs"][0]["status"] == completed_job.status == "succeeded"
     assert snapshot["runtime_sessions"][0]["event_count"] == session.event_count == 1
 
-    with sqlite3.connect(case_dir / "case_store.sqlite3") as conn:
+    with closing(sqlite3.connect(case_dir / "case_store.sqlite3")) as conn:
         conn.row_factory = sqlite3.Row
         artifact_row = conn.execute(
             "SELECT metadata_json FROM artifacts WHERE artifact_id = ?",
