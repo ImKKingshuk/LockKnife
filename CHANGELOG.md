@@ -6,6 +6,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 ### Fixed
 
+- Refreshed the README with a branded layout, detailed feature sections, current installation instructions, case examples, and capability requirements.
 - Completed automatic APK decompiler fallback through JADX, apktool, and archive extraction, with per-stage timeouts and explicit failed-stage reporting.
 - Prevented APK extraction from overwriting existing evidence and added archive size, compression-ratio, member-type, and duplicate-path validation.
 - Unified Python action forms and native fallback forms in one packaged catalog, including device requirements, confirmations, defaults, and choices.
