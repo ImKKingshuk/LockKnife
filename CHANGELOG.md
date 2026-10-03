@@ -6,6 +6,9 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 ### Fixed
 
+- Made interrupted case migration retryable and prevented case initialization from replacing existing evidence inventories.
+- Enforced append-only audit rows, added event-chain verification to integrity reports, and included consistent SQLite backups in case bundles.
+- Made compatibility manifests atomic and serialized snapshot writers to prevent stale or partial snapshots.
 - Fixed TUI dialogs immediately disappearing after main shortcuts and module selection (issue #14).
 - Preserved built-in action forms, device requirements, and confirmation checks when importing metadata-only registry entries; accepted Python catalog field defaults and choices.
 - Preserved action confirmations after form submission and executed confirmed actions without asking for confirmation again.

@@ -3,12 +3,15 @@ from __future__ import annotations
 import dataclasses
 import datetime as dt
 import hashlib
+import hmac
 import json
+import os
 import pathlib
 import re
 import sqlite3
+import tempfile
 from collections.abc import Iterator, Mapping
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from typing import Any
 
 from lockknife.core._case_models import (
@@ -19,7 +22,6 @@ from lockknife.core._case_models import (
     CaseRuntimeScript,
     CaseRuntimeSession,
 )
-from lockknife.core.serialize import write_json
 
 STORE_FILENAME = "case_store.sqlite3"
 STORE_SCHEMA_VERSION = 1
@@ -104,9 +106,10 @@ class CaseStore:
     def open(cls, case_dir: pathlib.Path) -> CaseStore:
         case_dir.mkdir(parents=True, exist_ok=True)
         store = cls(case_dir)
-        is_new = not store.path.exists()
         store._initialize_schema()
-        if is_new and _manifest_path(case_dir).exists():
+        with closing(store._connect()) as conn:
+            initialized = conn.execute("SELECT 1 FROM cases LIMIT 1").fetchone() is not None
+        if not initialized and _manifest_path(case_dir).exists():
             store.replace_from_manifest(
                 _manifest_from_json(_manifest_path(case_dir)), event_type="case.migrated"
             )
@@ -134,7 +137,15 @@ class CaseStore:
             conn.close()
 
     def _initialize_schema(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
+            if conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='store_meta'"
+            ).fetchone():
+                row = conn.execute(
+                    "SELECT value FROM store_meta WHERE key='schema_version'"
+                ).fetchone()
+                if row is not None and int(row["value"]) != STORE_SCHEMA_VERSION:
+                    raise ValueError(f"Unsupported case store schema version: {row['value']}")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS store_meta (
@@ -228,10 +239,18 @@ class CaseStore:
                     previous_hash TEXT,
                     event_hash TEXT NOT NULL
                 );
+                CREATE TRIGGER IF NOT EXISTS events_no_update
+                BEFORE UPDATE ON events BEGIN
+                    SELECT RAISE(ABORT, 'Audit events are append-only');
+                END;
+                CREATE TRIGGER IF NOT EXISTS events_no_delete
+                BEFORE DELETE ON events BEGIN
+                    SELECT RAISE(ABORT, 'Audit events are append-only');
+                END;
                 """
             )
             conn.execute(
-                "INSERT OR REPLACE INTO store_meta(key, value) VALUES('schema_version', ?)",
+                "INSERT OR IGNORE INTO store_meta(key, value) VALUES('schema_version', ?)",
                 (str(STORE_SCHEMA_VERSION),),
             )
 
@@ -240,6 +259,17 @@ class CaseStore:
     ) -> None:
         payload = dataclasses.asdict(manifest)
         with self.transaction() as conn:
+            if (
+                event_type == "case.created"
+                and conn.execute("SELECT 1 FROM cases LIMIT 1").fetchone()
+            ):
+                raise FileExistsError(f"Case workspace already exists: {self.case_dir}")
+            # Another opener may have completed migration while we parsed the JSON.
+            if (
+                event_type == "case.migrated"
+                and conn.execute("SELECT 1 FROM cases LIMIT 1").fetchone()
+            ):
+                return
             conn.execute("DELETE FROM cases")
             conn.execute("DELETE FROM artifacts")
             conn.execute("DELETE FROM jobs")
@@ -356,10 +386,42 @@ class CaseStore:
         self.write_manifest_snapshot()
 
     def write_manifest_snapshot(self) -> pathlib.Path:
-        manifest = self.load_manifest()
         path = _manifest_path(self.case_dir)
-        write_json(path, dataclasses.asdict(manifest))
+        # Serialize writers so an older compatibility snapshot cannot replace a newer one.
+        with self.transaction():
+            manifest = self.load_manifest()
+            temporary: pathlib.Path | None = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", encoding="utf-8", dir=self.case_dir, prefix=".manifest-", delete=False
+                ) as handle:
+                    temporary = pathlib.Path(handle.name)
+                    json.dump(dataclasses.asdict(manifest), handle, indent=2, sort_keys=True)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temporary, path)
+            finally:
+                if temporary is not None:
+                    temporary.unlink(missing_ok=True)
         return path
+
+    def backup(self, destination: pathlib.Path) -> pathlib.Path:
+        """Export a consistent SQLite snapshot, including committed WAL contents."""
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        # Never overwrite evidence, another database, or the live case store.
+        with destination.open("xb"):
+            pass
+        try:
+            with (
+                closing(self._connect()) as source,
+                closing(sqlite3.connect(destination)) as target,
+            ):
+                source.backup(target)
+                target.execute("PRAGMA journal_mode=DELETE")
+        except BaseException:
+            destination.unlink(missing_ok=True)
+            raise
+        return destination
 
     def _touch_case_in_tx(
         self, conn: sqlite3.Connection, *, updated_at_utc: str
@@ -610,7 +672,8 @@ class CaseStore:
             )
 
     def load_manifest(self) -> CaseManifest:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
+            conn.execute("BEGIN")
             case_row = conn.execute("SELECT * FROM cases LIMIT 1").fetchone()
             if case_row is None:
                 raise FileNotFoundError(f"No case metadata in {self.path}")
@@ -800,7 +863,7 @@ class CaseStore:
         )
 
     def event_chain(self) -> list[EventRecord]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             rows = conn.execute("SELECT * FROM events ORDER BY event_id").fetchall()
         return [
             EventRecord(
@@ -816,6 +879,54 @@ class CaseStore:
             )
             for row in rows
         ]
+
+    def verify_event_chain(self, *, expected_head: str | None = None) -> dict[str, Any]:
+        """Check linkage and content hashes; an external head also detects truncation.
+
+        Local hashes are tamper evidence, not a signature against a database owner
+        who can replace the entire chain and its head.
+        """
+        with closing(self._connect()) as conn:
+            rows = conn.execute("SELECT * FROM events ORDER BY event_id").fetchall()
+        previous_hash: str | None = None
+        errors: list[dict[str, Any]] = []
+        for expected_id, row in enumerate(rows, start=1):
+            event_id = int(row["event_id"])
+            if event_id != expected_id:
+                errors.append({"event_id": event_id, "reason": "sequence-gap"})
+            if row["previous_hash"] != previous_hash:
+                errors.append({"event_id": event_id, "reason": "broken-link"})
+            try:
+                payload = json.loads(row["payload_json"])
+                if not isinstance(payload, dict):
+                    raise ValueError("Event payload must be an object")
+                digest = _event_hash(
+                    {
+                        "aggregate_type": row["aggregate_type"],
+                        "aggregate_id": row["aggregate_id"],
+                        "event_type": row["event_type"],
+                        "timestamp_utc": row["timestamp_utc"],
+                        "actor": row["actor"],
+                        "payload": payload,
+                        "previous_hash": row["previous_hash"],
+                    }
+                )
+                if not hmac.compare_digest(digest, str(row["event_hash"])):
+                    errors.append({"event_id": event_id, "reason": "hash-mismatch"})
+            except (ValueError, TypeError):
+                errors.append({"event_id": event_id, "reason": "invalid-payload"})
+            previous_hash = row["event_hash"]
+        if expected_head is not None and not hmac.compare_digest(
+            expected_head, previous_hash or ""
+        ):
+            errors.append({"event_id": None, "reason": "head-mismatch"})
+        return {
+            "status": "invalid" if errors else ("verified" if rows else "empty"),
+            "event_count": len(rows),
+            "head_sha256": previous_hash,
+            "externally_anchored": expected_head is not None,
+            "errors": errors,
+        }
 
 
 def is_case_workspace(case_dir: pathlib.Path) -> bool:

@@ -101,7 +101,7 @@ def create_case_workspace(
         jobs=[],
         runtime_sessions=[],
     )
-    save_case_manifest(case_dir, manifest)
+    CaseStore.open(case_dir).replace_from_manifest(manifest, event_type="case.created")
     return case_dir
 
 

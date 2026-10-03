@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import tempfile
 import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Sequence
@@ -18,6 +19,7 @@ from lockknife.core._case_common import (
 from lockknife.core._case_jobs import _job_resumable_status, _job_summary_payload
 from lockknife.core._case_models import CaseArtifact
 from lockknife.core._case_runtime import _runtime_session_summary_payload
+from lockknife.core._case_store import STORE_FILENAME, CaseStore
 from lockknife.modules.reporting.chain_of_custody import (
     EvidenceItem,
     build_chain_of_custody_payload,
@@ -197,6 +199,7 @@ def case_integrity_report(
         notes=None,
         evidence=case_chain_of_custody_items(case_dir, artifacts=selected_artifacts),
     )
+    audit = CaseStore.open(case_dir).verify_event_chain()
 
     summary: dict[str, Any] = {
         "artifact_count": len(inventory),
@@ -206,11 +209,14 @@ def case_integrity_report(
         "unreadable_count": status_counts.get("unreadable", 0),
         "unsupported_count": status_counts.get("unsupported", 0),
         "category_counts": dict(sorted(category_counts.items())),
+        "audit_chain_status": audit["status"],
         "custody_chain_status": str(
             (custody_chain.get("verification") or {}).get("status") or "unknown"
         ),
     }
-    if summary["modified_count"] > 0:
+    if audit["status"] == "invalid":
+        advisory = "Audit verification detected an invalid event chain; preserve the database and investigate before relying on case history."
+    elif summary["modified_count"] > 0:
         advisory = "Integrity verification detected modified artifacts; preserve originals and investigate drift before relying on derived conclusions."
     elif summary["missing_count"] > 0:
         advisory = "Integrity verification detected missing artifacts; the case workspace is incomplete and downstream reporting should be reviewed carefully."
@@ -230,6 +236,7 @@ def case_integrity_report(
             "verification": custody_chain.get("verification") or {},
         },
         "artifacts": inventory,
+        "audit_chain": audit,
         "advisory": advisory,
     }
 
@@ -443,7 +450,15 @@ def export_case_bundle(
     included_artifact_ids: list[str] = []
     missing_registered_artifacts: list[dict[str, str]] = []
 
-    with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    with (
+        tempfile.TemporaryDirectory(prefix="lockknife-export-") as temporary,
+        zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive,
+    ):
+        store = CaseStore.open(case_dir)
+        database = store.backup(pathlib.Path(temporary) / STORE_FILENAME)
+        archive.write(database, arcname=f"{bundle_root}/{STORE_FILENAME}")
+        included_paths.add(STORE_FILENAME)
+        database_sha256, _ = _sha256_file(database)
         for required in (_manifest_path(case_dir), case_dir / "logs", case_dir / "reports"):
             _add_path_to_zip(
                 archive,
@@ -498,6 +513,7 @@ def export_case_bundle(
             "summary": summary,
             "graph": graph,
             "integrity_summary": integrity["summary"],
+            "case_store_sha256": database_sha256,
             "chain_of_custody_entry_count": len(selected_artifacts),
         }
         archive.writestr(
