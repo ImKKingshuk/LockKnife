@@ -23,8 +23,8 @@ pub(super) fn handle_mouse_click(app: &mut App, x: u16, y: u16) {
         let col = if inner_x > modules.width / 2 { 1 } else { 0 };
         let row = inner_y as usize;
         let idx = app.module_scroll + row * 2 + col as usize;
-        if idx < app.modules.len() {
-            app.selected_module = idx;
+        if let Some(module_index) = app.visible_modules().get(idx) {
+            app.selected_module = *module_index;
         }
         return;
     }

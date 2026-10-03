@@ -29,7 +29,7 @@ pub(in crate::event) fn handle_prompt(
                     let params = fields_to_params(&state.fields);
                     let target = state.target.clone();
                     submit_prompt(app, target, params);
-                    return (false, Overlay::None);
+                    return (false, std::mem::replace(&mut app.overlay, Overlay::None));
                 }
             }
             (KeyCode::Left, _) => {
@@ -69,6 +69,8 @@ pub(in crate::event) fn handle_prompt(
                             "true"
                         }
                         .to_string();
+                    } else if matches!(field.kind, FieldKind::Text | FieldKind::Number) {
+                        field.value.push(' ');
                     }
                 }
             }

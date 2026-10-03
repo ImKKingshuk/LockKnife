@@ -131,29 +131,20 @@ pub(super) fn handle_main(app: &mut App, event: Event) -> bool {
                 (KeyCode::Char('s'), _) | (KeyCode::Char('S'), _)
                     if matches!(app.active_panel, Panel::Exploit) =>
                 {
-                    // Start scan for selected vector
-                    app.push_toast("info", "Scan initiated for selected vector");
+                    app.push_feedback("warn", "This scan shortcut is not implemented. Select an available scan action from Modules; no scan was started.");
                 }
                 (KeyCode::Char('x'), _) | (KeyCode::Char('X'), _)
                     if matches!(app.active_panel, Panel::Exploit | Panel::ExploitStatus) =>
                 {
-                    // Stop active exploit
-                    app.push_toast("info", "Exploit stopped");
-                }
-                (KeyCode::Char('e'), _) | (KeyCode::Char('E'), _)
-                    if matches!(
-                        app.active_panel,
-                        Panel::Devices | Panel::Modules | Panel::Case | Panel::Output
-                    ) =>
-                {
-                    // Enter exploitation panel
-                    app.active_panel = Panel::Exploit;
+                    app.push_feedback(
+                        "warn",
+                        "This stop shortcut is not implemented; no operation was stopped.",
+                    );
                 }
                 (KeyCode::Char('f'), _) | (KeyCode::Char('F'), _)
                     if matches!(app.active_panel, Panel::Exploit | Panel::Evidence) =>
                 {
-                    // Filter targets or evidence
-                    app.push_toast("info", "Filter feature - to be implemented");
+                    app.push_feedback("warn", "This filter shortcut is not implemented. Use / to filter Modules or Output.");
                 }
                 (KeyCode::Up, KeyModifiers::CONTROL) => app.adjust_top_height(-1),
                 (KeyCode::Down, KeyModifiers::CONTROL) => app.adjust_top_height(1),

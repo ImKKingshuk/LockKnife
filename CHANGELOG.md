@@ -2,6 +2,19 @@
 
 All notable changes to `LockKnife : The Ultimate Android Security Research Tool` will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Fixed TUI dialogs immediately disappearing after main shortcuts and module selection (issue #14).
+- Preserved built-in action forms, device requirements, and confirmation checks when importing metadata-only registry entries; accepted Python catalog field defaults and choices.
+- Preserved action confirmations after form submission and executed confirmed actions without asking for confirmation again.
+- Ignored key-release and repeat events to prevent duplicate input and accidental submissions on Windows.
+- Allowed spaces in text fields and selected the correct module when clicking filtered results.
+- Restored the advertised export shortcut, which was shadowed by exploit-panel navigation.
+- Replaced misleading success messages from unfinished exploit-panel shortcuts with explicit unsupported-action feedback.
+- Added real-dispatcher regression tests for shortcuts, dialogs, cancellation, and action-catalog callback routing.
+
 
 ## [v1.2.0] - 2026-09-11
 

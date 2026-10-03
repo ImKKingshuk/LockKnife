@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -283,7 +284,7 @@ fn modules_from_catalog_json(catalog_json: Option<&str>) -> (Vec<ModuleEntry>, O
         );
     };
 
-    let modules: Vec<ModuleEntry> = module_values
+    let mut modules: Vec<ModuleEntry> = module_values
         .iter()
         .filter_map(parse_catalog_module)
         .collect();
@@ -294,6 +295,21 @@ fn modules_from_catalog_json(catalog_json: Option<&str>) -> (Vec<ModuleEntry>, O
         );
     }
 
+    // Metadata-only registry entries must not remove forms or safety checks.
+    let defaults: HashMap<String, ModuleAction> = default_modules()
+        .into_iter()
+        .flat_map(|module| module.actions)
+        .map(|action| (action.id.clone(), action))
+        .collect();
+    for action in modules.iter_mut().flat_map(|module| &mut module.actions) {
+        if let Some(default) = defaults.get(&action.id) {
+            if action.fields.is_empty() {
+                action.fields = default.fields.clone();
+            }
+            action.requires_device |= default.requires_device;
+            action.confirm |= default.confirm;
+        }
+    }
     (modules, None)
 }
 
@@ -350,6 +366,7 @@ fn parse_catalog_field(value: &Value) -> Option<PromptField> {
         .unwrap_or(FieldKind::Text);
     let options = value
         .get("options")
+        .or_else(|| value.get("choices"))
         .and_then(Value::as_array)
         .map(|options| {
             options
@@ -372,7 +389,7 @@ fn parse_catalog_field(value: &Value) -> Option<PromptField> {
 }
 
 fn catalog_field_value(value: &Value) -> Option<String> {
-    let raw = value.get("value")?;
+    let raw = value.get("value").or_else(|| value.get("default"))?;
     match raw {
         Value::String(value) => Some(value.clone()),
         Value::Number(value) => Some(value.to_string()),
@@ -668,5 +685,43 @@ mod catalog_json_tests {
             .logs
             .iter()
             .any(|entry| entry.message.contains("using built-in catalog")));
+    }
+
+    #[test]
+    fn metadata_only_catalog_preserves_forms_and_safety_requirements() {
+        init_python();
+        let raw = serde_json::json!({"modules": [{"id": "test", "actions": [
+            {"id": "extraction.sms", "fields": [], "requires_device": false, "confirm": false},
+            {"id": "exploit.run.wifi", "fields": [], "confirm": false},
+            {"id": "case.init", "fields": []}
+        ]}]})
+        .to_string();
+        let (modules, warning) = modules_from_catalog_json(Some(&raw));
+        assert!(warning.is_none());
+        for action in &modules[0].actions {
+            assert!(!action.fields.is_empty(), "{} lost its form", action.id);
+        }
+        assert!(modules[0].actions[0].requires_device);
+        assert!(modules[0].actions[1].confirm);
+    }
+
+    #[test]
+    fn catalog_accepts_python_field_defaults_and_choices() {
+        let field = parse_catalog_field(&serde_json::json!({
+            "key": "mode", "kind": "choice", "default": "quick", "choices": ["quick", "full"]
+        }))
+        .unwrap();
+        assert_eq!(field.value, "quick");
+        assert_eq!(field.options, ["quick", "full"]);
+        let boolean = parse_catalog_field(&serde_json::json!({
+            "key": "enabled", "kind": "bool", "default": true
+        }))
+        .unwrap();
+        assert_eq!(boolean.value, "true");
+        let number = parse_catalog_field(&serde_json::json!({
+            "key": "count", "kind": "number", "default": 10
+        }))
+        .unwrap();
+        assert_eq!(number.value, "10");
     }
 }

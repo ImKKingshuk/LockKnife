@@ -1,4 +1,4 @@
-use crossterm::event::Event;
+use crossterm::event::{Event, KeyEventKind};
 
 use crate::app::{App, Overlay};
 
@@ -19,6 +19,10 @@ use self::overlays::{
 };
 
 pub fn handle_event(app: &mut App, event: Event) -> bool {
+    // Windows emits releases as well as presses; never submit an action twice.
+    if matches!(&event, Event::Key(key) if key.kind != KeyEventKind::Press) {
+        return false;
+    }
     let overlay = std::mem::replace(&mut app.overlay, Overlay::None);
     let (quit, next_overlay) = match overlay {
         Overlay::Help => handle_help(app, event),
@@ -27,7 +31,10 @@ pub fn handle_event(app: &mut App, event: Event) -> bool {
         Overlay::Confirm(state) => handle_confirm(app, event, state),
         Overlay::ActionMenu(state) => handle_action_menu(app, event, state),
         Overlay::ResultView(state) => handle_result_view(app, event, state),
-        Overlay::None => (handle_main(app, event), Overlay::None),
+        Overlay::None => {
+            let quit = handle_main(app, event);
+            (quit, std::mem::replace(&mut app.overlay, Overlay::None))
+        }
     };
     app.overlay = next_overlay;
     quit

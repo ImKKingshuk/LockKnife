@@ -160,3 +160,24 @@ def test_hidden_actions_are_only_exported_when_requested() -> None:
 
     assert "config.load" not in public_ids
     assert "config.load" in hidden_ids
+
+
+def test_every_public_cli_command_has_working_help() -> None:
+    from lockknife_headless_cli import main
+
+    runner = CliRunner()
+    pending: list[tuple[click.Command, tuple[str, ...]]] = [(main.cli, ())]
+    checked = 0
+    while pending:
+        command, path = pending.pop()
+        result = runner.invoke(command, ["--help"])
+        assert result.exit_code == 0, (path, result.output, result.exception)
+        assert "Usage:" in result.output, path
+        checked += 1
+        if isinstance(command, click.Group):
+            pending.extend(
+                (child, (*path, name))
+                for name, child in command.commands.items()
+                if not child.hidden
+            )
+    assert checked > 1

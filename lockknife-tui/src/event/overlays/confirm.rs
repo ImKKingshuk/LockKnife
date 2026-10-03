@@ -1,6 +1,6 @@
 use crossterm::event::{Event, KeyCode, KeyEvent};
 
-use crate::app::{App, ConfirmState, Overlay};
+use crate::app::{App, ConfirmState, Overlay, PromptTarget};
 
 use super::prompt::submit_prompt;
 
@@ -14,7 +14,13 @@ pub(in crate::event) fn handle_confirm(
             KeyCode::Char('y') | KeyCode::Char('Y') => {
                 let target = state.target.clone();
                 let params = state.params.clone();
-                submit_prompt(app, target, params);
+                match target {
+                    PromptTarget::Action {
+                        module_index,
+                        action_index,
+                    } => app.execute_action(module_index, action_index, params),
+                    _ => submit_prompt(app, target, params),
+                }
                 return (
                     false,
                     if state.resume_config_on_submit {

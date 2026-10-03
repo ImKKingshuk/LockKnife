@@ -26,6 +26,7 @@ fn none_callback() -> pyo3::Py<pyo3::PyAny> {
 
 mod action_menu;
 mod config;
+mod dispatcher;
 mod main_shortcuts;
 mod prompt_submit;
 mod result_view;
