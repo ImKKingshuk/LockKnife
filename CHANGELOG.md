@@ -6,6 +6,8 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 ### Fixed
 
+- Unified Python action forms and native fallback forms in one packaged catalog, including device requirements, confirmations, defaults, and choices.
+- Replaced regex-based action discovery with syntax-aware parsing and rejected catalog/handler drift.
 - Made interrupted case migration retryable and prevented case initialization from replacing existing evidence inventories.
 - Enforced append-only audit rows, added event-chain verification to integrity reports, and included consistent SQLite backups in case bundles.
 - Made compatibility manifests atomic and serialized snapshot writers to prevent stale or partial snapshots.

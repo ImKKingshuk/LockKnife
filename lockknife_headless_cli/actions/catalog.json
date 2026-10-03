@@ -1,0 +1,4089 @@
+{
+  "modules": [
+    {
+      "actions": [
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": 6,
+              "key": "length",
+              "kind": "number",
+              "label": "PIN length"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output_dir",
+              "kind": "text",
+              "label": "Output directory"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "credentials.pin",
+          "label": "PIN brute-force",
+          "requires_device": true
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "output_dir",
+              "kind": "text",
+              "label": "Output directory"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "credentials.gesture",
+          "label": "Gesture recovery",
+          "requires_device": true
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "output_dir",
+              "kind": "text",
+              "label": "Output directory"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "credentials.wifi",
+          "label": "WiFi passwords",
+          "requires_device": true
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "output_dir",
+              "kind": "text",
+              "label": "Output directory"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "credentials.keystore",
+          "label": "Keystore listing",
+          "requires_device": true
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": 200,
+              "key": "limit",
+              "kind": "number",
+              "label": "Artifact limit"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output_dir",
+              "kind": "text",
+              "label": "Output directory"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "credentials.passkeys",
+          "label": "Passkey export",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "hash",
+              "kind": "text",
+              "label": "Target hash (hex)"
+            },
+            {
+              "choices": [
+                "sha1",
+                "sha256"
+              ],
+              "default": "sha256",
+              "key": "algo",
+              "kind": "choice",
+              "label": "Algorithm"
+            },
+            {
+              "choices": [],
+              "default": 6,
+              "key": "length",
+              "kind": "number",
+              "label": "PIN length"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "credentials.offline_pin",
+          "label": "Offline PIN brute-force",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "hash",
+              "kind": "text",
+              "label": "Target hash (hex)"
+            },
+            {
+              "choices": [
+                "sha1",
+                "sha256",
+                "sha512"
+              ],
+              "default": "sha256",
+              "key": "algo",
+              "kind": "choice",
+              "label": "Algorithm"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "wordlist",
+              "kind": "text",
+              "label": "Wordlist path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "credentials.offline_password",
+          "label": "Offline password crack",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "hash",
+              "kind": "text",
+              "label": "Target hash (hex)"
+            },
+            {
+              "choices": [
+                "sha1",
+                "sha256",
+                "sha512"
+              ],
+              "default": "sha256",
+              "key": "algo",
+              "kind": "choice",
+              "label": "Algorithm"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "wordlist",
+              "kind": "text",
+              "label": "Wordlist path"
+            },
+            {
+              "choices": [],
+              "default": 100,
+              "key": "max_suffix",
+              "kind": "number",
+              "label": "Max suffix"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "credentials.offline_password_rules",
+          "label": "Offline password with rules",
+          "requires_device": false
+        }
+      ],
+      "id": "credentials",
+      "label": "Credentials"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": 200,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            },
+            {
+              "choices": [
+                "json",
+                "csv"
+              ],
+              "default": "json",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "extraction.sms",
+          "label": "SMS",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": 200,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            },
+            {
+              "choices": [
+                "json",
+                "csv"
+              ],
+              "default": "json",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "extraction.contacts",
+          "label": "Contacts",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": 200,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            },
+            {
+              "choices": [
+                "json",
+                "csv"
+              ],
+              "default": "json",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "extraction.call_logs",
+          "label": "Call logs",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [
+                "chrome",
+                "edge",
+                "brave",
+                "opera",
+                "firefox"
+              ],
+              "default": "chrome",
+              "key": "app",
+              "kind": "choice",
+              "label": "App"
+            },
+            {
+              "choices": [
+                "history",
+                "bookmarks",
+                "downloads",
+                "cookies",
+                "passwords",
+                "all"
+              ],
+              "default": "history",
+              "key": "kind",
+              "kind": "choice",
+              "label": "Kind"
+            },
+            {
+              "choices": [],
+              "default": 200,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            },
+            {
+              "choices": [
+                "json",
+                "csv"
+              ],
+              "default": "json",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "extraction.browser",
+          "label": "Browser",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [
+                "whatsapp",
+                "telegram",
+                "signal"
+              ],
+              "default": "whatsapp",
+              "key": "app",
+              "kind": "choice",
+              "label": "App"
+            },
+            {
+              "choices": [
+                "messages",
+                "artifacts"
+              ],
+              "default": "messages",
+              "key": "mode",
+              "kind": "choice",
+              "label": "Mode"
+            },
+            {
+              "choices": [],
+              "default": 200,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            },
+            {
+              "choices": [
+                "json",
+                "csv"
+              ],
+              "default": "json",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "extraction.messaging",
+          "label": "Messaging",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": 20,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            },
+            {
+              "choices": [
+                "json",
+                "csv"
+              ],
+              "default": "json",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "extraction.media",
+          "label": "Media + EXIF",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [
+                "artifacts",
+                "snapshot"
+              ],
+              "default": "artifacts",
+              "key": "mode",
+              "kind": "choice",
+              "label": "Mode"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "extraction.location",
+          "label": "Location artifacts",
+          "requires_device": true
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": 200,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit per category"
+            },
+            {
+              "choices": [
+                "json",
+                "csv"
+              ],
+              "default": "json",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output_dir",
+              "kind": "text",
+              "label": "Output directory"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "extraction.all",
+          "label": "Extract all artifacts",
+          "requires_device": true
+        }
+      ],
+      "id": "extraction",
+      "label": "Extraction"
+    },
+    {
+      "actions": [
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "snapshot.tar",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional if case dir set)"
+            },
+            {
+              "choices": [],
+              "default": false,
+              "key": "full",
+              "kind": "bool",
+              "label": "Full snapshot"
+            },
+            {
+              "choices": [],
+              "default": false,
+              "key": "encrypt",
+              "kind": "bool",
+              "label": "Encrypt"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "forensics.snapshot",
+          "label": "Snapshot",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "SQLite path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "forensics.sqlite",
+          "label": "SQLite analyzer",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "sms",
+              "kind": "text",
+              "label": "SMS JSON path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "calls",
+              "kind": "text",
+              "label": "Call logs JSON path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "browser",
+              "kind": "text",
+              "label": "Browser JSON path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "messaging",
+              "kind": "text",
+              "label": "Messaging JSON path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "media",
+              "kind": "text",
+              "label": "Media JSON path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "location",
+              "kind": "text",
+              "label": "Location JSON path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "parsed_artifacts",
+              "kind": "text",
+              "label": "Parsed artifacts JSON path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "timeline.json",
+              "key": "output",
+              "kind": "text",
+              "label": "Output JSON path (optional if case dir set)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "forensics.timeline",
+          "label": "Timeline",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "Artifact or app-data directory"
+            },
+            {
+              "choices": [],
+              "default": "parsed_artifacts.json",
+              "key": "output",
+              "kind": "text",
+              "label": "Output JSON path (optional if case dir set)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "forensics.parse",
+          "label": "Parse artifact directory",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "input_dir",
+              "kind": "text",
+              "label": "ALEAPP output directory"
+            },
+            {
+              "choices": [],
+              "default": "aleapp_import.json",
+              "key": "output",
+              "kind": "text",
+              "label": "Output JSON path (optional if case dir set)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "forensics.import_aleapp",
+          "label": "Import ALEAPP artifacts",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "Protobuf blob path"
+            },
+            {
+              "choices": [],
+              "default": "protobuf.json",
+              "key": "output",
+              "kind": "text",
+              "label": "Output JSON path (optional if case dir set)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "forensics.decode_protobuf",
+          "label": "Decode protobuf blob",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "inputs",
+              "kind": "text",
+              "label": "JSON paths (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "forensics.correlate",
+          "label": "Correlate artifacts",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "SQLite path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "forensics.recover",
+          "label": "Recover deleted",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "Image or SQLite path"
+            },
+            {
+              "choices": [],
+              "default": "carved-output",
+              "key": "output_dir",
+              "kind": "text",
+              "label": "Output directory"
+            },
+            {
+              "choices": [
+                "auto",
+                "image",
+                "sqlite"
+              ],
+              "default": "auto",
+              "key": "source",
+              "kind": "choice",
+              "label": "Source"
+            },
+            {
+              "choices": [],
+              "default": 25,
+              "key": "max_matches",
+              "kind": "number",
+              "label": "Max matches"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "forensics.carve",
+          "label": "Carve deleted files",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "CASE123",
+              "key": "case_id",
+              "kind": "text",
+              "label": "Case ID"
+            },
+            {
+              "choices": [
+                "executive",
+                "technical"
+              ],
+              "default": "technical",
+              "key": "template",
+              "kind": "choice",
+              "label": "Template"
+            },
+            {
+              "choices": [
+                "html",
+                "pdf",
+                "json",
+                "csv"
+              ],
+              "default": "html",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": "report.html",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional if case dir set)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "artifacts",
+              "kind": "text",
+              "label": "Artifacts JSON path"
+            }
+          ],
+          "id": "report.generate",
+          "label": "Generate report",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "CASE123",
+              "key": "case_id",
+              "kind": "text",
+              "label": "Case ID (optional if case dir set)"
+            },
+            {
+              "choices": [],
+              "default": "Investigator",
+              "key": "examiner",
+              "kind": "text",
+              "label": "Examiner (optional if case dir set)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "evidence",
+              "kind": "text",
+              "label": "Evidence paths CSV (optional if case dir set)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "notes",
+              "kind": "text",
+              "label": "Notes"
+            },
+            {
+              "choices": [],
+              "default": "chain_of_custody.txt",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional if case dir set)"
+            },
+            {
+              "choices": [
+                "text",
+                "html"
+              ],
+              "default": "text",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": false,
+              "key": "sign",
+              "kind": "bool",
+              "label": "Detached-sign with GPG if available"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "gpg_key_id",
+              "kind": "text",
+              "label": "GPG key ID (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "report.chain_of_custody",
+          "label": "Chain of custody",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [
+                "json",
+                "text"
+              ],
+              "default": "json",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": "integrity.json",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional if case dir set)"
+            }
+          ],
+          "id": "report.integrity",
+          "label": "Integrity report",
+          "requires_device": false
+        }
+      ],
+      "id": "forensics",
+      "label": "Forensics"
+    },
+    {
+      "actions": [
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "capture.pcap",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional if case dir set)"
+            },
+            {
+              "choices": [],
+              "default": 30,
+              "key": "duration",
+              "kind": "number",
+              "label": "Duration (s)"
+            },
+            {
+              "choices": [],
+              "default": "any",
+              "key": "iface",
+              "kind": "text",
+              "label": "Interface"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "network.capture",
+          "label": "Capture PCAP",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "PCAP path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "network.summarize",
+          "label": "Summarize PCAP",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "PCAP path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "network.api_discovery",
+          "label": "API discovery",
+          "requires_device": false
+        }
+      ],
+      "id": "network",
+      "label": "Network"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "APK or DEX path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "apk.dex",
+          "label": "DEX headers",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "APK path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "apk.permissions",
+          "label": "Permissions",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "APK path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "apk.analyze",
+          "label": "Analyze",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "APK path"
+            },
+            {
+              "choices": [],
+              "default": "./apk_out",
+              "key": "output",
+              "kind": "text",
+              "label": "Output dir (optional if case dir set)"
+            },
+            {
+              "choices": [
+                "auto",
+                "unpack",
+                "apktool",
+                "jadx",
+                "hybrid"
+              ],
+              "default": "auto",
+              "key": "mode",
+              "kind": "choice",
+              "label": "Decompile mode"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "apk.decompile",
+          "label": "Decompile",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "APK path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "apk.vulnerability",
+          "label": "Vulnerability",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "rule",
+              "kind": "text",
+              "label": "YARA rule"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "Target APK"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "apk.scan",
+          "label": "YARA scan",
+          "requires_device": false
+        }
+      ],
+      "id": "apk",
+      "label": "APK Analysis"
+    },
+    {
+      "actions": [
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "app_id",
+              "kind": "text",
+              "label": "App ID"
+            },
+            {
+              "choices": [],
+              "default": "hook-session",
+              "key": "session_name",
+              "kind": "text",
+              "label": "Session name"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "script",
+              "kind": "text",
+              "label": "Script path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_id",
+              "kind": "text",
+              "label": "Device ID"
+            },
+            {
+              "choices": [
+                "spawn",
+                "attach"
+              ],
+              "default": "spawn",
+              "key": "attach_mode",
+              "kind": "choice",
+              "label": "Attach mode"
+            },
+            {
+              "choices": [],
+              "default": 1,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Initial wait seconds"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Session summary output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "runtime.hook",
+          "label": "Start hook session",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "app_id",
+              "kind": "text",
+              "label": "App ID"
+            },
+            {
+              "choices": [],
+              "default": "builtin-script",
+              "key": "session_name",
+              "kind": "text",
+              "label": "Session name"
+            },
+            {
+              "choices": [
+                "ssl_bypass",
+                "root_bypass",
+                "debug_bypass",
+                "crypto_intercept"
+              ],
+              "default": "ssl_bypass",
+              "key": "builtin_script",
+              "kind": "choice",
+              "label": "Built-in script"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_id",
+              "kind": "text",
+              "label": "Device ID"
+            },
+            {
+              "choices": [
+                "spawn",
+                "attach"
+              ],
+              "default": "spawn",
+              "key": "attach_mode",
+              "kind": "choice",
+              "label": "Attach mode"
+            },
+            {
+              "choices": [],
+              "default": 1,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Initial wait seconds"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Session summary output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "runtime.load_builtin_script",
+          "label": "Load built-in script",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "app_id",
+              "kind": "text",
+              "label": "App ID"
+            },
+            {
+              "choices": [],
+              "default": "ssl-bypass",
+              "key": "session_name",
+              "kind": "text",
+              "label": "Session name"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_id",
+              "kind": "text",
+              "label": "Device ID"
+            },
+            {
+              "choices": [
+                "spawn",
+                "attach"
+              ],
+              "default": "spawn",
+              "key": "attach_mode",
+              "kind": "choice",
+              "label": "Attach mode"
+            },
+            {
+              "choices": [],
+              "default": 1,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Initial wait seconds"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Session summary output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "runtime.bypass_ssl",
+          "label": "Start SSL bypass session",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "app_id",
+              "kind": "text",
+              "label": "App ID"
+            },
+            {
+              "choices": [],
+              "default": "root-bypass",
+              "key": "session_name",
+              "kind": "text",
+              "label": "Session name"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_id",
+              "kind": "text",
+              "label": "Device ID"
+            },
+            {
+              "choices": [
+                "spawn",
+                "attach"
+              ],
+              "default": "spawn",
+              "key": "attach_mode",
+              "kind": "choice",
+              "label": "Attach mode"
+            },
+            {
+              "choices": [],
+              "default": 1,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Initial wait seconds"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Session summary output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "runtime.bypass_root",
+          "label": "Start root bypass session",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "app_id",
+              "kind": "text",
+              "label": "App ID"
+            },
+            {
+              "choices": [],
+              "default": "trace-session",
+              "key": "session_name",
+              "kind": "text",
+              "label": "Session name"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "class",
+              "kind": "text",
+              "label": "Class"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "method",
+              "kind": "text",
+              "label": "Method"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_id",
+              "kind": "text",
+              "label": "Device ID"
+            },
+            {
+              "choices": [
+                "spawn",
+                "attach"
+              ],
+              "default": "spawn",
+              "key": "attach_mode",
+              "kind": "choice",
+              "label": "Attach mode"
+            },
+            {
+              "choices": [],
+              "default": 1,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Initial wait seconds"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Session summary output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "runtime.trace",
+          "label": "Start trace session",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "app_id",
+              "kind": "text",
+              "label": "App ID"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_id",
+              "kind": "text",
+              "label": "Device ID"
+            },
+            {
+              "choices": [
+                "spawn",
+                "attach"
+              ],
+              "default": "spawn",
+              "key": "attach_mode",
+              "kind": "choice",
+              "label": "Attach mode"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "session_kind",
+              "kind": "text",
+              "label": "Session kind (optional)"
+            }
+          ],
+          "id": "runtime.preflight",
+          "label": "Preflight",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "statuses",
+              "kind": "text",
+              "label": "Statuses (csv)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "session_kinds",
+              "kind": "text",
+              "label": "Kinds (csv)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "attach_modes",
+              "kind": "text",
+              "label": "Attach modes (csv)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "query",
+              "kind": "text",
+              "label": "Query"
+            },
+            {
+              "choices": [],
+              "default": 20,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            }
+          ],
+          "id": "runtime.sessions",
+          "label": "Session inventory",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "session_id",
+              "kind": "text",
+              "label": "Session ID"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "event_cursor",
+              "kind": "text",
+              "label": "Event cursor (optional)"
+            },
+            {
+              "choices": [],
+              "default": 100,
+              "key": "event_limit",
+              "kind": "number",
+              "label": "Event limit"
+            }
+          ],
+          "id": "runtime.session",
+          "label": "Session detail",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "session_id",
+              "kind": "text",
+              "label": "Session ID"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "script",
+              "kind": "text",
+              "label": "New script path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "builtin_script",
+              "kind": "text",
+              "label": "Built-in script name (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "script_label",
+              "kind": "text",
+              "label": "Script label (optional)"
+            },
+            {
+              "choices": [],
+              "default": 0.5,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Post-reload wait seconds"
+            }
+          ],
+          "id": "runtime.session_reload",
+          "label": "Reload session script",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "session_id",
+              "kind": "text",
+              "label": "Session ID"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "attach_mode",
+              "kind": "text",
+              "label": "Attach mode override (optional)"
+            },
+            {
+              "choices": [],
+              "default": 0.5,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Post-reconnect wait seconds"
+            }
+          ],
+          "id": "runtime.session_reconnect",
+          "label": "Reconnect session",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "session_id",
+              "kind": "text",
+              "label": "Session ID"
+            }
+          ],
+          "id": "runtime.session_stop",
+          "label": "Stop session",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "app_id",
+              "kind": "text",
+              "label": "App ID"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "pattern",
+              "kind": "text",
+              "label": "Pattern"
+            },
+            {
+              "choices": [],
+              "default": false,
+              "key": "hex",
+              "kind": "bool",
+              "label": "Hex pattern"
+            },
+            {
+              "choices": [],
+              "default": "r--",
+              "key": "protection",
+              "kind": "text",
+              "label": "Protection"
+            },
+            {
+              "choices": [],
+              "default": 30,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Timeout (s)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_id",
+              "kind": "text",
+              "label": "Device ID"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Result output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "runtime.memory_search",
+          "label": "Memory search",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "app_id",
+              "kind": "text",
+              "label": "App ID"
+            },
+            {
+              "choices": [],
+              "default": "/sdcard/lockknife.hprof",
+              "key": "output",
+              "kind": "text",
+              "label": "Remote output path"
+            },
+            {
+              "choices": [],
+              "default": 30,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Timeout (s)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_id",
+              "kind": "text",
+              "label": "Device ID"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "result_output",
+              "kind": "text",
+              "label": "Result output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "runtime.heap_dump",
+          "label": "Heap dump",
+          "requires_device": false
+        }
+      ],
+      "id": "runtime",
+      "label": "Runtime"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "security.audit",
+          "label": "Device audit",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "security.selinux",
+          "label": "SELinux status",
+          "requires_device": true
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "rule",
+              "kind": "text",
+              "label": "YARA rule"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "security.malware",
+          "label": "Malware scan",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "security.network_scan",
+          "label": "Network scan",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "security.bootloader",
+          "label": "Bootloader",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "security.hardware",
+          "label": "Hardware security",
+          "requires_device": true
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "package",
+              "kind": "text",
+              "label": "Package name for live probes (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "serial",
+              "kind": "text",
+              "label": "Device serial for safe probes (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "apk",
+              "kind": "text",
+              "label": "APK path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "artifacts",
+              "kind": "text",
+              "label": "APK analysis or attack-surface JSON path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "security.attack_surface",
+          "label": "Attack surface",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "artifacts",
+              "kind": "text",
+              "label": "Artifacts JSON path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "security.owasp",
+          "label": "OWASP MASTG mapping",
+          "requires_device": false
+        }
+      ],
+      "id": "security",
+      "label": "Security Audit"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "input",
+              "kind": "text",
+              "label": "Input JSON path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "composite_rules",
+              "kind": "text",
+              "label": "Composite rules JSON path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "intelligence.ioc",
+          "label": "IOC detection",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "package",
+              "kind": "text",
+              "label": "Package name"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "intelligence.cve",
+          "label": "CVE correlation",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "hash",
+              "kind": "text",
+              "label": "SHA256 (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "url",
+              "kind": "text",
+              "label": "URL (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "domain",
+              "kind": "text",
+              "label": "Domain (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "ip",
+              "kind": "text",
+              "label": "IPv4 address (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "submit_url",
+              "kind": "text",
+              "label": "Submit URL for analysis (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "intelligence.virustotal",
+          "label": "VirusTotal lookup",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "34",
+              "key": "sdk",
+              "kind": "text",
+              "label": "Android SDK level (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "kernel_version",
+              "kind": "text",
+              "label": "Kernel version (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "intelligence.cve_risk",
+          "label": "Android/kernel CVE risk",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "indicator",
+              "kind": "text",
+              "label": "Indicator"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "intelligence.otx",
+          "label": "OTX reputation",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "url",
+              "kind": "text",
+              "label": "STIX URL"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "intelligence.stix",
+          "label": "STIX feed",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "api_root",
+              "kind": "text",
+              "label": "API root URL"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "collection_id",
+              "kind": "text",
+              "label": "Collection ID"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "token",
+              "kind": "text",
+              "label": "Bearer token"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "username",
+              "kind": "text",
+              "label": "Username"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "password",
+              "kind": "text",
+              "label": "Password"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "added_after",
+              "kind": "text",
+              "label": "Added after (ISO)"
+            },
+            {
+              "choices": [],
+              "default": 2000,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "intelligence.taxii",
+          "label": "TAXII feed",
+          "requires_device": false
+        }
+      ],
+      "id": "intelligence",
+      "label": "Intelligence"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "CASE-001",
+              "key": "case_id",
+              "kind": "text",
+              "label": "Case ID"
+            },
+            {
+              "choices": [],
+              "default": "Examiner",
+              "key": "examiner",
+              "kind": "text",
+              "label": "Examiner"
+            },
+            {
+              "choices": [],
+              "default": "Investigation",
+              "key": "title",
+              "kind": "text",
+              "label": "Title"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "notes",
+              "kind": "text",
+              "label": "Notes"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "target_serials",
+              "kind": "text",
+              "label": "Target serials (comma)"
+            }
+          ],
+          "id": "case.init",
+          "label": "Init workspace",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "categories",
+              "kind": "text",
+              "label": "Categories (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "exclude_categories",
+              "kind": "text",
+              "label": "Exclude categories (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "source_commands",
+              "kind": "text",
+              "label": "Source commands (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_serials",
+              "kind": "text",
+              "label": "Device serials (comma)"
+            }
+          ],
+          "id": "case.summary",
+          "label": "Summary",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "categories",
+              "kind": "text",
+              "label": "Categories (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "exclude_categories",
+              "kind": "text",
+              "label": "Exclude categories (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "source_commands",
+              "kind": "text",
+              "label": "Source commands (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_serials",
+              "kind": "text",
+              "label": "Device serials (comma)"
+            }
+          ],
+          "id": "case.graph",
+          "label": "Lineage graph",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "query",
+              "kind": "text",
+              "label": "Query"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "path_contains",
+              "kind": "text",
+              "label": "Path contains"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "metadata_contains",
+              "kind": "text",
+              "label": "Metadata contains"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "categories",
+              "kind": "text",
+              "label": "Categories (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "exclude_categories",
+              "kind": "text",
+              "label": "Exclude categories (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "source_commands",
+              "kind": "text",
+              "label": "Source commands (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_serials",
+              "kind": "text",
+              "label": "Device serials (comma)"
+            },
+            {
+              "choices": [],
+              "default": 100,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            }
+          ],
+          "id": "case.artifacts",
+          "label": "Artifact search",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "artifact_id",
+              "kind": "text",
+              "label": "Artifact ID"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "Artifact path"
+            }
+          ],
+          "id": "case.artifact",
+          "label": "Artifact detail",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "artifact_id",
+              "kind": "text",
+              "label": "Artifact ID"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "Artifact path"
+            }
+          ],
+          "id": "case.lineage",
+          "label": "Artifact lineage",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output archive"
+            },
+            {
+              "choices": [],
+              "default": true,
+              "key": "include_registered_artifacts",
+              "kind": "bool",
+              "label": "Include registered artifacts"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "categories",
+              "kind": "text",
+              "label": "Categories (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "exclude_categories",
+              "kind": "text",
+              "label": "Exclude categories (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "source_commands",
+              "kind": "text",
+              "label": "Source commands (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_serials",
+              "kind": "text",
+              "label": "Device serials (comma)"
+            }
+          ],
+          "id": "case.export",
+          "label": "Export bundle",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "artifact_id",
+              "kind": "text",
+              "label": "Seed artifact ID (optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "categories",
+              "kind": "text",
+              "label": "Categories (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "exclude_categories",
+              "kind": "text",
+              "label": "Exclude categories (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "source_commands",
+              "kind": "text",
+              "label": "Source commands (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_serials",
+              "kind": "text",
+              "label": "Device serials (comma)"
+            },
+            {
+              "choices": [],
+              "default": 25,
+              "key": "limit",
+              "kind": "number",
+              "label": "Artifact limit"
+            },
+            {
+              "choices": [],
+              "default": 10,
+              "key": "reputation_limit",
+              "kind": "number",
+              "label": "Reputation lookup limit"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            }
+          ],
+          "id": "case.enrich",
+          "label": "Enrichment bundle",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "Artifact path"
+            },
+            {
+              "choices": [],
+              "default": "derived",
+              "key": "category",
+              "kind": "text",
+              "label": "Category"
+            },
+            {
+              "choices": [],
+              "default": "case register",
+              "key": "source_command",
+              "kind": "text",
+              "label": "Source command"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "device_serial",
+              "kind": "text",
+              "label": "Device serial"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "input_paths",
+              "kind": "text",
+              "label": "Input paths (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "parent_artifact_ids",
+              "kind": "text",
+              "label": "Parent artifact IDs (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "metadata_json",
+              "kind": "text",
+              "label": "Metadata JSON"
+            },
+            {
+              "choices": [
+                "auto",
+                "replace",
+                "duplicate",
+                "error"
+              ],
+              "default": "auto",
+              "key": "on_conflict",
+              "kind": "choice",
+              "label": "On conflict"
+            }
+          ],
+          "id": "case.register",
+          "label": "Register artifact",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "statuses",
+              "kind": "text",
+              "label": "Statuses (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "workflow_kinds",
+              "kind": "text",
+              "label": "Workflow kinds (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "action_ids",
+              "kind": "text",
+              "label": "Action IDs (comma)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "query",
+              "kind": "text",
+              "label": "Search query"
+            },
+            {
+              "choices": [],
+              "default": 25,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            }
+          ],
+          "id": "case.jobs",
+          "label": "Job history",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "job_id",
+              "kind": "text",
+              "label": "Job ID"
+            }
+          ],
+          "id": "case.job",
+          "label": "Job detail",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "job_id",
+              "kind": "text",
+              "label": "Job ID"
+            }
+          ],
+          "id": "case.resume_job",
+          "label": "Resume job",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "job_id",
+              "kind": "text",
+              "label": "Job ID"
+            }
+          ],
+          "id": "case.retry_job",
+          "label": "Retry job",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "session_id",
+              "kind": "text",
+              "label": "Session ID (optional)"
+            },
+            {
+              "choices": [],
+              "default": 50,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            }
+          ],
+          "id": "case.runtime_sessions",
+          "label": "Runtime sessions",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [
+                "json",
+                "txt",
+                "md"
+              ],
+              "default": "json",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            }
+          ],
+          "id": "case.chain_of_custody",
+          "label": "Chain of custody",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [
+                "json",
+                "txt",
+                "md"
+              ],
+              "default": "json",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            }
+          ],
+          "id": "case.integrity",
+          "label": "Integrity report",
+          "requires_device": false
+        }
+      ],
+      "id": "case",
+      "label": "Case Management"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "core.health",
+          "label": "Core health",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "core.doctor",
+          "label": "Dependency doctor",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "core.features",
+          "label": "Feature matrix",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "device.list",
+          "label": "List devices",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "serial",
+              "kind": "text",
+              "label": "Device serial"
+            }
+          ],
+          "id": "device.info",
+          "label": "Device info",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "192.0.2.1:5555",
+              "key": "host",
+              "kind": "text",
+              "label": "Host:port"
+            }
+          ],
+          "id": "device.connect",
+          "label": "Connect to device",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "serial",
+              "kind": "text",
+              "label": "Device serial"
+            },
+            {
+              "choices": [],
+              "default": "echo hello",
+              "key": "command",
+              "kind": "text",
+              "label": "Command"
+            },
+            {
+              "choices": [],
+              "default": 30,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Timeout (seconds)"
+            }
+          ],
+          "id": "device.shell",
+          "label": "Execute shell command",
+          "requires_device": false
+        }
+      ],
+      "id": "core",
+      "label": "Diagnostics"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "input",
+              "kind": "text",
+              "label": "Input JSON path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "features",
+              "kind": "text",
+              "label": "Feature keys (comma, optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "ai.anomaly_score",
+          "label": "Anomaly score",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "input",
+              "kind": "text",
+              "label": "Training data JSON path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "features",
+              "kind": "text",
+              "label": "Feature keys (comma)"
+            },
+            {
+              "choices": [],
+              "default": "label",
+              "key": "label",
+              "kind": "text",
+              "label": "Label key"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "model",
+              "kind": "text",
+              "label": "Model output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "ai.train_malware",
+          "label": "Train malware classifier",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "input",
+              "kind": "text",
+              "label": "Input JSON path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "model",
+              "kind": "text",
+              "label": "Model path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "ai.classify_malware",
+          "label": "Classify malware",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "wordlist",
+              "kind": "text",
+              "label": "Wordlist path"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "personal_data",
+              "kind": "text",
+              "label": "Personal/device data JSON path (optional)"
+            },
+            {
+              "choices": [],
+              "default": 50,
+              "key": "count",
+              "kind": "number",
+              "label": "Count"
+            },
+            {
+              "choices": [],
+              "default": 6,
+              "key": "min_len",
+              "kind": "number",
+              "label": "Min length"
+            },
+            {
+              "choices": [],
+              "default": 12,
+              "key": "max_len",
+              "kind": "number",
+              "label": "Max length"
+            },
+            {
+              "choices": [],
+              "default": null,
+              "key": "seed",
+              "kind": "number",
+              "label": "Seed"
+            },
+            {
+              "choices": [],
+              "default": 2,
+              "key": "markov_order",
+              "kind": "number",
+              "label": "Markov order"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "ai.predict_passwords",
+          "label": "Password predictor",
+          "requires_device": false
+        }
+      ],
+      "id": "ai",
+      "label": "AI"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "path",
+              "kind": "text",
+              "label": "SQLite path"
+            },
+            {
+              "choices": [],
+              "default": 5000,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            },
+            {
+              "choices": [],
+              "default": true,
+              "key": "lookup",
+              "kind": "bool",
+              "label": "Enrich addresses"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "crypto.wallets",
+          "label": "Wallet extraction",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "address",
+              "kind": "text",
+              "label": "Address"
+            },
+            {
+              "choices": [
+                "btc",
+                "eth"
+              ],
+              "default": "btc",
+              "key": "kind",
+              "kind": "choice",
+              "label": "Kind (btc/eth)"
+            },
+            {
+              "choices": [],
+              "default": 50,
+              "key": "limit",
+              "kind": "number",
+              "label": "Limit"
+            }
+          ],
+          "id": "crypto.transactions",
+          "label": "Wallet transactions",
+          "requires_device": false
+        }
+      ],
+      "id": "crypto",
+      "label": "Crypto Wallet"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "input_dir",
+              "kind": "text",
+              "label": "Input directory"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "patterns",
+              "kind": "text",
+              "label": "Patterns (comma, optional)"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "output",
+              "kind": "text",
+              "label": "Output path (optional)"
+            },
+            {
+              "choices": [],
+              "default": "./cases/CASE-001",
+              "key": "case_dir",
+              "kind": "text",
+              "label": "Case directory"
+            }
+          ],
+          "id": "analyze.evidence",
+          "label": "Analyze evidence directory",
+          "requires_device": false
+        }
+      ],
+      "id": "analyze",
+      "label": "Analysis"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [
+                "text",
+                "json"
+              ],
+              "default": "text",
+              "key": "format",
+              "kind": "choice",
+              "label": "Format"
+            },
+            {
+              "choices": [],
+              "default": false,
+              "key": "reload",
+              "kind": "bool",
+              "label": "Reload before listing"
+            }
+          ],
+          "id": "plugins.list",
+          "label": "List plugins",
+          "requires_device": false
+        }
+      ],
+      "id": "plugins",
+      "label": "Plugins"
+    },
+    {
+      "actions": [
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target IP"
+            }
+          ],
+          "id": "exploit.scan.adb_tcp",
+          "label": "Scan ADB-TCP",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "exploit.scan.wifi",
+          "label": "Scan WiFi",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "exploit.scan.bluetooth",
+          "label": "Scan Bluetooth",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "exploit.scan.hotspot",
+          "label": "Scan Hotspot",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "exploit.scan.usb",
+          "label": "Scan USB",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target IP"
+            }
+          ],
+          "id": "exploit.scan.zeroclick",
+          "label": "Scan Zero-Click",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "exploit.list_targets",
+          "label": "List Targets",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target_id",
+              "kind": "text",
+              "label": "Target ID"
+            }
+          ],
+          "id": "exploit.target.info",
+          "label": "Target Info",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target IP"
+            }
+          ],
+          "id": "exploit.run.adb_tcp",
+          "label": "Run ADB-TCP Exploit",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target BSSID"
+            }
+          ],
+          "id": "exploit.run.wifi",
+          "label": "Run WiFi Exploit",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target MAC"
+            }
+          ],
+          "id": "exploit.run.bluetooth",
+          "label": "Run Bluetooth Exploit",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target IP"
+            }
+          ],
+          "id": "exploit.run.hotspot",
+          "label": "Run Hotspot Exploit",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target IP"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "cve",
+              "kind": "text",
+              "label": "CVE ID"
+            }
+          ],
+          "id": "exploit.run.zeroclick",
+          "label": "Run Zero-Click Exploit",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "device",
+              "kind": "text",
+              "label": "Device ID"
+            },
+            {
+              "choices": [
+                "lock-bypass",
+                "backup-extract",
+                "content-access",
+                "intent-inject"
+              ],
+              "default": "lock-bypass",
+              "key": "operation",
+              "kind": "choice",
+              "label": "Operation"
+            }
+          ],
+          "id": "exploit.run.usb",
+          "label": "Run USB Exploit",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target IP"
+            },
+            {
+              "choices": [],
+              "default": "",
+              "key": "cve",
+              "kind": "text",
+              "label": "CVE ID"
+            }
+          ],
+          "id": "exploit.validate.cve",
+          "label": "Validate CVE",
+          "requires_device": false
+        },
+        {
+          "confirm": true,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target IP"
+            },
+            {
+              "choices": [
+                "media",
+                "network",
+                "bluetooth"
+              ],
+              "default": "media",
+              "key": "type",
+              "kind": "choice",
+              "label": "Chain Type"
+            }
+          ],
+          "id": "exploit.chain.execute",
+          "label": "Execute Exploit Chain",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "target",
+              "kind": "text",
+              "label": "Target IP"
+            }
+          ],
+          "id": "exploit.chain.validate",
+          "label": "Validate Exploit Chain",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "exploit.status",
+          "label": "Exploit Status",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "exploit.results",
+          "label": "Exploit Results",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [],
+          "id": "exploit.evidence.list",
+          "label": "List Evidence",
+          "requires_device": false
+        },
+        {
+          "confirm": false,
+          "fields": [
+            {
+              "choices": [],
+              "default": "",
+              "key": "evidence_id",
+              "kind": "text",
+              "label": "Evidence ID"
+            }
+          ],
+          "id": "exploit.evidence.view",
+          "label": "View Evidence",
+          "requires_device": false
+        },
+        {
+          "id": "exploit.zeroclick.fingerprint",
+          "label": "Fingerprint Target",
+          "requires_device": false,
+          "confirm": true,
+          "fields": [{"key": "target", "label": "Target", "kind": "text", "default": "", "required": true, "choices": []}]
+        },
+        {
+          "id": "exploit.zeroclick.cve_sync",
+          "label": "Synchronize CVE Intelligence",
+          "requires_device": false,
+          "confirm": true,
+          "fields": []
+        },
+        {
+          "id": "exploit.zeroclick.cve_query",
+          "label": "Query CVE Intelligence",
+          "requires_device": false,
+          "confirm": false,
+          "fields": [{"key": "cve_id", "label": "CVE ID", "kind": "text", "default": "", "required": true, "choices": []}]
+        }
+      ],
+      "id": "exploit",
+      "label": "Exploitation"
+    }
+  ],
+  "schema_version": 1
+}

@@ -320,7 +320,7 @@ fn catalog_modules_array(value: &Value) -> Option<&Vec<Value>> {
     value.get("modules").and_then(Value::as_array)
 }
 
-fn parse_catalog_module(value: &Value) -> Option<ModuleEntry> {
+pub(super) fn parse_catalog_module(value: &Value) -> Option<ModuleEntry> {
     let id = trimmed_string(value, "id")?;
     let label = trimmed_string(value, "label").unwrap_or_else(|| id.clone());
     let actions: Vec<ModuleAction> = value

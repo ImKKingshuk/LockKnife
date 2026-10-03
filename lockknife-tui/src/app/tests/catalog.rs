@@ -1,6 +1,38 @@
 use super::*;
 
 #[test]
+fn shared_catalog_has_unique_actions_and_fields_without_parse_loss() {
+    let raw: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../lockknife_headless_cli/actions/catalog.json"
+    ))
+    .unwrap();
+    let modules = default_modules();
+    assert_eq!(raw["modules"].as_array().unwrap().len(), modules.len());
+    let mut ids = std::collections::HashSet::new();
+    for (source, module) in raw["modules"].as_array().unwrap().iter().zip(&modules) {
+        assert_eq!(
+            source["actions"].as_array().unwrap().len(),
+            module.actions.len()
+        );
+        for (source_action, action) in source["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .zip(&module.actions)
+        {
+            assert!(ids.insert(&action.id), "duplicate {}", action.id);
+            assert_eq!(
+                source_action["fields"].as_array().unwrap().len(),
+                action.fields.len()
+            );
+            let mut keys = std::collections::HashSet::new();
+            assert!(action.fields.iter().all(|field| keys.insert(&field.key)));
+        }
+    }
+    assert_eq!(ids.len(), 120);
+}
+
+#[test]
 fn default_modules_include_case_management_actions() {
     let modules = default_modules();
     let case_module = modules

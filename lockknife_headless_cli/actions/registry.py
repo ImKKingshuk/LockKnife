@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import ast
 import inspect
 import json
-import re
+import textwrap
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol, cast
 
 import click
+
+from lockknife_headless_cli.actions.metadata import load_action_metadata
 
 ActionFieldKind = Literal["text", "number", "bool", "choice", "path", "json"]
 ActionHandler = Callable[[Any, str, dict[str, Any]], dict[str, Any] | None]
@@ -175,16 +178,35 @@ class ActionRegistry:
         module_label: str | None = None,
         cb: Any,
         hidden: Iterable[str] = (),
+        metadata: Mapping[str, Mapping[str, Any]] | None = None,
     ) -> None:
         hidden_ids = set(hidden)
         for action_id in _extract_handler_action_ids(handler):
             module_id, _, slug = action_id.partition(".")
+            spec = (metadata or {}).get(action_id, {})
             self.register(
                 ActionDefinition(
                     id=action_id,
-                    module_id=module_id,
-                    module_label=module_label or module_id.replace("_", " ").title(),
-                    label=slug.replace("_", " ").replace(".", " ").title() or action_id,
+                    module_id=spec.get("module_id", module_id),
+                    module_label=spec.get(
+                        "module_label", module_label or module_id.replace("_", " ").title()
+                    ),
+                    label=spec.get(
+                        "label", slug.replace("_", " ").replace(".", " ").title() or action_id
+                    ),
+                    fields=tuple(
+                        ActionField(
+                            key=item["key"],
+                            label=item["label"],
+                            kind=item["kind"],
+                            required=item.get("required", False),
+                            default=item.get("default"),
+                            choices=tuple(item.get("choices", ())),
+                        )
+                        for item in spec.get("fields", ())
+                    ),
+                    requires_device=spec.get("requires_device", False),
+                    confirm=spec.get("confirm", False),
                     hidden=action_id in hidden_ids,
                     capability=_capability_for_action(action_id),
                     cli=_cli_binding_for_action(action_id),
@@ -252,9 +274,29 @@ class ActionRegistry:
 
 
 def _extract_handler_action_ids(handler: HandlerAdapter) -> list[str]:
-    source = inspect.getsource(handler)
-    ids = re.findall(r'action\s*==\s*"([^"]+)"', source)
-    return sorted(dict.fromkeys(ids))
+    tree = ast.parse(textwrap.dedent(inspect.getsource(handler)))
+    ids: set[str] = set()
+    for node in ast.walk(tree):
+        if (
+            not isinstance(node, ast.Compare)
+            or not isinstance(node.left, ast.Name)
+            or node.left.id != "action"
+        ):
+            continue
+        for operator, right in zip(node.ops, node.comparators, strict=True):
+            if (
+                isinstance(operator, ast.Eq)
+                and isinstance(right, ast.Constant)
+                and isinstance(right.value, str)
+            ):
+                ids.add(right.value)
+            elif isinstance(operator, ast.In) and isinstance(right, (ast.Tuple, ast.List, ast.Set)):
+                ids.update(
+                    item.value
+                    for item in right.elts
+                    if isinstance(item, ast.Constant) and isinstance(item.value, str)
+                )
+    return sorted(ids)
 
 
 def _adapter(handler: HandlerAdapter, cb: Any) -> ActionHandler:
@@ -370,8 +412,18 @@ def _field_from_click_param(param: click.Parameter) -> ActionField:
 
 def build_default_registry(handlers: Iterable[HandlerAdapter], *, cb: Any) -> ActionRegistry:
     registry = ActionRegistry()
+    metadata = load_action_metadata()
     for handler in handlers:
-        registry.register_handler_group(handler, cb=cb, hidden=DEFAULT_HIDDEN_ACTION_IDS)
+        registry.register_handler_group(
+            handler, cb=cb, hidden=DEFAULT_HIDDEN_ACTION_IDS, metadata=metadata
+        )
+    registered = {action.id for action in registry.actions()}
+    missing = registered - metadata.keys() - DEFAULT_HIDDEN_ACTION_IDS
+    orphaned = metadata.keys() - registered
+    if missing or orphaned:
+        raise ValueError(
+            f"Action catalog/handler mismatch: missing={sorted(missing)}, orphaned={sorted(orphaned)}"
+        )
     return registry
 
 

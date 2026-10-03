@@ -156,6 +156,7 @@ python-source = "."
 python-packages = ["lockknife", "lockknife_headless_cli"]
 include = [
   { path = "lockknife_headless_cli/**/*.py", format = ["sdist", "wheel"] },
+  { path = "lockknife_headless_cli/actions/catalog.json", format = ["sdist", "wheel"] },
 ]
 
 [dependency-groups]

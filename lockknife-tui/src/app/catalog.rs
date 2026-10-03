@@ -2,44 +2,21 @@ mod action_capabilities;
 mod action_descriptions;
 mod action_help;
 mod action_recovery;
-mod ai;
-mod analyze;
-mod apk;
-mod case;
-mod core;
-mod credentials;
-mod crypto;
-mod exploitation;
-mod extraction;
-mod fields;
-mod forensics;
-mod intelligence;
 mod module_metadata;
-mod network;
-mod plugins;
-mod runtime;
-mod security;
 
-use super::{CapabilityMetadata, ModuleEntry, PromptField};
+use super::{CapabilityMetadata, ModuleEntry};
 
 pub(crate) fn default_modules() -> Vec<ModuleEntry> {
-    vec![
-        credentials::build_module(),
-        extraction::build_module(),
-        forensics::build_module(),
-        network::build_module(),
-        apk::build_module(),
-        runtime::build_module(),
-        security::build_module(),
-        intelligence::build_module(),
-        case::build_module(),
-        core::build_module(),
-        ai::build_module(),
-        crypto::build_module(),
-        analyze::build_module(),
-        plugins::build_module(),
-        exploitation::build_module(),
-    ]
+    let catalog: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../lockknife_headless_cli/actions/catalog.json"
+    ))
+    .expect("packaged action catalog must be valid JSON");
+    catalog["modules"]
+        .as_array()
+        .expect("packaged action catalog must contain modules")
+        .iter()
+        .map(|value| super::config::parse_catalog_module(value).expect("invalid packaged module"))
+        .collect()
 }
 
 pub(super) fn module_description(module_id: &str) -> Option<&'static str> {
@@ -72,9 +49,4 @@ pub(super) fn module_recovery_hint(module_id: &str) -> Option<&'static str> {
 
 pub(super) fn action_recovery_hint(action_id: &str) -> Option<&'static str> {
     action_recovery::action_recovery_hint(action_id)
-}
-
-#[allow(dead_code)]
-pub(super) fn case_dir_field() -> PromptField {
-    fields::case_dir_field()
 }

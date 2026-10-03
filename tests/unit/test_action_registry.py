@@ -12,6 +12,7 @@ from lockknife_headless_cli.actions import (
     bind_click_commands,
     build_default_registry,
 )
+from lockknife_headless_cli.actions.metadata import load_action_metadata
 from lockknife_headless_cli.tui_callback import _HANDLERS, build_action_registry, build_tui_callback
 
 
@@ -181,3 +182,33 @@ def test_every_public_cli_command_has_working_help() -> None:
                 if not child.hidden
             )
     assert checked > 1
+
+
+def test_public_actions_have_complete_shared_form_metadata() -> None:
+    registry = build_action_registry()
+    metadata = load_action_metadata()
+    public = {action.id: action for action in registry.actions() if not action.hidden}
+    assert public.keys() == metadata.keys()
+    assert len(public) == 120
+    for action_id, action in public.items():
+        spec = metadata[action_id]
+        assert action.module_id == spec["module_id"]
+        assert action.confirm == spec["confirm"]
+        assert action.requires_device == spec["requires_device"]
+        assert [field.key for field in action.fields] == [field["key"] for field in spec["fields"]]
+    assert public["extraction.sms"].requires_device
+    assert public["exploit.run.wifi"].confirm
+    assert {field.key for field in public["extraction.sms"].fields} >= {"output", "case_dir"}
+
+
+def _grouped_handler(_app, action, _params, *, cb):
+    # A comment mentioning action == "demo.not_an_action" is not a registration.
+    if action in ("demo.first", "demo.second"):
+        return {"ok": True}
+    return None
+
+
+def test_action_discovery_parses_grouped_branches_and_ignores_comments() -> None:
+    registry = ActionRegistry()
+    registry.register_handler_group(_grouped_handler, cb=_Cb())
+    assert {action.id for action in registry.actions()} == {"demo.first", "demo.second"}
