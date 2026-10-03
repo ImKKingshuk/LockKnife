@@ -235,7 +235,9 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 output = pathlib.Path("./apk_out")
             else:
                 output = case_dir / "evidence" / f"apk_decompile_{_safe_name(path.stem)}"
-        report = decompile_apk_report(path, output, mode=mode)
+        report = decompile_apk_report(
+            path, output, mode=mode, timeout_s=_int_param(params.get("timeout")) or 300
+        )
         manifest_path = pathlib.Path(str(report.get("manifest_path") or output / "manifest.json"))
         report_path = pathlib.Path(
             str(report.get("report_path") or output / "decompile_report.json")

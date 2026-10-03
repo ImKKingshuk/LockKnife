@@ -1355,6 +1355,13 @@
             },
             {
               "choices": [],
+              "default": 300,
+              "key": "timeout",
+              "kind": "number",
+              "label": "Timeout per stage (seconds)"
+            },
+            {
+              "choices": [],
               "default": "./cases/CASE-001",
               "key": "case_dir",
               "kind": "text",

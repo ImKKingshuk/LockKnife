@@ -3,6 +3,7 @@ from __future__ import annotations
 import pathlib
 import shutil
 import subprocess  # nosec B404
+import zipfile
 from typing import Any
 
 from lockknife.modules.apk._decompile_archive import output_directory_overview, unpack_archive
@@ -38,8 +39,10 @@ def selected_decompile_mode(requested_mode: str, tools: dict[str, Any]) -> str:
 
 
 def run_decompile_pipeline(
-    apk_path: pathlib.Path, output_dir: pathlib.Path, *, requested_mode: str
+    apk_path: pathlib.Path, output_dir: pathlib.Path, *, requested_mode: str, timeout_s: float = 300
 ) -> dict[str, Any]:
+    if not 0 < timeout_s <= 3600:
+        raise ApkError("Decompile timeout must be between 0 and 3600 seconds")
     tools = available_decompile_tools()
     selected_mode = selected_decompile_mode(requested_mode, tools)
     pipelines: list[dict[str, Any]] = []
@@ -49,7 +52,56 @@ def run_decompile_pipeline(
     fallback_reason: str | None = None
 
     def _stage(name: str, command: list[str], stage_output_dir: pathlib.Path) -> dict[str, Any]:
-        return _run_external_stage(name, command, stage_output_dir)
+        command[0] = str(tools[name]["path"])
+        return _run_external_stage(name, command, stage_output_dir, timeout_s=timeout_s)
+
+    if requested_mode == "auto":
+        failures: list[dict[str, Any]] = []
+        for candidate in ("jadx", "apktool", "unpack"):
+            if candidate != "unpack" and not tools[candidate]["available"]:
+                continue
+            stage_dir = (
+                output_dir if candidate == "unpack" and not failures else output_dir / candidate
+            )
+            try:
+                if candidate == "unpack":
+                    stage = unpack_archive(apk_path, stage_dir)
+                else:
+                    command = (
+                        ["jadx", "-d", str(stage_dir), str(apk_path)]
+                        if candidate == "jadx"
+                        else ["apktool", "d", "-f", "-o", str(stage_dir), str(apk_path)]
+                    )
+                    stage = _stage(candidate, command, stage_dir)
+            except (ApkError, OSError, ValueError, zipfile.BadZipFile) as exc:
+                failures.append(
+                    {
+                        "name": candidate,
+                        "status": "failed",
+                        "error": str(exc),
+                        "output_dir": str(stage_dir),
+                    }
+                )
+                continue
+            return {
+                "requested_mode": requested_mode,
+                "selected_mode": selected_mode,
+                "effective_mode": candidate,
+                "fallback_applied": bool(failures),
+                "fallback_reason": "; ".join(item["error"] for item in failures) or None,
+                "failed_stages": failures,
+                "pipelines": [stage],
+                "positioning": decompile_positioning(candidate, tools),
+                "decompilation_depth": _decompilation_depth(candidate),
+                "tooling": tools,
+                "decompile_outputs": {candidate: str(stage_dir)},
+                "source_inventory": _build_source_inventory(
+                    output_dir, {candidate: str(stage_dir)}, candidate
+                ),
+            }
+        raise ApkError(
+            "All decompile stages failed: " + "; ".join(item["error"] for item in failures)
+        )
 
     if selected_mode == "unpack":
         pipelines.append(unpack_archive(apk_path, output_dir))
@@ -64,7 +116,7 @@ def run_decompile_pipeline(
             )
         )
         output_dirs["apktool"] = str(apktool_dir)
-    elif selected_mode == "jadx" and requested_mode != "auto":
+    elif selected_mode == "jadx":
         jadx_dir = output_dir / "jadx"
         pipelines.append(_stage("jadx", ["jadx", "-d", str(jadx_dir), str(apk_path)], jadx_dir))
         output_dirs["jadx"] = str(jadx_dir)
@@ -84,32 +136,6 @@ def run_decompile_pipeline(
         output_dirs.update(
             {"unpack": str(unpack_dir), "apktool": str(apktool_dir), "jadx": str(jadx_dir)}
         )
-
-    if requested_mode == "auto" and selected_mode == "jadx":
-        try:
-            jadx_dir = output_dir / "jadx"
-            pipelines = [_stage("jadx", ["jadx", "-d", str(jadx_dir), str(apk_path)], jadx_dir)]
-            output_dirs = {"jadx": str(jadx_dir)}
-        except ApkError as exc:
-            fallback_applied = True
-            fallback_reason = str(exc)
-            pipelines = []
-            output_dirs = {}
-            if tools["apktool"]["available"]:
-                apktool_dir = output_dir / "apktool"
-                pipelines.append(
-                    _stage(
-                        "apktool",
-                        ["apktool", "d", "-f", "-o", str(apktool_dir), str(apk_path)],
-                        apktool_dir,
-                    )
-                )
-                output_dirs["apktool"] = str(apktool_dir)
-                effective_mode = "apktool"
-            else:
-                pipelines.append(unpack_archive(apk_path, output_dir))
-                output_dirs["unpack"] = str(output_dir)
-                effective_mode = "unpack"
 
     source_inventory = _build_source_inventory(output_dir, output_dirs, effective_mode)
     return {
@@ -165,17 +191,28 @@ def decompile_positioning(selected_mode: str, tools: dict[str, Any]) -> dict[str
     }
 
 
-def _run_external_stage(name: str, command: list[str], output_dir: pathlib.Path) -> dict[str, Any]:
+def _run_external_stage(
+    name: str, command: list[str], output_dir: pathlib.Path, *, timeout_s: float = 300
+) -> dict[str, Any]:
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise ApkError(f"Decompile stage output is not empty: {output_dir}")
     try:
-        subprocess.run(command, check=True, capture_output=True, text=True)  # nosec B603
+        subprocess.run(command, check=True, capture_output=True, text=True, timeout=timeout_s)  # nosec B603
+    except subprocess.TimeoutExpired as exc:
+        raise ApkError(f"{name} timed out after {timeout_s:g} seconds") from exc
+    except OSError as exc:
+        raise ApkError(f"Unable to run {name}: {exc}") from exc
     except subprocess.CalledProcessError as exc:
         stderr = (exc.stderr or "").strip()
         raise ApkError(stderr or f"decompile pipeline failed: {' '.join(command)}") from exc
+    overview = output_directory_overview(output_dir)
+    if not overview["file_count"]:
+        raise ApkError(f"{name} completed without producing files")
     return {
         "name": name,
         "status": "completed",
         "output_dir": str(output_dir),
-        **output_directory_overview(output_dir),
+        **overview,
     }
 
 

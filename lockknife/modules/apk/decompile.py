@@ -114,16 +114,19 @@ def parse_apk_manifest(apk_path: pathlib.Path) -> dict[str, Any]:
 
 
 def decompile_apk_report(
-    apk_path: pathlib.Path, output_dir: pathlib.Path, *, mode: str = "auto"
+    apk_path: pathlib.Path, output_dir: pathlib.Path, *, mode: str = "auto", timeout_s: float = 300
 ) -> dict[str, Any]:
     if not apk_path.exists():
         raise ApkError(f"APK not found: {apk_path}")
-
+    if output_dir.exists() and (not output_dir.is_dir() or any(output_dir.iterdir())):
+        raise ApkError(f"Decompile output must be a new or empty directory: {output_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_info = parse_apk_manifest(apk_path)
     manifest_path = output_dir / "manifest.json"
     write_json(manifest_path, manifest_info)
-    pipeline = run_decompile_pipeline(apk_path, output_dir, requested_mode=mode)
+    pipeline = run_decompile_pipeline(
+        apk_path, output_dir, requested_mode=mode, timeout_s=timeout_s
+    )
 
     report_path = output_dir / "decompile_report.json"
     report = {
@@ -144,9 +147,9 @@ def decompile_apk_report(
 
 
 def decompile_apk(
-    apk_path: pathlib.Path, output_dir: pathlib.Path, *, mode: str = "auto"
+    apk_path: pathlib.Path, output_dir: pathlib.Path, *, mode: str = "auto", timeout_s: float = 300
 ) -> pathlib.Path:
-    decompile_apk_report(apk_path, output_dir, mode=mode)
+    decompile_apk_report(apk_path, output_dir, mode=mode, timeout_s=timeout_s)
     return output_dir
 
 

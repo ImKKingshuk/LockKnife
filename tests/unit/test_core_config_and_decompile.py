@@ -204,9 +204,11 @@ def test_decompile_apk_report_runs_selected_pipeline(monkeypatch, tmp_path) -> N
     )
     commands: list[list[str]] = []
 
-    def _run(command, check, capture_output, text):
+    def _run(command, check, capture_output, text, timeout):
         commands.append(command)
-        pathlib.Path(command[2]).mkdir(parents=True, exist_ok=True)
+        stage = pathlib.Path(command[2])
+        stage.mkdir(parents=True, exist_ok=True)
+        (stage / "Main.java").write_text("class Main {}")
         return subprocess.CompletedProcess(command, 0, stdout="ok", stderr="")
 
     monkeypatch.setattr(decomp_tools.subprocess, "run", _run)
@@ -218,7 +220,7 @@ def test_decompile_apk_report_runs_selected_pipeline(monkeypatch, tmp_path) -> N
     assert report["pipelines"][0]["name"] == "jadx"
     assert report["decompilation_depth"]["reconstructed_sources"] is True
     assert pathlib.Path(report["report_path"]).exists()
-    assert commands == [["jadx", "-d", str(tmp_path / "out" / "jadx"), str(apk)]]
+    assert commands == [["/usr/bin/jadx", "-d", str(tmp_path / "out" / "jadx"), str(apk)]]
 
 
 def test_decompile_auto_prefers_jadx_and_reports_depth_when_tools_exist(monkeypatch) -> None:
@@ -253,10 +255,12 @@ def test_decompile_auto_falls_back_when_jadx_fails(monkeypatch, tmp_path) -> Non
         lambda name: f"/usr/bin/{name}" if name in {"apktool", "jadx"} else None,
     )
 
-    def _run(command, check, capture_output, text):
-        if command[0] == "jadx":
+    def _run(command, check, capture_output, text, timeout):
+        if pathlib.Path(command[0]).name == "jadx":
             raise subprocess.CalledProcessError(1, command, output="", stderr="boom")
-        pathlib.Path(command[4]).mkdir(parents=True, exist_ok=True)
+        stage = pathlib.Path(command[4])
+        stage.mkdir(parents=True, exist_ok=True)
+        (stage / "AndroidManifest.xml").write_text("<manifest/>")
         return subprocess.CompletedProcess(command, 0, stdout="ok", stderr="")
 
     monkeypatch.setattr(decomp_tools.subprocess, "run", _run)

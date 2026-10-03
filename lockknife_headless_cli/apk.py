@@ -77,14 +77,26 @@ def _register_apk_output(
     show_default=True,
 )
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
+@click.option(
+    "--timeout",
+    "timeout_s",
+    type=click.IntRange(1, 3600),
+    default=300,
+    show_default=True,
+    help="Maximum seconds per external decompiler stage.",
+)
 def decompile_cmd(
-    apk_path: pathlib.Path, output: pathlib.Path | None, mode: str, case_dir: pathlib.Path | None
+    apk_path: pathlib.Path,
+    output: pathlib.Path | None,
+    mode: str,
+    case_dir: pathlib.Path | None,
+    timeout_s: int,
 ) -> None:
     if output is None:
         if case_dir is None:
             raise click.ClickException("Either --output or --case-dir is required")
         output = case_dir / "evidence" / f"apk_decompile_{_safe_name(apk_path.stem)}"
-    report = decompile_apk_report(apk_path, output, mode=mode.lower())
+    report = decompile_apk_report(apk_path, output, mode=mode.lower(), timeout_s=timeout_s)
     manifest_path = pathlib.Path(report["manifest_path"])
     report_path = pathlib.Path(report["report_path"])
     if case_dir is not None and manifest_path.exists():

@@ -63,7 +63,11 @@ def test_apk_network_intel_and_passkeys_case_registration(
     monkeypatch.setattr(apk_cli, "extract_dex_headers", lambda *_a, **_k: [])
 
     def _decompile(
-        _apk_path: pathlib.Path, output_dir: pathlib.Path, *, mode: str = "auto"
+        _apk_path: pathlib.Path,
+        output_dir: pathlib.Path,
+        *,
+        mode: str = "auto",
+        timeout_s: float = 300,
     ) -> dict[str, str]:
         output_dir.mkdir(parents=True, exist_ok=True)
         (output_dir / "manifest.json").write_text("{}", encoding="utf-8")
