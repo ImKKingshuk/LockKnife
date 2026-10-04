@@ -82,9 +82,9 @@ FEATURE_MATRIX: tuple[FeatureEntry, ...] = (
         "extraction",
         "Messaging artifacts",
         "lockknife extract messaging",
-        "best-effort",
+        "production-ready",
         "adb + app access",
-        "Coverage varies by app, encryption, and artifact location.",
+        "Modern WhatsApp 'message' table, WhatsApp Business, Signal SQLCipher passphrase recovery, and Telegram metadata.",
     ),
     FeatureEntry(
         "forensics",

@@ -30,9 +30,9 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             })
         }
         "extraction.messaging" => Some(CapabilityMetadata {
-            status: "best-effort",
+            status: "production-ready",
             requirements: "adb + app access",
-            notes: "Coverage varies by app, encryption scheme, and artifact location.",
+            notes: "Modern WhatsApp 'message' table, WhatsApp Business, Signal SQLCipher passphrase extraction, and Telegram metadata.",
         }),
         "extraction.sms"
         | "extraction.contacts"
