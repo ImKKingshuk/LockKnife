@@ -46,8 +46,10 @@ scoop update imkkingshuk/lockknife
 Download the matching wheel from [GitHub Releases](https://github.com/ImKKingshuk/LockKnife/releases). Use Python 3.12 or newer:
 
 ```bash
-python -m pip install /path/to/downloaded-wheel.whl
+python -m pip install /path/to/EXAMPLE_WHEEL.whl
 ```
+
+`/path/to/EXAMPLE_WHEEL.whl` is a dummy path. Replace it with the full path and filename of your downloaded wheel, including in the optional-feature commands below. Installation URLs and package-manager names are the actual locations needed to install LockKnife.
 
 Prebuilt wheels support Linux x86-64/ARM64, macOS Apple Silicon, and Windows x86-64. Choose the file matching your operating system and architecture.
 
@@ -85,8 +87,8 @@ If the device is not listed, check the USB cable, host permissions or drivers, a
 The `full` extra includes the packaged investigation extras, but not every external executable, a PDF renderer, or Bleak. For a wheel-based Python installation, select extras when installing the downloaded file:
 
 ```bash
-python -m pip install '/path/to/downloaded-wheel.whl[apk,network]'
-python -m pip install '/path/to/downloaded-wheel.whl[full]'
+python -m pip install '/path/to/EXAMPLE_WHEEL.whl[apk,network]'
+python -m pip install '/path/to/EXAMPLE_WHEEL.whl[full]'
 python -m pip install xhtml2pdf
 python -m pip install bleak
 ```

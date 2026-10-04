@@ -2,6 +2,8 @@
 
 Case files can contain messages, location history, account identifiers, credentials, app data, and other personal information. Collect only authorized data and keep it in private storage with appropriate access and retention controls.
 
+Paths containing `EXAMPLE_CASE` and the filename `example-case-bundle.zip` below are dummy examples. Substitute your case directory and chosen output path.
+
 ## Durable Case State
 
 `case_store.sqlite3` records case metadata, registered artifacts, tracked jobs, runtime sessions, and append-only audit events. `case_manifest.json` is a generated compatibility snapshot, not a second independent source of truth.
@@ -11,8 +13,8 @@ Use supported case commands to register and inspect artifacts. Avoid manually ed
 ## Integrity Checks
 
 ```bash
-lockknife --cli report integrity --case-dir ./cases/CASE-001 --format json
-lockknife --cli report chain-of-custody --case-dir ./cases/CASE-001 --format text
+lockknife --cli report integrity --case-dir ./cases/EXAMPLE_CASE --format json
+lockknife --cli report chain-of-custody --case-dir ./cases/EXAMPLE_CASE --format text
 ```
 
 Integrity checks compare registered artifact hashes and verify the case event chain. A hash chain alone does not prove who created evidence or detect every change to an entire replaced history. Preserve a trusted digest, signed record, or other independent custody reference when your procedures require it.
@@ -22,8 +24,8 @@ Explicit artifact sealing requires a supplied secret or `LOCKKNIFE_SIGNING_KEY`,
 ## Reports and Bundles
 
 ```bash
-lockknife --cli report generate --case-dir ./cases/CASE-001 --template technical --format html
-lockknife --cli case export --case-dir ./cases/CASE-001 --include-registered-artifacts --output ./case-001-bundle.zip
+lockknife --cli report generate --case-dir ./cases/EXAMPLE_CASE --template technical --format html
+lockknife --cli case export --case-dir ./cases/EXAMPLE_CASE --include-registered-artifacts --output ./example-case-bundle.zip
 ```
 
 Case bundles contain a consistent database snapshot and selected outputs. Reports and ZIP bundles are not encrypted by default and may expose evidence previews, examiner identifiers, filesystem paths, and application secrets.

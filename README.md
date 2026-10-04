@@ -89,16 +89,19 @@ Work interactively in a full-screen terminal interface or use focused CLI comman
 
 **Also included:** supported legacy PIN/password recovery, credential-artifact inspection, wallet forensics, optional log anomaly scoring, and Bluetooth, Wi-Fi, and TCP discovery or protocol tools. Rust-powered hashing, recovery, and native analysis helpers support demanding tasks.
 
+> [!NOTE]
+> Investigation examples use dummy identifiers and file paths, not real devices or evidence. Replace `EXAMPLE_*` values, `com.example.placeholder`, and example input paths with your authorized inputs before running a command. Installation links point to the actual project.
+
 <details>
 <summary><b>Android extraction and offline forensics</b> &nbsp; / &nbsp; See command examples</summary>
 
-Create a case first, replace `DEVICE_SERIAL` with your authorized device's serial, and substitute the input paths with your evidence files.
+Create a case first, replace `EXAMPLE_DEVICE_SERIAL` with your authorized device's serial, and substitute the input paths with your evidence files.
 
 ```bash
-lockknife --cli extract browser --serial DEVICE_SERIAL --app chrome --kind history --case-dir ./cases/CASE-001
-lockknife --cli extract messaging --serial DEVICE_SERIAL --app whatsapp --case-dir ./cases/CASE-001
-lockknife --cli forensics sqlite ./evidence/messages.db --case-dir ./cases/CASE-001
-lockknife --cli forensics correlate --input ./evidence/artifacts.json --case-dir ./cases/CASE-001
+lockknife --cli extract browser --serial EXAMPLE_DEVICE_SERIAL --app chrome --kind history --case-dir ./cases/EXAMPLE_CASE
+lockknife --cli extract messaging --serial EXAMPLE_DEVICE_SERIAL --app whatsapp --case-dir ./cases/EXAMPLE_CASE
+lockknife --cli forensics sqlite ./example-evidence/messages.db --case-dir ./cases/EXAMPLE_CASE
+lockknife --cli forensics correlate --input ./example-evidence/artifacts.json --case-dir ./cases/EXAMPLE_CASE
 ```
 
 Acquisition depends on permissions, app versions, and encryption. Protected paths may require root; collecting an encrypted database does not decrypt its messages. Carved records are recovery candidates, not automatic proof of deletion.
@@ -117,8 +120,8 @@ Acquisition depends on permissions, app versions, and encryption. Protected path
 | `hybrid` | Combined JADX and apktool output |
 
 ```bash
-lockknife --cli apk decompile ./target.apk --mode auto --output ./decompiled
-lockknife --cli apk scan --apk ./target.apk --yara ./rules/secrets.yar
+lockknife --cli apk decompile ./example-app.apk --mode auto --output ./example-decompiled
+lockknife --cli apk scan --apk ./example-app.apk --yara ./example-rules/example.yar
 ```
 
 Automated security findings require review. Archive unpacking is not source-code reconstruction.
@@ -129,8 +132,8 @@ Automated security findings require review. Archive unpacking is not source-code
 <summary><b>Frida runtime instrumentation</b> &nbsp; / &nbsp; Hooks and memory inspection</summary>
 
 ```bash
-lockknife --cli runtime bypass-ssl com.example.app --device-id DEVICE_SERIAL --case-dir ./cases/CASE-001
-lockknife --cli runtime memory-search com.example.app --device-id DEVICE_SERIAL --pattern "bearer"
+lockknife --cli runtime bypass-ssl com.example.placeholder --device-id EXAMPLE_DEVICE_SERIAL --case-dir ./cases/EXAMPLE_CASE
+lockknife --cli runtime memory-search com.example.placeholder --device-id EXAMPLE_DEVICE_SERIAL --pattern "EXAMPLE_SEARCH_TEXT"
 ```
 
 Frida requires a compatible target server and sufficient permissions. Built-in hooks depend on the app implementation and can change its behavior. Explicitly stop active sessions when your work is complete.
@@ -141,8 +144,8 @@ Frida requires a compatible target server and sufficient permissions. Built-in h
 <summary><b>Network forensics and device security</b> &nbsp; / &nbsp; Capture analysis and posture checks</summary>
 
 ```bash
-lockknife --cli network api-discovery ./evidence/capture.pcap --case-dir ./cases/CASE-001
-lockknife --cli security scan --serial DEVICE_SERIAL
+lockknife --cli network api-discovery ./example-evidence/capture.pcap --case-dir ./cases/EXAMPLE_CASE
+lockknife --cli security scan --serial EXAMPLE_DEVICE_SERIAL
 ```
 
 Device capture requires accessible on-device `tcpdump`. Encrypted traffic may conceal endpoints and payloads; reported device properties do not independently establish hardware security.
@@ -153,11 +156,11 @@ Device capture requires accessible on-device `tcpdump`. Encrypted traffic may co
 <summary><b>Credential recovery and wallet forensics</b> &nbsp; / &nbsp; Supported evidence workflows</summary>
 
 ```bash
-lockknife --cli crack pin --hash 7110eda4d09e062aa5e4a390b0a572ac0d2c0220 --algo sha1 --length 4
-lockknife --cli crypto-wallet scan-device --serial DEVICE_SERIAL --case-dir ./cases/CASE-001
+lockknife --cli crack pin --hash EXAMPLE_SHA1_HASH --algo sha1 --length 4
+lockknife --cli crypto-wallet scan-device --serial EXAMPLE_DEVICE_SERIAL --case-dir ./cases/EXAMPLE_CASE
 ```
 
-The PIN example uses the SHA-1 hash of the sample PIN `1234`. Credential tools support specific legacy hashes and accessible artifacts; they do not guarantee recovery of modern Android screen locks or hardware-backed private keys. Wallet workflows depend on the supported app format and available data.
+`EXAMPLE_SHA1_HASH` is a placeholder, not a usable hash. Replace it with the 40-character hexadecimal SHA-1 value you are authorized to test. Credential tools support specific legacy hashes and accessible artifacts; they do not guarantee recovery of modern Android screen locks or hardware-backed private keys. Wallet workflows depend on the supported app format and available data.
 
 </details>
 
@@ -200,10 +203,12 @@ scoop install imkkingshuk/lockknife
 Download the matching wheel from [GitHub Releases](https://github.com/ImKKingshuk/LockKnife/releases). Use Python 3.12 or newer:
 
 ```bash
-python -m pip install /path/to/downloaded-wheel.whl
+python -m pip install /path/to/EXAMPLE_WHEEL.whl
 ```
 
 Choose a wheel matching the operating system and architecture listed above.
+
+`/path/to/EXAMPLE_WHEEL.whl` is a dummy path. Replace it with the full path and filename of the wheel you downloaded.
 
 </details>
 
@@ -213,8 +218,8 @@ Choose a wheel matching the operating system and architecture listed above.
 For wheel installations, select the extras you need:
 
 ```bash
-python -m pip install '/path/to/downloaded-wheel.whl[apk,network]'
-python -m pip install '/path/to/downloaded-wheel.whl[full]'
+python -m pip install '/path/to/EXAMPLE_WHEEL.whl[apk,network]'
+python -m pip install '/path/to/EXAMPLE_WHEEL.whl[full]'
 ```
 
 | Extra | Enables |
@@ -281,24 +286,24 @@ lockknife --cli doctor
 lockknife --cli device list
 ```
 
-Replace `DEVICE_SERIAL` with a serial returned by `device list`. The examples use `./cases/CASE-001`; choose private storage for actual case data.
+Replace `EXAMPLE_DEVICE_SERIAL` with a serial returned by `device list`. The examples use `./cases/EXAMPLE_CASE`; choose private storage for actual case data.
 
 **2. Create a case and collect accessible evidence.**
 
 ```bash
-lockknife --cli case init --case-id CASE-001 --examiner "Analyst" --title "Android Assessment" --output ./cases/CASE-001
-lockknife --cli device info --serial DEVICE_SERIAL
-lockknife --cli extract sms --serial DEVICE_SERIAL --format json --case-dir ./cases/CASE-001
-lockknife --cli extract call-logs --serial DEVICE_SERIAL --format json --case-dir ./cases/CASE-001
+lockknife --cli case init --case-id EXAMPLE_CASE --examiner "EXAMPLE_EXAMINER" --title "Example Android Assessment" --output ./cases/EXAMPLE_CASE
+lockknife --cli device info --serial EXAMPLE_DEVICE_SERIAL
+lockknife --cli extract sms --serial EXAMPLE_DEVICE_SERIAL --format json --case-dir ./cases/EXAMPLE_CASE
+lockknife --cli extract call-logs --serial EXAMPLE_DEVICE_SERIAL --format json --case-dir ./cases/EXAMPLE_CASE
 ```
 
 **3. Review, verify, and report.**
 
 ```bash
-lockknife --cli case summary --case-dir ./cases/CASE-001
-lockknife --cli report integrity --case-dir ./cases/CASE-001 --format json
-lockknife --cli report generate --case-dir ./cases/CASE-001 --template technical --format html
-lockknife --cli case export --case-dir ./cases/CASE-001 --include-registered-artifacts --output ./case-001-bundle.zip
+lockknife --cli case summary --case-dir ./cases/EXAMPLE_CASE
+lockknife --cli report integrity --case-dir ./cases/EXAMPLE_CASE --format json
+lockknife --cli report generate --case-dir ./cases/EXAMPLE_CASE --template technical --format html
+lockknife --cli case export --case-dir ./cases/EXAMPLE_CASE --include-registered-artifacts --output ./example-case-bundle.zip
 ```
 
 Use the output paths printed by each command. HTML reports are available with the base installation; PDF requires an optional renderer. Reports and bundles are not encrypted by default, so review and protect them before sharing.

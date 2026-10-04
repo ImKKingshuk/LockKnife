@@ -8,10 +8,10 @@ Classic interactive mode provides numbered terminal menus for simple manual task
 lockknife --cli interactive
 ```
 
-To preselect an authorized device, replace `DEVICE_SERIAL` with a serial returned by `device list`:
+To preselect an authorized device, replace `EXAMPLE_DEVICE_SERIAL` with a serial returned by `device list`:
 
 ```bash
-lockknife --cli interactive --serial DEVICE_SERIAL
+lockknife --cli interactive --serial EXAMPLE_DEVICE_SERIAL
 ```
 
 ## Example Workflow

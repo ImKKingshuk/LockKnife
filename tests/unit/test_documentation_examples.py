@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pathlib
+import re
 import shlex
 from html.parser import HTMLParser
 from unittest.mock import Mock
@@ -56,7 +57,8 @@ def test_documented_commands_parse_without_execution(path, argv, monkeypatch):
     command = cli
     name = "lockknife"
     parent = None
-    remaining = list(argv)
+    # Substitute only the documented hash placeholder for syntax validation, never execution.
+    remaining = ["0" * 40 if arg == "EXAMPLE_SHA1_HASH" else arg for arg in argv]
     try:
         while True:
             if command.callback is not None:
@@ -87,6 +89,29 @@ def test_documented_commands_parse_without_execution(path, argv, monkeypatch):
 
 def test_documentation_has_examples():
     assert len(EXAMPLES) >= 50
+
+
+@pytest.mark.parametrize(
+    "path", (*DOCUMENTS, ROOT / "SECURITY.md", ROOT / "CHANGELOG.md"), ids=lambda p: p.name
+)
+def test_documentation_avoids_literal_hashes_and_personal_paths(path):
+    text = path.read_text()
+    assert not re.search(r"\b[0-9a-fA-F]{32,}\b", text), path
+    assert not re.search(r"/(?:Users|home)/[\w.-]+/", text), path
+
+
+@pytest.mark.parametrize("path,argv", EXAMPLES, ids=[" ".join(a) for _, a in EXAMPLES])
+def test_investigation_examples_use_dummy_identifiers(path, argv):
+    expected = {
+        "--hash": "EXAMPLE_SHA1_HASH",
+        "--serial": "EXAMPLE_DEVICE_SERIAL",
+        "--device-id": "EXAMPLE_DEVICE_SERIAL",
+        "--case-id": "EXAMPLE_CASE",
+        "--examiner": "EXAMPLE_EXAMINER",
+    }
+    for flag, value in expected.items():
+        if flag in argv:
+            assert argv[argv.index(flag) + 1] == value, path
 
 
 @pytest.mark.parametrize("path", (*DOCUMENTS, ROOT / "SECURITY.md"), ids=lambda p: p.name)

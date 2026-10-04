@@ -6,7 +6,7 @@ The full-screen interface provides case-aware forms for acquisition, analysis, r
 
 Run `lockknife --cli doctor` to check dependencies. Connect and authorize an Android device for device-backed actions; local evidence analysis does not require a connected device.
 
-The examples use `./cases/CASE-001` and the operator label `Analyst`. Choose a private storage location for your case data.
+The examples use the dummy directory `./cases/EXAMPLE_CASE` and dummy operator label `EXAMPLE_EXAMINER`. Replace these example values with your investigation's identifiers and choose a private storage location for your case data.
 
 ## 2. Create a Case
 
@@ -14,7 +14,7 @@ The examples use `./cases/CASE-001` and the operator label `Analyst`. Choose a p
 2. Enter **Case directory**, **Case ID**, **Examiner**, and **Title**.
 3. Submit the form and check the output panel for the workspace path.
 
-Example values are `./cases/CASE-001`, `CASE-001`, `Analyst`, and `Android Assessment`. The examiner value is recorded in case metadata and may appear in reports; use the identifier required by your investigation policy.
+Example values are `./cases/EXAMPLE_CASE`, `EXAMPLE_CASE`, `EXAMPLE_EXAMINER`, and `Example Android Assessment`. The examiner value is recorded in case metadata and may appear in reports; use the identifier required by your investigation policy.
 
 ## 3. Acquire Evidence
 
