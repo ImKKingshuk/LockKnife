@@ -3,3 +3,8 @@
 
 # Synthetic API-key marker embedded in the APK string-analysis fixture.
 7296dd2eddfc07e01fe619c9af0a1029813439c5:tests/unit/test_core_config_and_decompile.py:generic-api-key:158
+
+# Synthetic Bluetooth LinkKey fixture, not an operational credential.
+217a91efb6b5946c5adc603ef7ea80aa83a423fb:tests/unit/test_forensics_parsers_hardening.py:generic-api-key:87
+# Synthetic repeated Signal passphrase fixture, not an operational credential.
+ba462c40dab449b6c57d4cef5cef53ba613dab00:tests/unit/test_messaging_hardening.py:generic-api-key:144

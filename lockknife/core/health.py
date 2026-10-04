@@ -91,8 +91,12 @@ def doctor_status() -> dict[str, Any]:
     rust_ok = bool((core.get("checks") or {}).get("rust_extension", {}).get("ok"))
 
     apk = _check_module(
-        "androguard.core.bytecodes.apk", hint="Install APK support extras: uv sync --extra apk"
+        "androguard.core.apk", hint="Install APK support extras: uv sync --extra apk"
     )
+    if not apk["ok"]:
+        apk = _check_module(
+            "androguard.core.bytecodes.apk", hint="Install APK support extras: uv sync --extra apk"
+        )
     apktool = shutil.which("apktool")
     jadx = shutil.which("jadx")
     frida = _check_module("frida", hint="Install runtime extras: uv sync --extra frida")

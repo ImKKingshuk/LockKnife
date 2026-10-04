@@ -1,5 +1,7 @@
 import types
 
+import pytest
+
 
 def test_health_status_ok(monkeypatch) -> None:
     from lockknife.core import health as health_mod
@@ -56,7 +58,8 @@ def test_health_status_reports_errors(monkeypatch) -> None:
     assert "hint" in out["checks"]["rust_extension"]
 
 
-def test_doctor_status_includes_optional_checks(monkeypatch) -> None:
+@pytest.mark.parametrize("apk_module", ["androguard.core.apk", "androguard.core.bytecodes.apk"])
+def test_doctor_status_includes_optional_checks(monkeypatch, apk_module) -> None:
     from lockknife.core import health as health_mod
 
     monkeypatch.setattr(
@@ -72,7 +75,7 @@ def test_doctor_status_includes_optional_checks(monkeypatch) -> None:
 
     def fake_import(name: str):
         if name in {
-            "androguard.core.bytecodes.apk",
+            apk_module,
             "frida",
             "scapy",
             "vt",
@@ -94,6 +97,7 @@ def test_doctor_status_includes_optional_checks(monkeypatch) -> None:
     out = health_mod.doctor_status()
     assert out["ok"] is True
     assert out["optional"]["apk_analysis"]["ok"] is True
+    assert out["optional"]["apk_analysis"]["module"] == apk_module
     assert out["optional"]["apk_decompile_tools"]["ok"] is True
     assert out["optional"]["apk_decompile_tools"]["apktool"]["ok"] is True
     assert out["optional"]["virustotal"]["ok"] is True

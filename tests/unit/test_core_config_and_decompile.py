@@ -150,6 +150,11 @@ def test_apk_parse_manifest_with_stub(monkeypatch, tmp_path) -> None:
         "androguard.core.bytecodes.apk",
         types.SimpleNamespace(APK=_APK),
     )
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "androguard.core.apk",
+        types.SimpleNamespace(APK=_APK),
+    )
     apk = tmp_path / "a.apk"
     with zipfile.ZipFile(apk, "w") as archive:
         archive.writestr("AndroidManifest.xml", "<manifest/>")
