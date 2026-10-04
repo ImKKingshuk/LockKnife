@@ -10,7 +10,7 @@ def test_pin_recovery_happy_path(tmp_path) -> None:
 
     salt = 1234
     pin = "0420"
-    sha1_hex = lockknife_core.sha1_hex(f"{salt}{pin}".encode())
+    sha1_hex = lockknife_core.sha1_hex(f"{pin}{salt:x}".encode())
 
     db = tmp_path / "locksettings.db"
     import sqlite3
@@ -24,7 +24,7 @@ def test_pin_recovery_happy_path(tmp_path) -> None:
         con.close()
 
     key = tmp_path / "password.key"
-    key.write_bytes(bytes.fromhex(sha1_hex) + b"\x00" * 4)
+    key.write_bytes((sha1_hex.upper() + "00" * 16).encode("ascii"))
 
     class _Adb:
         def pull(

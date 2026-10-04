@@ -70,7 +70,7 @@ def try_root_staging_pull(
                 f"base64 {quoted}"
             )
             encoded = devices.shell(serial, "su -c " + sh_quote(command), timeout_s=timeout_s)
-            if len(encoded) > max_bytes * 2:
+            if not isinstance(encoded, str) or len(encoded) > max_bytes * 2:
                 return False
             content = base64.b64decode("".join(encoded.split()), validate=True)
             if not content or len(content) > max_bytes:

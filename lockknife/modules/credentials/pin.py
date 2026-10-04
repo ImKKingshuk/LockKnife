@@ -28,24 +28,31 @@ class PinRecovery:
 def _extract_salt_from_locksettings_db(db_path: pathlib.Path) -> int | None:
     if not db_path.exists() or db_path.stat().st_size == 0:
         return None
-    con = sqlite3.connect(str(db_path))
+    con = sqlite3.connect(db_path.resolve().as_uri() + "?mode=ro", uri=True)
     try:
         cur = con.cursor()
         cur.execute("SELECT value FROM locksettings WHERE name = ?", ("lockscreen.password_salt",))
         row = cur.fetchone()
         if not row or row[0] is None:
             return None
-        return int(row[0])
+        salt = int(row[0])
+        return salt if -(2**63) <= salt < 2**63 else None
     finally:
         con.close()
 
 
 def _extract_sha1_from_password_key(path: pathlib.Path) -> str | None:
-    if not path.exists() or path.stat().st_size < 20:
+    if not path.exists() or path.stat().st_size not in (20, 72):
         return None
     raw = path.read_bytes()
-    sha1 = raw[:20]
-    return sha1.hex()
+    if len(raw) == 20:
+        return raw.hex()
+    try:
+        encoded = raw.decode("ascii")
+        bytes.fromhex(encoded)
+    except (ValueError, UnicodeError):
+        return None
+    return encoded[:40].lower()
 
 
 def _try_pull_file_with_root(
@@ -79,10 +86,10 @@ def pull_locksettings_db(
 def pull_password_key(devices: DeviceManager, serial: str, out_dir: pathlib.Path) -> pathlib.Path:
     target = out_dir / "password.key"
     candidates = [
-        "/data/system/users/0/gatekeeper.password.key",
-        "/data/system/gatekeeper.password.key",
         "/data/system/users/0/password.key",
         "/data/system/password.key",
+        "/data/system/users/0/gatekeeper.password.key",
+        "/data/system/gatekeeper.password.key",
     ]
     for remote in candidates:
         if _try_pull_file_with_root(devices, serial, remote, target, timeout_s=60.0):
@@ -133,7 +140,7 @@ def export_pin_recovery(
         if _detect_synthetic_password(devices, serial):
             raise PinDataNotFound(
                 "Device uses modern Android Synthetic Password (spblob) / Gatekeeper hardware-backed encryption. "
-                "Offline SHA1 cracking is not possible without hardware TEE/weaver keys; live lockscreen bypass or runtime instrumentation is required."
+                "This hardware-protected format is not supported by legacy offline PIN recovery."
             ) from err
         raise PinDataNotFound(str(err)) from err
 
@@ -143,7 +150,7 @@ def export_pin_recovery(
         if _detect_synthetic_password(devices, serial):
             raise PinDataNotFound(
                 "Device uses modern Android Synthetic Password (spblob) / Gatekeeper hardware-backed encryption. "
-                "Offline SHA1 cracking is not possible without hardware TEE/weaver keys; live lockscreen bypass or runtime instrumentation is required."
+                "This hardware-protected format is not supported by legacy offline PIN recovery."
             )
         raise PinDataNotFound("Unable to locate salt/hash for PIN recovery")
 

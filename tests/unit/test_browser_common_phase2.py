@@ -1,3 +1,4 @@
+import base64
 import pathlib
 import sqlite3
 
@@ -34,13 +35,16 @@ class _Devices:
             return None
         raise DeviceError("permission denied")
 
+    def has_root(self, _serial: str) -> bool:
+        return True
+
     def shell(self, _serial: str, command: str, timeout_s: float = 20.0) -> str:
         self.shell_calls.append(command)
-        if self.shell_fails and "cp " in command:
+        if self.shell_fails and "base64 " in command:
             raise DeviceError("shell failed")
         if self.cleanup_fails and "rm -f" in command:
             raise DeviceError("cleanup failed")
-        return "ok"
+        return base64.b64encode(self.source_bytes).decode("ascii")
 
 
 def test_browser_common_helpers_and_root_pull(tmp_path: pathlib.Path) -> None:
@@ -75,7 +79,8 @@ def test_browser_common_helpers_and_root_pull(tmp_path: pathlib.Path) -> None:
         is True
     )
     assert fallback_local.read_bytes() == b"xyz"
-    assert any("rm -f" in command for command in devices.shell_calls)
+    assert any("base64 " in command for command in devices.shell_calls)
+    assert not any("/sdcard/" in command or "cp " in command for command in devices.shell_calls)
 
     failed_local = tmp_path / "failed.bin"
     assert (

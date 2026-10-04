@@ -24,5 +24,15 @@ def test_extract_salt_from_locksettings_db(tmp_path: pathlib.Path) -> None:
 
 def test_extract_sha1_from_password_key(tmp_path: pathlib.Path) -> None:
     key = tmp_path / "password.key"
-    key.write_bytes(bytes.fromhex("00" * 20) + b"rest")
+    key.write_bytes(bytes.fromhex("00" * 20))
     assert _extract_sha1_from_password_key(key) == "00" * 20
+
+
+def test_password_key_ascii_format_and_gatekeeper_rejection(tmp_path: pathlib.Path) -> None:
+    key = tmp_path / "password.key"
+    key.write_bytes(b"AB" * 20 + b"CD" * 16)
+    assert _extract_sha1_from_password_key(key) == "ab" * 20
+    key.write_bytes(b"x" * 72)
+    assert _extract_sha1_from_password_key(key) is None
+    key.write_bytes(bytes(range(57)))
+    assert _extract_sha1_from_password_key(key) is None

@@ -203,7 +203,8 @@ pub fn dictionary_attack_rules(
 }
 
 fn android_password_to_hash_input(salt: i64, secret: &str) -> Vec<u8> {
-    format!("{salt}{secret}").into_bytes()
+    // Legacy Android uses password + Java Long.toHexString(salt).
+    format!("{secret}{:x}", salt as u64).into_bytes()
 }
 
 #[pyfunction]
@@ -328,7 +329,7 @@ mod tests {
         init_python();
         let pin = "1234";
         let salt = 123;
-        let input = format!("{salt}{pin}");
+        let input = "12347b";
         let digest = digest::digest(&digest::SHA1_FOR_LEGACY_USE_ONLY, input.as_bytes());
         let out = pyo3::Python::attach(|py| {
             bruteforce_android_pin_sha1(py, &hex::encode(digest.as_ref()), salt, 4).unwrap()
@@ -342,6 +343,15 @@ mod tests {
         let err =
             pyo3::Python::attach(|py| bruteforce_numeric_pin(py, "00", "sha1", 0).unwrap_err());
         assert!(format!("{err}").contains("length"));
+    }
+
+    #[test]
+    fn legacy_android_salt_uses_twos_complement_hex() {
+        assert_eq!(
+            super::android_password_to_hash_input(-1, "00"),
+            b"00ffffffffffffffff"
+        );
+        assert_eq!(super::android_password_to_hash_input(0, "00"), b"000");
     }
 
     #[test]

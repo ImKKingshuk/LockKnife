@@ -55,10 +55,10 @@ def pull_gesture_key(devices: DeviceManager, serial: str, out_dir: pathlib.Path)
         raise DeviceError("Root required to access gesture key files")
     target = out_dir / "gesture.key"
     candidates = [
-        "/data/system/users/0/gatekeeper.pattern.key",
-        "/data/system/gatekeeper.pattern.key",
         "/data/system/users/0/gesture.key",
         "/data/system/gesture.key",
+        "/data/system/users/0/gatekeeper.pattern.key",
+        "/data/system/gatekeeper.pattern.key",
     ]
     for remote in candidates:
         if _try_pull_file_with_root(devices, serial, remote, target, timeout_s=60.0):
@@ -67,7 +67,7 @@ def pull_gesture_key(devices: DeviceManager, serial: str, out_dir: pathlib.Path)
     if _detect_synthetic_password(devices, serial):
         raise GestureKeyNotFound(
             "Device uses modern Android Synthetic Password (spblob) / Gatekeeper hardware-backed encryption. "
-            "Offline SHA1 pattern recovery is not possible without hardware TEE/weaver keys; live lockscreen bypass or runtime instrumentation is required."
+            "This hardware-protected format is not supported by legacy offline pattern recovery."
         )
     raise GestureKeyNotFound("gesture.key or gatekeeper.pattern.key not found or accessible")
 

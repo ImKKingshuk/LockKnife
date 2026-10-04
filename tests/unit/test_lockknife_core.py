@@ -50,7 +50,7 @@ def test_android_pin_sha1_bruteforce() -> None:
     lockknife_core = pytest.importorskip("lockknife.lockknife_core")
     salt = 1234
     pin = "0420"
-    target = lockknife_core.sha1_hex(f"{salt}{pin}".encode())
+    target = lockknife_core.sha1_hex(f"{pin}{salt:x}".encode())
     found = lockknife_core.bruteforce_android_pin_sha1(target, salt, 4)
     assert found == pin
 
