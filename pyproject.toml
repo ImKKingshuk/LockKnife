@@ -40,7 +40,7 @@ frida = ["frida-tools>=14.10.4"]
 ml = ["scikit-learn>=1.9.1", "numpy>=2.5.3", "joblib>=1.6.0"]
 yara = ["yara-python>=4.3"]
 threat-intel = ["vt-py>=0.18", "OTXv2>=1.5"]
-network = ["scapy>=2.5"]
+network = ["scapy>=2.8.0"]
 
 # Exploitation framework dependencies (Linux-only, install manually)
 # Note: UV's dependency resolver doesn't properly respect platform markers for these
@@ -155,6 +155,7 @@ module-name = "lockknife.lockknife_core"
 python-source = "."
 python-packages = ["lockknife", "lockknife_headless_cli"]
 include = [
+  { path = "rust-toolchain.toml", format = "sdist" },
   { path = "lockknife_headless_cli/**/*.py", format = ["sdist", "wheel"] },
   { path = "lockknife_headless_cli/actions/catalog.json", format = ["sdist", "wheel"] },
 ]
