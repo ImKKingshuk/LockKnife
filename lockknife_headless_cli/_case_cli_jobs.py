@@ -7,6 +7,27 @@ from typing import Any
 import click
 
 
+def _run_job_action(action: str, params: dict[str, Any], *, out_format: str, console: Any) -> None:
+    from lockknife_headless_cli.tui_callback import build_tui_callback
+
+    context = click.get_current_context()
+    app = context.obj
+    if app is None:
+        from lockknife.core.config import load_config
+        from lockknife_headless_cli.main import AppContext
+
+        app = AppContext(load_config())
+    result = build_tui_callback(app)(action, params)
+    if out_format.lower() == "json":
+        console.print_json(json.dumps(result))
+    else:
+        status = "OK" if result.get("ok") is True else "FAILED"
+        message = result.get("message") or result.get("error") or "No result message"
+        console.print(f"[{status}] {action}: {message}", markup=False)
+    if result.get("ok") is not True:
+        context.exit(1)
+
+
 def register(case_group: Any, cli: Any) -> None:
     @case_group.command("jobs")
     @click.option(
@@ -70,7 +91,11 @@ def register(case_group: Any, cli: Any) -> None:
         else:
             for job in payload["jobs"]:
                 device_str = f" device={job['device_serial']}" if job.get("device_serial") else ""
-                resumable_str = " [resumable]" if job.get("resumable") and job["status"] in ("failed", "partial", "cancelled") else ""
+                resumable_str = (
+                    " [resumable]"
+                    if job.get("resumable") and job["status"] in ("failed", "partial", "cancelled")
+                    else ""
+                )
                 lines.append(
                     f"- {job['job_id']} | {job['status']}{resumable_str} | {job['action_id']} ({job['action_label']}) | attempts={job['attempt_count']}{device_str}"
                 )
@@ -204,26 +229,13 @@ def register(case_group: Any, cli: Any) -> None:
             cli.console.print("\n".join(lines), markup=False)
             return
 
-        from lockknife_headless_cli.tui_callback import build_tui_callback
-
         execution_params = dict(payload["params"])
         execution_params["case_dir"] = str(case_dir)
         execution_params["resume_job_id"] = payload["job"]["job_id"]
 
-        callback = build_tui_callback()
-        result_raw = callback(str(payload["action_id"]), execution_params)
-        if out_format.lower() == "json":
-            cli.console.print(result_raw, markup=False)
-            return
-
-        try:
-            parsed = json.loads(result_raw)
-            ok = parsed.get("ok", True)
-            msg = parsed.get("message", "Completed")
-            status_tag = "[OK]" if ok else "[FAILED]"
-            cli.console.print(f"{status_tag} Resumed job {job_id} ({payload['action_id']}): {msg}", markup=False)
-        except Exception:
-            cli.console.print(f"Resumed job {job_id} ({payload['action_id']}):\n{result_raw}", markup=False)
+        _run_job_action(
+            str(payload["action_id"]), execution_params, out_format=out_format, console=cli.console
+        )
 
     @case_group.command("retry")
     @click.option(
@@ -273,23 +285,10 @@ def register(case_group: Any, cli: Any) -> None:
             cli.console.print("\n".join(lines), markup=False)
             return
 
-        from lockknife_headless_cli.tui_callback import build_tui_callback
-
         execution_params = dict(payload["params"])
         execution_params["case_dir"] = str(case_dir)
         execution_params["retry_job_id"] = payload["job"]["job_id"]
 
-        callback = build_tui_callback()
-        result_raw = callback(str(payload["action_id"]), execution_params)
-        if out_format.lower() == "json":
-            cli.console.print(result_raw, markup=False)
-            return
-
-        try:
-            parsed = json.loads(result_raw)
-            ok = parsed.get("ok", True)
-            msg = parsed.get("message", "Completed")
-            status_tag = "[OK]" if ok else "[FAILED]"
-            cli.console.print(f"{status_tag} Retried job {job_id} ({payload['action_id']}): {msg}", markup=False)
-        except Exception:
-            cli.console.print(f"Retried job {job_id} ({payload['action_id']}):\n{result_raw}", markup=False)
+        _run_job_action(
+            str(payload["action_id"]), execution_params, out_format=out_format, console=cli.console
+        )

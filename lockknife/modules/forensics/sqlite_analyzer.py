@@ -50,7 +50,9 @@ class SqliteAnalysis:
 def analyze_sqlite(
     path: pathlib.Path, *, max_tables: int = 200, sample_rows: int = 3
 ) -> SqliteAnalysis:
-    con = sqlite3.connect(str(path))
+    if max_tables <= 0 or sample_rows < 0:
+        raise ValueError("max_tables must be positive and sample_rows must be non-negative")
+    con = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
     con.row_factory = sqlite3.Row
     try:
         rows = con.execute(

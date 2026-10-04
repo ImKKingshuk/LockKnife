@@ -1,5 +1,8 @@
 import json
 import pathlib
+import sqlite3
+
+import pytest
 
 from click.testing import CliRunner
 
@@ -74,9 +77,7 @@ def test_case_jobs_and_job_cli_commands(tmp_path: pathlib.Path) -> None:
     assert j1.job_id not in res_filtered.output
 
     # 3. Test case jobs (json format)
-    res_json = runner.invoke(
-        case_group, ["jobs", "--case-dir", str(case_dir), "--format", "json"]
-    )
+    res_json = runner.invoke(case_group, ["jobs", "--case-dir", str(case_dir), "--format", "json"])
     assert res_json.exit_code == 0
     payload = _parse_cli_json(res_json.output)
     assert payload["total_job_count"] == 2
@@ -156,3 +157,46 @@ def test_case_resume_and_retry_cli_dry_run(tmp_path: pathlib.Path) -> None:
     assert res_retry.exit_code == 0, res_retry.output
     assert f"Retry Plan for Job: {j1.job_id}" in res_retry.output
     assert "Attempt Count: 2" in res_retry.output
+
+
+@pytest.mark.parametrize("mode", ["resume", "retry"])
+@pytest.mark.parametrize("out_format", ["text", "json"])
+def test_case_job_live_dispatch(tmp_path, mode, out_format):
+    case_dir = tmp_path / "case"
+    create_case_workspace(case_dir=case_dir, case_id="LIVE", examiner="Analyst", title="Live")
+    source = tmp_path / "evidence.db"
+    with sqlite3.connect(source) as con:
+        con.execute("CREATE TABLE evidence (value TEXT)")
+        con.execute("INSERT INTO evidence VALUES ('sample')")
+    job = start_case_job(
+        case_dir, action_id="forensics.sqlite", action_label="SQLite", params={"path": str(source)}
+    )
+    fail_case_job(case_dir, job_id=job.job_id, error_message="Interrupted")
+    result = CliRunner().invoke(
+        case_group,
+        [mode, "--case-dir", str(case_dir), "--job-id", job.job_id, "--format", out_format],
+    )
+    assert result.exit_code == 0, result.output
+    if out_format == "json":
+        assert _parse_cli_json(result.output)["ok"] is True
+    updated = load_case_manifest(case_dir).jobs[0]
+    assert updated.status == "succeeded"
+    assert updated.attempt_count == 2
+
+
+def test_case_job_dispatch_failure_has_nonzero_status(tmp_path):
+    case_dir = tmp_path / "case"
+    create_case_workspace(case_dir=case_dir, case_id="FAIL", examiner="Analyst", title="Failure")
+    job = start_case_job(
+        case_dir,
+        action_id="forensics.sqlite",
+        action_label="SQLite",
+        params={"path": str(tmp_path / "missing.db")},
+    )
+    fail_case_job(case_dir, job_id=job.job_id, error_message="Interrupted")
+    result = CliRunner().invoke(
+        case_group,
+        ["retry", "--case-dir", str(case_dir), "--job-id", job.job_id, "--format", "json"],
+    )
+    assert result.exit_code == 1
+    assert _parse_cli_json(result.output)["ok"] is False
