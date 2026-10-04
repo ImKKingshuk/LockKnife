@@ -1,76 +1,31 @@
-# Security Policy
+# Security and Privacy
 
-## Sensitive Data Handling
+Use LockKnife only on devices, applications, and networks you are authorized to examine. Device-changing actions require an appropriate investigation scope and target permissions.
 
-LockKnife is a forensics and security research tool that handles sensitive data. This document outlines security best practices for contributors and users.
+## Protect Case Data
 
-### Environment Variables and Secrets
+Extracted messages, databases, captures, credentials, and reports may contain personal or confidential information. Keep case workspaces in private storage and restrict access to authorized recipients.
 
-LockKnife uses environment variables for API keys and sensitive configuration:
+Reports and exported ZIP bundles are not encrypted by default. Review their contents before sharing and use a protected transfer method. Integrity verification checks registered evidence hashes and case audit events; it does not replace your organization's custody procedures.
 
-- **VT_API_KEY**: VirusTotal API key (optional)
-- **OTX_API_KEY**: AlienVault OTX API key (optional)
-- **LOCKKNIFE_SIGNING_KEY**: Artifact-custody sealing key (required for sealing)
+See [Case Integrity and Privacy](docs/case-integrity-and-privacy.md) for verification and sharing guidance.
 
-**Never commit these values to version control.** Use the `.env` file locally (which is gitignored) or set them as environment variables.
+## Configure Credentials Safely
 
-### What's Excluded from Git
+- `VT_API_KEY`: optional VirusTotal credential.
+- `OTX_API_KEY`: optional OTX credential.
+- `LOCKKNIFE_SIGNING_KEY`: required for explicit artifact sealing unless a key is supplied directly.
 
-The following sensitive data types are automatically excluded via `.gitignore`:
+Set credentials in the environment running LockKnife or through a protected secret store. Threat intelligence credentials can also be loaded from a private `.env` file. Artifact sealing reads `LOCKKNIFE_SIGNING_KEY` from the process environment and requires at least 32 bytes; placing it in `.env` alone does not configure sealing.
 
-1. **Credentials & Keys**
-   - Private keys (*.pem, *.key, id_rsa, etc.)
-   - Certificates (*.crt, *.cer, *.p12, *.pfx)
-   - Keystores (*.jks, *.keystore)
-   - Environment files (.env, .env.*)
-   - API key files (secrets.json, credentials.json)
+Do not include credentials in shared configuration, reports, screenshots, or support requests. Revoke or rotate any credential exposed to an unauthorized recipient.
 
-2. **Forensic Artifacts**
-   - Database files (*.db, *.sqlite)
-   - Network captures (*.pcap, *.pcapng)
-   - Memory dumps (*.dump, *.dmp, *.hprof)
-   - Evidence directories (evidence/, artifacts/, outputs/)
+## External Services
 
-3. **Android Artifacts**
-   - APK files (*.apk)
-   - DEX files (*.dex, *.odex, *.vdex)
-   - Decompiled code directories
+Requested reputation and blockchain lookups send selected indicators to their providers. Review provider policies before sending hashes, domains, IP addresses, or wallet addresses from an investigation. Offline evidence analysis does not require these service credentials.
 
-4. **Build & Runtime Artifacts**
-   - Python bytecode (__pycache__/, *.pyc)
-   - Rust build artifacts (target/)
-   - Virtual environments (venv/, .venv/)
+## Report a Vulnerability
 
-### Security Scanning
+Report suspected vulnerabilities privately through [GitHub Security Advisories](https://github.com/ImKKingshuk/LockKnife/security/advisories/new), rather than a public issue. Include the affected version, a description of the problem, and sanitized reproduction steps. Do not attach real case data or secrets.
 
-This repository uses:
-- **Bandit**: Python security linter (configured in `bandit.yaml`)
-- **pip-audit**: Dependency vulnerability scanner
-
-Run security checks before committing:
-```bash
-python3 scripts/check_repository_hygiene.py
-bandit -r lockknife/ lockknife_headless_cli/
-pip-audit
-```
-
-GitHub Actions also runs a full-history secret scan on pull requests and pushes to protected branches. If a real credential is ever committed, revoke or rotate it immediately before considering any history cleanup.
-
-### Reporting Security Issues
-
-If you discover a security vulnerability in LockKnife, please report it privately:
-- Do not open a public GitHub issue
-- Contact the maintainers directly through GitHub Security Advisories
-- Provide detailed information about the vulnerability
-
-### Data Privacy
-
-LockKnife is designed for forensic analysis of Android devices. Users must:
-- Obtain proper authorization before analyzing devices
-- Handle extracted data according to applicable laws and regulations
-- Secure forensic outputs and evidence appropriately
-- Follow chain of custody procedures for legal cases
-
-## License
-
-LockKnife is licensed under GPL-3.0. See LICENSE file for details.
+For installation and ordinary usage problems, consult [Installation and Troubleshooting](docs/installation-and-troubleshooting.md).

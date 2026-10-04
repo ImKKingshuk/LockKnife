@@ -1,40 +1,28 @@
-# Legacy Interactive Mode Walkthrough
+# Classic Interactive Mode
 
-LockKnife includes a classic "menu" interactive mode designed for quick, manual workflows in a terminal.
+Classic interactive mode provides numbered terminal menus for simple manual tasks. It is separate from the full-screen TUI and the scriptable CLI.
 
-This mode is separate from:
-
-- the TUI (default `lockknife` with no subcommand)
-- the headless Click CLI (command groups like `device`, `extract`, `forensics`, etc.)
-
-## Start interactive mode
+## Start
 
 ```bash
-lockknife interactive
+lockknife --cli interactive
 ```
 
-To preselect a device serial (optional):
+To preselect an authorized device, replace `DEVICE_SERIAL` with a serial returned by `device list`:
 
 ```bash
-lockknife interactive -s <serial>
+lockknife --cli interactive --serial DEVICE_SERIAL
 ```
 
-## How it works
+## Example Workflow
 
-- You will see a numbered menu.
-- Choose an action, then answer prompts (for example, device serial and a row limit).
-- Results are printed to stdout (often as JSON).
+1. Choose **Device: list** to inspect available device serials.
+2. Choose **Device: info** to view properties for the intended device.
+3. Select an extraction or local analysis action and provide the requested input.
+4. Review the result, then choose `q` to leave the menu.
 
-## Example flow
+Results are printed to the terminal or written to a requested output file. Terminal output may contain sensitive evidence; avoid recording or sharing it without review.
 
-x. Run `lockknife interactive`.
-x. Choose **Device: list** to see available device serials.
-x. Choose **Device: info** to print device properties.
-x. Choose one of the extraction actions (SMS, contacts, call logs, browser, messaging, etc.).
+## Case-Based Investigations
 
-## Notes
-
-- Interactive mode is intended for simple/manual runs.
-- For case-managed artifact registration, reporting, and exports, prefer either:
-  - the TUI workflow, or
-  - the headless CLI walkthrough with `--case-dir` and `case init`.
+For case-managed registration, provenance, integrity checks, and reporting, use the [TUI walkthrough](tui-walkthrough.md) or [CLI walkthrough](headless-cli-walkthrough.md). Classic mode does not provide the same case workflow as those interfaces.

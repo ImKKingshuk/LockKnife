@@ -1,141 +1,69 @@
 # TUI Investigation Walkthrough
 
-This walkthrough shows a realistic TUI flow from case creation to evidence capture, runtime preview, report generation, and bundle export.
+The full-screen interface provides case-aware forms for acquisition, analysis, runtime sessions, reporting, and export. Start it with `lockknife`. Use the [CLI walkthrough](headless-cli-walkthrough.md) for unattended workflows.
 
-The TUI itself is organized by investigation domain, so the same case-aware workflow patterns repeat across Extraction, Forensics, Runtime, Case Management, and related modules.
+## 1. Prepare the Workspace
 
-## Before you start
+Run `lockknife --cli doctor` to check dependencies. Connect and authorize an Android device for device-backed actions; local evidence analysis does not require a connected device.
 
-- Launch the TUI with `lockknife`.
-- Connect a device if you want to run device-backed extraction or runtime actions.
+The examples use `./cases/CASE-001` and the operator label `Analyst`. Choose a private storage location for your case data.
 
-We will use `./cases/CASE-xxx` as the case path throughout the example.
+## 2. Create a Case
 
-## x. Create the case workspace
+1. Open **Case Management** and choose **Init workspace**.
+2. Enter **Case directory**, **Case ID**, **Examiner**, and **Title**.
+3. Submit the form and check the output panel for the workspace path.
 
-x. Start `lockknife`.
-x. Move to **Case Management** and press `Enter`.
-x. Choose **Init workspace**.
-x. Fill in at least:
+Example values are `./cases/CASE-001`, `CASE-001`, `Analyst`, and `Android Assessment`. The examiner value is recorded in case metadata and may appear in reports; use the identifier required by your investigation policy.
 
-- **Case directory**: `./cases/CASE-xxx`
-- **Case ID**: `CASE-xxx`
-- **Examiner**: your name
-- **Title**: short investigation title
-x. Submit the prompt.
+## 3. Acquire Evidence
 
-Expected result:
+Select the intended authorized device, open **Extraction**, and choose the artifact type. Set **Case directory** to the workspace and leave an optional output path blank to use a case-managed location.
 
-- The output panel should report that the case workspace is ready.
-- The result viewer should show the case directory and summary JSON.
+After acquisition, review the printed path and result summary. Press `v` to inspect the result viewer. Device permissions, encryption, and application versions affect what can be collected; an empty result is not proof that an artifact never existed.
 
-## x. Capture evidence with Extraction → SMS
+## 4. Review Provenance
 
-x. Move to **Extraction** and open the action menu.
-x. Choose **SMS**.
-x. Set:
+Open **Case Management**:
 
-- **Limit**: keep the default unless you need more rows
-- **Format**: `json`
-- **Output path (optional)**: leave blank
-- **Case directory**: `./cases/CASE-xxx`
-x. Submit the prompt.
+- **Summary** shows registered artifacts and case state.
+- **Artifact search** finds evidence and derived outputs.
+- **Artifact lineage** shows an artifact's input relationships.
 
-Why leave output blank?
+Use the same case directory across related actions. SQLite stores durable case state, while the JSON manifest remains a compatibility snapshot.
 
-- LockKnife will derive a case-managed path automatically under `evidence/`.
-- The resulting file is also registered in the case manifest.
+## 5. Manage an Authorized Runtime Session
 
-After the action completes:
+Frida operations require the `frida` extra, a compatible target Frida server, and sufficient permissions. Runtime hooks can change app behavior; do not treat a short observation period as a dry run.
 
-- Check the **Output** panel for the derived output path.
-- Press `v` to open the result viewer and inspect the summary plus key paths.
+1. Open **Runtime** and choose **Start hook session**.
+2. Supply **App ID**, **Session name**, **Script path**, **Device ID**, and **Case directory**.
+3. Choose **Attach mode** and an **Initial wait seconds** value suitable for the target.
+4. Confirm the action only within the approved investigation scope.
+5. Review the session summary and log locations, and use the runtime session controls to stop the session when finished.
 
-## x. Review the case state
+The initial wait is not an automatic stop timer. Check session status and explicitly stop active instrumentation. Case-managed session summaries, script snapshots, and message logs may contain sensitive application data.
 
-Use the **Case Management** module to confirm that the TUI is registering artifacts into the case.
+## 6. Generate and Verify Reports
 
-This same domain-oriented structure is used throughout the TUI: each area keeps its own prompts and actions focused, while case-aware fields such as **Case directory** stay consistent across workflows.
+Open **Forensics** and choose **Generate report**. Set the case directory, template, and output format.
 
-Recommended actions:
+- An explicit **Artifacts JSON path** supplies report input.
+- Without that path, a case directory allows a case-based summary.
+- Without either, the most recent JSON result may supply the input.
 
-- **Summary** for an overview of artifact counts and manifest state
-- **Artifact search** to find specific evidence or derived outputs
-- **Lineage graph** to understand parent/child relationships between related artifacts
+Leave the optional output path blank to use `reports/`. HTML is available with the base installation; PDF requires an additional renderer. Use the integrity and chain-of-custody actions to review evidence hashes and case audit events.
 
-Use the same **Case directory** value each time: `./cases/CASE-xxx`.
+Before sharing, inspect report previews, identifiers, paths, and credentials. Consult [Case Integrity & Privacy](case-integrity-and-privacy.md) for the limits of audit verification and safe export.
 
-## x. Run a runtime preview with Runtime → Hook script
+## 7. Export a Case
 
-x. Move to **Runtime** and choose **Hook script**.
-x. Fill in:
+Open **Case Management** and choose **Export bundle**. Select the case directory, optional filters, and whether to include registered artifacts. Review the resulting archive before transferring it.
 
-- **App ID**: target package name
-- **Script path**: local Frida script path
-- **Device ID**: optional if the selected device is already correct
-- **Preview seconds**: `x` is a good short preview
-- **Preview output path (optional)**: leave blank
-- **Case directory**: `./cases/CASE-xxx`
-x. Confirm the action when prompted.
+Bundles are not encrypted. Excluded artifact categories do not guarantee that other files are free of sensitive information.
 
-What this does in the TUI:
+## Navigation and Output
 
-- It stays a short preview instead of becoming a long blocking session.
-- With **Case directory** set, it also saves runtime preview artifacts into the case workspace.
+Use `Tab` to change panel focus, arrow keys to navigate, `Enter` to open an action, `Esc` to dismiss a form, and `?` for contextual help. Follow the visible confirmation and result messages before starting another device-changing action.
 
-Expected case artifacts include:
-
-- a preview summary JSON under `derived/`
-- a script snapshot under `derived/`
-- a JSONL preview log under `logs/`
-
-Use the output panel or result viewer to capture the exact paths generated for your run.
-
-## x. Generate a report from the current JSON result or an explicit artifacts file
-
-Open **Forensics → Generate report**.
-
-Important behavior:
-
-- If **Artifacts JSON path** is set, the report is built from that file.
-- If **Artifacts JSON path** is blank, the report uses the TUI's most recent JSON result.
-
-Two good patterns:
-
-x. Run **Case Management → Summary** or **Artifact search** first, then open **Generate report** with **Artifacts JSON path** blank.
-x. Provide an exported JSON file explicitly in **Artifacts JSON path**.
-
-Suggested report prompt values:
-
-- **Case ID**: `CASE-xxx`
-- **Template**: `technical`
-- **Format**: `html`
-- **Output path (optional if case dir set)**: leave blank
-- **Case directory**: `./cases/CASE-xxx`
-
-Expected result:
-
-- LockKnife derives a report path under `reports/`.
-- The report is registered in the case manifest.
-
-## x. Export the case bundle
-
-When you want to archive or share the collected investigation state:
-
-x. Open **Case Management → Export bundle**.
-x. Set **Case directory** to `./cases/CASE-xxx`.
-x. Adjust any optional filters if needed.
-x. Submit the prompt.
-
-This gives you a portable bundle of the current case workspace and registered artifacts.
-
-## x. What to expect on disk
-
-With case-aware prompts, LockKnife typically derives outputs under:
-
-- `evidence/` for captured primary evidence
-- `derived/` for analysis outputs and runtime summaries
-- `reports/` for generated reports
-- `logs/` for runtime preview logs and related session output
-
-The case manifest keeps those outputs tied together so later TUI actions can summarize, search, and export them coherently.
+Case outputs are organized under `evidence/`, `derived/`, `reports/`, and `logs/`. Avoid editing `case_store.sqlite3` or compatibility snapshots manually.

@@ -1,107 +1,97 @@
 # Headless CLI Walkthrough
 
-This walkthrough shows an end-to-end investigation flow using the Click CLI (headless mode): initialize a case workspace, capture evidence, produce derived analysis, and generate a report.
+Use the CLI to create a case, collect accessible artifacts, analyze local evidence, and export reports. Device commands require authorization and access to the relevant Android data. The examples use `CASE-001` and `DEVICE_SERIAL` as placeholders, not real investigation identifiers.
 
-## Before you start
-
-- Run `lockknife --help` to confirm the CLI is available.
-- If you want device-backed commands, ensure `adb` can see at least one device.
-- This walkthrough uses `./cases/CASE-xxx` as the case workspace path.
-
-## x. Initialize a case workspace
+## 1. Check Installation
 
 ```bash
-lockknife case init --case-id CASE-xxx --examiner "Examiner" --title "Device x" --output ./cases/CASE-xxx
+lockknife --version
+lockknife --cli doctor
+lockknife --cli device list
 ```
 
-Notes:
+Replace `DEVICE_SERIAL` below with a serial returned by `device list`. Optional tools and service credentials are described in [Installation & Troubleshooting](installation-and-troubleshooting.md).
 
-- `case init` requires `--output`.
-- The workspace becomes the root for case-managed outputs under `evidence/`, `derived/`, `reports/`, and `logs/`.
+## 2. Create a Case
 
-## x. Connect and inspect a device
-
-List devices:
+Choose a private directory for case data. The examples use a `cases/` folder in the current working directory; replace it with your investigation's storage location if needed.
 
 ```bash
-lockknife device list
+lockknife --cli case init --case-id CASE-001 --examiner "Analyst" --title "Android Assessment" --output ./cases/CASE-001
 ```
 
-Connect to a network device (example address only):
+The workspace contains `evidence/`, `derived/`, `reports/`, and `logs/`. `case_store.sqlite3` stores case state; `case_manifest.json` is a generated compatibility snapshot.
+
+## 3. Inspect and Collect
 
 ```bash
-lockknife device connect xxx.x.xxx.xx
+lockknife --cli device info --serial DEVICE_SERIAL
+lockknife --cli device shell --serial DEVICE_SERIAL getprop ro.build.version.sdk
+lockknife --cli extract sms --serial DEVICE_SERIAL --format json --case-dir ./cases/CASE-001
+lockknife --cli extract call-logs --serial DEVICE_SERIAL --format json --case-dir ./cases/CASE-001
+lockknife --cli extract browser --serial DEVICE_SERIAL --app chrome --kind history --case-dir ./cases/CASE-001
+lockknife --cli extract messaging --serial DEVICE_SERIAL --app whatsapp --case-dir ./cases/CASE-001
 ```
 
-Inspect one device:
+Use the paths printed by each command. Protected paths may require root, and encrypted app databases may not expose readable messages. Empty results do not establish that data never existed.
+
+For an authorized filesystem snapshot or packet capture:
 
 ```bash
-lockknife device info -s <serial>
-lockknife device shell -s <serial> "getprop ro.build.version.sdk"
+lockknife --cli forensics snapshot --serial DEVICE_SERIAL --path /data/system --case-dir ./cases/CASE-001
+lockknife --cli network capture --serial DEVICE_SERIAL --duration 10 --case-dir ./cases/CASE-001
 ```
 
-## x. Capture primary evidence
+Capturing network traffic requires an accessible on-device `tcpdump`. Review collected data before sharing it.
 
-Snapshot key device paths into the case workspace:
+## 4. Analyze Local Evidence
+
+Replace the input paths with files produced by acquisition or supplied through your evidence workflow.
 
 ```bash
-lockknife forensics snapshot -s <serial> --path /data/system --case-dir ./cases/CASE-xxx
+lockknife --cli forensics sqlite ./evidence/messages.db --case-dir ./cases/CASE-001
+lockknife --cli forensics timeline --sms ./evidence/sms.json --call-logs ./evidence/call_logs.json --case-dir ./cases/CASE-001
+lockknife --cli forensics correlate --input ./evidence/artifacts.json --case-dir ./cases/CASE-001
+lockknife --cli network analyze ./evidence/capture.pcap --case-dir ./cases/CASE-001
+lockknife --cli network api-discovery ./evidence/capture.pcap --case-dir ./cases/CASE-001
 ```
 
-Capture a short network trace:
+Carved records, anomaly scores, and security heuristics are investigation leads, not independent proof of deletion, compromise, or attribution.
+
+## 5. Review Case State
 
 ```bash
-lockknife network capture -s <serial> --duration xx --case-dir ./cases/CASE-xxx
+lockknife --cli case summary --case-dir ./cases/CASE-001
+lockknife --cli case artifacts --case-dir ./cases/CASE-001 --query timeline
+lockknife --cli case graph --case-dir ./cases/CASE-001
 ```
 
-## x. Produce derived analysis
+Use the artifact inventory to confirm which outputs were registered and inspect their provenance. Manually supplied evidence is not automatically registered merely because it resides near a case.
 
-Analyze a local SQLite database (outputs to stdout unless `--case-dir` or `--output` is provided):
+## 6. Verify and Report
 
 ```bash
-lockknife forensics sqlite ./evidence/mmssms.db --output sqlite_report.json
+lockknife --cli report integrity --case-dir ./cases/CASE-001 --format json
+lockknife --cli report chain-of-custody --case-dir ./cases/CASE-001 --format text
+lockknife --cli report generate --case-dir ./cases/CASE-001 --template technical --format html
 ```
 
-Build a timeline (writes to `derived/` when `--case-dir` is provided):
+A case-based report does not require a separate `--artifacts` file. PDF output requires an optional renderer. Review evidence previews, identifiers, paths, and any credentials before distributing a report.
+
+## 7. Export a Bundle
 
 ```bash
-lockknife forensics timeline --sms ./cases/CASE-xxx/evidence/sms.json --call-logs ./cases/CASE-xxx/evidence/call_logs.json --case-dir ./cases/CASE-xxx
+lockknife --cli case export --case-dir ./cases/CASE-001 --include-registered-artifacts --output ./case-001-bundle.zip
 ```
 
-Analyze a captured pcap:
+The bundle includes a consistent case database snapshot and selected artifacts. It is not an encrypted archive. Protect it according to the same policy as the original evidence; see [Case Integrity & Privacy](case-integrity-and-privacy.md).
+
+## Command Reference
 
 ```bash
-lockknife network analyze ./cases/CASE-xxx/evidence/network_capture_<serial>.pcap --case-dir ./cases/CASE-xxx
-lockknife network api-discovery ./cases/CASE-xxx/evidence/network_capture_<serial>.pcap --case-dir ./cases/CASE-xxx
+lockknife --cli --help
+lockknife --cli actions --format json
+lockknife --cli features
 ```
 
-## x. Summarize and inspect the case manifest
-
-```bash
-lockknife case summary --case-dir ./cases/CASE-xxx
-lockknife case artifacts --case-dir ./cases/CASE-xxx --query timeline
-lockknife case graph --case-dir ./cases/CASE-xxx
-```
-
-## x. Generate a report
-
-Generate an HTML report from the case manifest (no `--artifacts` needed when `--case-dir` is set):
-
-```bash
-lockknife report generate --case-dir ./cases/CASE-xxx --template technical --format html
-```
-
-Generate integrity and chain-of-custody outputs:
-
-```bash
-lockknife report integrity --case-dir ./cases/CASE-xxx --format json
-lockknife report chain-of-custody --case-dir ./cases/CASE-xxx --format text
-```
-
-## x. Export a portable case bundle
-
-```bash
-lockknife case export --case-dir ./cases/CASE-xxx --include-registered-artifacts
-```
-
-The output is a zip bundle path (defaulting under `exports/` when `--output` is not specified).
+Use `--help` on a command to view its current options. Prefer explicit serials, output locations, and timeouts in automation.

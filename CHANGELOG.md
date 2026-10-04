@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `LockKnife : The Ultimate Android Security Research Tool` will be documented in this file.
+Notable changes to LockKnife are documented here. Older entries describe their release-time behavior; consult the README and command help for current capability requirements and limitations.
 
 ## [Unreleased]
 
@@ -16,11 +16,11 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 ### Fixed
 
-- Refreshed the README with a branded layout, detailed feature sections, current installation instructions, case examples, and capability requirements.
+- Updated installation instructions and investigation examples, and added troubleshooting and case-integrity/privacy guides.
 - Completed automatic APK decompiler fallback through JADX, apktool, and archive extraction, with per-stage timeouts and explicit failed-stage reporting.
 - Prevented APK extraction from overwriting existing evidence and added archive size, compression-ratio, member-type, and duplicate-path validation.
 - Unified Python action forms and native fallback forms in one packaged catalog, including device requirements, confirmations, defaults, and choices.
-- Replaced regex-based action discovery with syntax-aware parsing and rejected catalog/handler drift.
+- Improved action discovery and validation to keep available commands and TUI forms consistent.
 - Made interrupted case migration retryable and prevented case initialization from replacing existing evidence inventories.
 - Enforced append-only audit rows, added event-chain verification to integrity reports, and included consistent SQLite backups in case bundles.
 - Made compatibility manifests atomic and serialized snapshot writers to prevent stale or partial snapshots.
@@ -31,21 +31,15 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 - Allowed spaces in text fields and selected the correct module when clicking filtered results.
 - Restored the advertised export shortcut, which was shadowed by exploit-panel navigation.
 - Replaced misleading success messages from unfinished exploit-panel shortcuts with explicit unsupported-action feedback.
-- Added real-dispatcher regression tests for shortcuts, dialogs, cancellation, and action-catalog callback routing.
-- Restored missing extraction command dependencies and TUI AI/reporting dependencies.
+- Fixed extraction commands and TUI AI/reporting actions that could fail because required dependencies were not available to their handlers.
 - Updated diagnostics to recognize modern Androguard installations.
 - Updated BLE service discovery for the current Bleak API and prevented missing BLE dependencies from returning simulated successes.
 - Made Bluetooth scan, fingerprint, and GATT dry runs side-effect-free, validated GATT write arguments before connecting, and recorded failed connections accurately.
 
-### Release And Security
+### Installation And Security
 
 - Upgraded Scapy to 2.8.0, cryptography to 50.0.2, and urllib3 to 2.8.0; the network extra now requires Scapy 2.8.0 or newer.
-- Pinned Rust 1.99.0 and included the toolchain configuration in source distributions to avoid native-loader failures with older compilers on recent macOS versions.
-- Added isolated wheel/source installation checks that exercise the native extension, shared action catalog, and public command help pages.
-- Expanded release validation to include Python tests, linting, formatting, type checking, dependency audits, and security checks before uploading artifacts.
-- Restored previously skipped CLI, TUI, case, and Bluetooth regression coverage.
-
-
+- Fixed native-extension loading on recent macOS versions.
 ## [v1.2.0] - 2026-09-11
 
 ### Case Integrity And Execution Safety
@@ -78,42 +72,41 @@ evidence sealing, bounded native analysis.
 
 ### Security
 
-- Upgraded PyO3 and vulnerable Rust transitive dependencies.
+- Updated vulnerable native dependencies.
 - Removed the native YARA-X backend and its vulnerable Wasmtime dependency; malware rule scanning remains available through the `yara` optional extra.
-- Removed the experimental in-process WASM runtime and direct native ADB shortcuts pending production-grade isolation and execution contracts.
-- Migrated GitHub workflows to maintained Node 24 action releases and expanded wheel and source-distribution smoke tests.
+- Removed experimental WASM plugin execution and direct native ADB shortcuts; device operations use the platform ADB tool.
 
 ### Compatibility
 
 - LockKnife now requires Python 3.12 or newer, matching package metadata and release wheels.
-- `lockknife.lockknife_core` is an internal implementation module and is not a stable public API. The undocumented native `yara_scan_bytes`, `yara_scan_file_rules`, and `yara_cache_stats` functions were removed for supply-chain security. Use `lockknife.modules.security.malware.scan_with_yara` or the CLI with `lockknife[yara]` instead.
+- YARA scanning requires the `yara` extra; use the APK or malware scanning commands with your rules file.
 - Existing case JSON manifests remain available as generated compatibility snapshots while SQLite is the durable source of truth.
 - Custody sealing now requires an explicit signing key or `LOCKKNIFE_SIGNING_KEY`.
-- Release assets target Linux x86_64, Linux AArch64, macOS Apple Silicon, and Windows x86_64, with a source distribution for other supported build environments.
+- Prebuilt packages target Linux x86_64, Linux AArch64, macOS Apple Silicon, and Windows x86_64.
 
 ## [v1.1.0] - 2026-04-20
 
 ### The Exploitation Update
 
-This release introduces a massive new Exploitation Framework, bringing professional-grade wireless and physical vulnerability assessment tools to LockKnife. Alongside this, we've executed a comprehensive codebase modernization, streamlining the architecture for performance and safety.
+Added wireless and physical-access research commands with a dedicated terminal interface for managing findings and operation results.
 
 ### ⚡ Wireless & USB Exploitation
 
-- **Integrated Exploitation Framework**: A complete suite of modular Python modules and Rust primitives for Bluetooth, Wi-Fi, and USB debugging exploitation.
+- **Wireless Research Commands**: Added command groups for Bluetooth, Wi-Fi, and USB debugging research.
 - **Advanced Bluetooth Attacks**: Support for protocol-level fingerprinting and automated exploitation of BlueBorne, KNOB, and Bluetooth vulnerabilities.
 - **Wi-Fi Vulnerability Research**: WPS attacks, rogue AP deployment, and Rayon-accelerated WPA handshake cracking.
 - **USB Physical Access**: Exploiting ADB debugging for lock bypass, encrypted backup extraction, and remote management via ADB-TCP.
 - **Zero-Click Intelligence**: Intelligent exploit chain orchestration, automated payload generation, and vulnerability fingerprinting.
 
-### 🛠️ Core Platform & Code Quality
+### Performance
 
 - **Rust Performance Primitives**: New packet crafting/parsing engines for wireless protocols and high-speed parallel network scanning.
-- **Optimized Scanning**: Implemented MD5-based rule caching with an Arc-shared FIFO eviction policy for near-instant recurring scans.
+- **Optimized Scanning**: Cached rules to reduce repeated scan setup.
 
 ### 🎨 TUI & User Experience
 
 - **Exploit Management UI**: A dedicated interface in the TUI for managing evidence, scan results, and active exploitation workflows with rich terminal feedback.
-- **Refined Event Callbacks**: Reorganized internal bridge and domain-specific handlers for faster UI response times and modular maintenance.
+- **Interface Responsiveness**: Improved feedback while actions run.
 - **CLI Command Consolidation**: Streamlined CLI entry points with explicit command groups for Bluetooth, Wi-Fi, and USB discovery.
 
 ### 🛡️ Reliability & Security
@@ -125,30 +118,17 @@ This release introduces a massive new Exploitation Framework, bringing professio
 
 ## [v1.0.0] - 2026-03-18
 
-### Full Rewrite: Python + Rust (New Era)
+### Terminal Investigation Interface
 
 This release marks the transition from a Bash-only tool to a modular, TUI + headless CLI with a Rust native core. LockKnife is now a unified Android security research platform combining forensics, analysis, recovery, runtime instrumentation, and intelligence in one framework.
 
-### 🎯 Product Architecture
+### Interfaces
 
 - **TUI (Primary)**: Full-screen terminal UI as the default experience (`lockknife`) - case-driven workflows, live output, result viewer, and operator-guided execution
-- **CLI (Secondary)**: Headless command-line interface (`lockknife --cli` or `lockknife --headless`) for quick tasks, automation, scripting, and CI/CD integration
+- **CLI (Secondary)**: Headless command-line interface (`lockknife --cli` or `lockknife --headless`) for quick tasks, automation, and scripting
 - **Interactive (Legacy)**: Old classic menu-driven interface (`lockknife interactive`) for backward compatibility
 
-### 🏗️ Core Platform
-
-#### Python + Rust Hybrid Architecture
-
-- **Python Orchestration Layer**: CLI, device I/O, modules, reporting, and integrations under `lockknife/core/`, `lockknife_headless_cli/`, and `lockknife/modules/`
-- **Rust Native** (`lockknife.lockknife_core`) for performance-critical operations:
-  - Cryptographic primitives: hashing/HMAC, AES-GCM encryption/decryption
-  - High-speed PIN bruteforce (production-ready, Rust-accelerated)
-  - Dictionary attacks with rule-based password mutations
-  - SQLite bulk table extraction to JSON with correlation primitives
-  - Binary helpers: DEX/ELF header parsing, pattern scanning
-  - Network primitives: IPv4 parsing and packet analysis helpers
-
-#### Configuration & Logging
+### Configuration and Logging
 
 - TOML-based configuration (`lockknife.toml`) with multi-location support:
   - `./lockknife.toml`
@@ -333,18 +313,8 @@ Install additional capabilities via pip extras:
 #### Compatibility
 
 - **Python 3.11+** required
-- **Rust toolchain** required for building from source
 - **ADB** (Android platform-tools) required for device operations
 - **Platform support**: macOS, Linux, Windows (WSL)
-
-### 🎯 Design Philosophy
-
-- **Case-First**: Unified workspace for the full investigation lifecycle
-- **Operator-Centric**: TUI as primary surface with guided workflows
-- **Modular**: Importable APIs, not just CLI commands
-- **Testable**: Comprehensive test coverage with clear boundaries
-- **Transparent**: Feature status visibility and realistic expectations
-- **Extensible**: Plugin system and artifact registry for custom workflows
 
 ## [v0.4.0] - 2025-11-06
 

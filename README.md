@@ -9,8 +9,7 @@
 **Unified Investigation Workspace · High-Performance Rust Core · Interactive TUI · Scriptable CLI**
 
 [![Release](https://img.shields.io/github/v/release/ImKKingshuk/LockKnife?style=flat-square&color=blue)](https://github.com/ImKKingshuk/LockKnife/releases)
-[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=flat-square&logo=python&logoColor=white)](pyproject.toml)
-[![Rust](https://img.shields.io/badge/Rust-Edition%202021-DEA584?style=flat-square&logo=rust&logoColor=white)](Cargo.toml)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=flat-square&logo=python&logoColor=white)](#installation)
 [![Platforms](https://img.shields.io/badge/Platforms-macOS%20%7C%20Linux%20%7C%20Windows-22863A?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/License-GPL--3.0--only-blue?style=flat-square)](LICENSE)
 [![Website](https://img.shields.io/badge/Website-lockknife.vercel.app-blueviolet?style=flat-square)](https://lockknife.vercel.app)
@@ -49,7 +48,16 @@ Install via the official Homebrew tap:
 brew install ImKKingshuk/tap/lockknife
 ```
 
-### Method 3: Pre-Built Release Wheels
+### Method 3: Scoop (Windows)
+
+With Scoop installed, add the bucket and install LockKnife:
+
+```powershell
+scoop bucket add imkkingshuk https://github.com/ImKKingshuk/scoop-bucket
+scoop install imkkingshuk/lockknife
+```
+
+### Method 4: Pre-Built Release Wheels
 
 Download the matching wheel for your architecture from [GitHub Releases](https://github.com/ImKKingshuk/LockKnife/releases) and install using `pip`:
 
@@ -63,29 +71,16 @@ python -m pip install /path/to/downloaded-wheel.whl
 | **Linux** | x86-64, ARM64 |
 | **Windows** | x86-64 (Native & WSL) |
 
-### Method 4: Build from Source
-
-Prerequisites: **Python 3.12+**, **Rust toolchain** (`cargo`), and standard C/C++ build tools.
-
-```bash
-# Clone the repository
-git clone https://github.com/ImKKingshuk/LockKnife.git
-cd LockKnife
-
-# Install base package
-python -m pip install .
-```
-
-#### Optional Feature Extras
+### Optional Feature Extras
 
 Install optional dependencies according to your operational needs:
 
 ```bash
-# Example: Install APK analysis and network inspection tools
-python -m pip install '.[apk,network]'
+# Install APK analysis and network inspection with a downloaded wheel
+python -m pip install '/path/to/downloaded-wheel.whl[apk,network]'
 
-# Install all packaged extras
-python -m pip install '.[full]'
+# Install all investigation extras
+python -m pip install '/path/to/downloaded-wheel.whl[full]'
 ```
 
 | Extra | Capabilities Provided | Prerequisites |
@@ -98,9 +93,15 @@ python -m pip install '.[full]'
 | `ml` | Machine-learning log anomaly detection | scikit-learn & numpy |
 | `full` | All packaged extras listed above | Respective external tools apply |
 
+PDF output additionally requires `weasyprint` or `xhtml2pdf`. BLE GATT operations require `bleak` and a compatible Bluetooth adapter. Neither is installed by the `full` extra. See [Installation & Troubleshooting](docs/installation-and-troubleshooting.md) for setup and diagnostics.
+
+Install optional Python dependencies in the environment containing LockKnife. Do not install them into an unrelated system Python when using Homebrew or Scoop.
+
 ---
 
 ## Quick Start
+
+Examples use `DEVICE_SERIAL` as a placeholder. Replace it with a serial reported by `lockknife --cli device list`. Create the referenced case workspace before running case-aware commands, and substitute paths to evidence you are authorized to inspect.
 
 ### 1. Verify Environment & Connected Devices
 
@@ -120,7 +121,7 @@ lockknife --cli device list
 | **Interactive TUI** | `lockknife` | Full-screen visual workspace for interactive analysis and case management |
 | **Headless CLI** | `lockknife --cli <command>` | Direct command execution for scripting, pipelines, and headless servers |
 | **Headless Alias** | `lockknife --headless <command>` | Alternative shorthand for CLI operations |
-| **Classic Menu** | `lockknife interactive` | Step-by-step menu navigation for standard terminals |
+| **Classic Menu** | `lockknife --cli interactive` | Step-by-step menu navigation for standard terminals |
 
 ### 3. Explore Commands & Features
 
@@ -154,10 +155,10 @@ Acquire logical evidence and system artifacts directly from connected Android de
 
 ```bash
 # Extract web browser history into an active case
-lockknife --cli extract browser --case-dir ./cases/CASE-01
+lockknife --cli extract browser --serial DEVICE_SERIAL --case-dir ./cases/CASE-01
 
 # Extract WhatsApp messaging databases
-lockknife --cli extract messaging --app whatsapp --case-dir ./cases/CASE-01
+lockknife --cli extract messaging --serial DEVICE_SERIAL --app whatsapp --case-dir ./cases/CASE-01
 ```
 
 ---
@@ -177,8 +178,8 @@ Inspect disk dumps, application databases, and extracted filesystem artifacts:
 # Dump and inspect an extracted SQLite database
 lockknife --cli forensics sqlite ./evidence/app_data.db --case-dir ./cases/CASE-01
 
-# Correlate an IP address across all evidence in the case
-lockknife --cli forensics correlate --query "198.51.100.24" --case-dir ./cases/CASE-01
+# Correlate identifiers across an extracted JSON dataset
+lockknife --cli forensics correlate --input ./evidence/artifacts.json --case-dir ./cases/CASE-01
 ```
 
 ---
@@ -195,11 +196,11 @@ Analyze device security tokens, passwords, and lock-screen credentials:
 - **Passkey Artifact Export**: Discover and export FIDO2 / WebAuthn passkey artifacts on Android 14+ devices (`crack passkeys`).
 
 ```bash
-# Recover a numeric PIN from a SHA-1 hash with salt
-lockknife --cli crack pin --hash 7110eda4d09e062aa5e4a390b0a572ac0d2c0220 --salt 12345678 --algorithm sha1
+# Demonstrate offline recovery using the SHA-1 hash of the example PIN 1234
+lockknife --cli crack pin --hash 7110eda4d09e062aa5e4a390b0a572ac0d2c0220 --algo sha1 --length 4
 
 # Mutate a wordlist with permutation rules
-lockknife --cli crack password-rules --wordlist wordlist.txt --ruleset standard
+lockknife --cli crack password-rules --hash 5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8 --algo sha1 --wordlist wordlist.txt
 ```
 
 ---
@@ -208,7 +209,7 @@ lockknife --cli crack password-rules --wordlist wordlist.txt --ruleset standard
 
 Inspect, analyze, and reverse-engineer Android application packages:
 
-- **Manifest & Security Audit**: Audit exported activities, broadcast receivers, services, intent filters, deep links, and dangerous permissions with CVSS-based risk scoring (`apk analyze`, `apk permissions`).
+- **Manifest & Security Audit**: Inspect exported activities, broadcast receivers, services, intent filters, deep links, and dangerous permissions with heuristic risk scoring (`apk analyze`, `apk permissions`). Findings require manual validation.
 - **DEX Header Parsing**: Fast native parsing of DEX/ODEX headers and string tables.
 - **Pattern & YARA Scanning**: Scan APK resources and bytecode for hardcoded secrets, API tokens, and custom YARA rules (`apk scan`).
 - **Multi-Mode Decompilation**: Multi-stage decompilation pipeline with automated tool fallback and safe extraction limits.
@@ -228,7 +229,7 @@ Inspect, analyze, and reverse-engineer Android application packages:
 lockknife --cli apk decompile ./target.apk --mode auto --output ./decompiled/
 
 # Scan an application for hardcoded credentials with custom YARA rules
-lockknife --cli apk scan ./target.apk --rules ./rules/secrets.yar
+lockknife --cli apk scan --apk ./target.apk --yara ./rules/secrets.yar
 ```
 
 ---
@@ -245,10 +246,10 @@ Inspect and hook running application processes in real time:
 
 ```bash
 # Spawn an application with automated SSL unpinning
-lockknife --cli runtime bypass-ssl --package com.example.app --case-dir ./cases/CASE-01
+lockknife --cli runtime bypass-ssl com.example.app --device-id DEVICE_SERIAL --case-dir ./cases/CASE-01
 
 # Search live application memory for authentication tokens
-lockknife --cli runtime memory-search --package com.example.app --query "bearer"
+lockknife --cli runtime memory-search com.example.app --device-id DEVICE_SERIAL --pattern "bearer"
 ```
 
 ---
@@ -264,10 +265,10 @@ Analyze network traffic and assess device configuration security:
 
 ```bash
 # Discover API endpoints from a network capture
-lockknife --cli network api-discovery --pcap ./capture.pcap --case-dir ./cases/CASE-01
+lockknife --cli network api-discovery ./capture.pcap --case-dir ./cases/CASE-01
 
 # Perform an overall device security posture check
-lockknife --cli security scan
+lockknife --cli security scan --serial DEVICE_SERIAL
 ```
 
 ---
@@ -292,15 +293,15 @@ lockknife --cli intel virustotal --hash 44d88612fea8a8f36de82e1278abb02f --case-
 
 Track evidence, maintain artifact provenance, and generate verifiable audit records:
 
-- **SQLite Case Repository**: Structured database recording all acquired evidence, command history, and tool execution logs.
-- **Cryptographic Audit Trail**: Hash-chained event log ensuring tamper-evident tracking of all investigative actions.
+- **SQLite Case Repository**: Durable storage for registered artifacts, tracked jobs, and runtime sessions, with a generated JSON compatibility snapshot.
+- **Cryptographic Audit Trail**: Append-only, hash-chained case events and integrity checks. Preserve trusted hashes separately when independent verification is required.
 - **Artifact Lineage**: Track which command, tool, or parent file produced each piece of evidence.
 - **Evidence Bundles**: Export self-contained `.zip` archives containing consistent database snapshots, manifest data, logs, and artifacts.
 - **Chain of Custody**: Record evidence handling events with optional cryptographic signing.
 
 ```bash
 # Initialize a new case workspace
-lockknife --cli case init --case-id CASE-001 --examiner "Analyst" --title "Device Audit" --case-dir ./cases/CASE-01
+lockknife --cli case init --case-id CASE-001 --examiner "Analyst" --title "Device Audit" --output ./cases/CASE-01
 
 # Verify case audit integrity
 lockknife --cli report integrity --case-dir ./cases/CASE-01
@@ -358,7 +359,7 @@ lockknife --cli case init \
   --case-id "CASE-2026-001" \
   --examiner "Analyst" \
   --title "Device Security Assessment" \
-  --case-dir "./cases/CASE-2026-001"
+  --output "./cases/CASE-2026-001"
 ```
 
 ### 2. Acquire Artifacts from Target
@@ -366,8 +367,8 @@ lockknife --cli case init \
 Extract communications, browser records, and application data directly into the workspace:
 
 ```bash
-lockknife --cli extract messaging --app whatsapp --case-dir "./cases/CASE-2026-001"
-lockknife --cli extract browser --case-dir "./cases/CASE-2026-001"
+lockknife --cli extract messaging --serial DEVICE_SERIAL --app whatsapp --case-dir "./cases/CASE-2026-001"
+lockknife --cli extract browser --serial DEVICE_SERIAL --case-dir "./cases/CASE-2026-001"
 ```
 
 ### 3. Analyze Databases & Reverse-Engineer Applications
@@ -384,7 +385,7 @@ lockknife --cli apk decompile ./sample.apk --mode auto --case-dir "./cases/CASE-
 
 ### 4. Verify Integrity & Generate Reports
 
-Validate that all actions have been cryptographically recorded and generate a final report:
+Check registered artifact hashes and the case audit chain, then generate a report:
 
 ```bash
 # Verify the append-only audit trail
@@ -433,22 +434,19 @@ When running `lockknife` in TUI mode, use the following keyboard controls:
 
 ---
 
-## Tool Comparison
+## Capability Requirements
 
-How LockKnife compares with other popular mobile security tools:
-
-| Capability | LockKnife | ALEAPP | MobSF | drozer | objection | Frida |
-|------------|:---------:|:------:|:-----:|:------:|:---------:|:-----:|
-| **Case Workspace & Lineage** | ✅ Native | ⚠️ Reports only | ❌ | ❌ | ❌ | ❌ |
-| **Audit Trail Verification** | ✅ Hash-chained | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Device Artifact Extraction** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Timeline & Cross-Artifact Correlation** | ✅ Native Rust | ⚠️ Partial | ❌ | ❌ | ❌ | ❌ |
-| **APK Decompilation & Risk Scoring** | ✅ Multi-mode | ❌ | ✅ | ⚠️ Basic | ❌ | ❌ |
-| **Dynamic Runtime Instrumentation** | ✅ Frida-backed | ❌ | ⚠️ Sandbox | ✅ | ✅ | ✅ |
-| **PIN & Pattern Gesture Recovery** | ✅ Native Rust | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Full-Screen Terminal UI (TUI)** | ✅ Ratatui | ❌ | ❌ (Web UI) | ❌ | ❌ | ❌ |
-| **Scriptable Headless CLI** | ✅ | ✅ | ⚠️ API | ✅ | ✅ | ✅ |
-| **Chain of Custody & PDF/HTML Reports** | ✅ | ⚠️ Partial | ✅ | ❌ | ❌ | ❌ |
+| Capability | Requirements | Important Limits |
+|------------|--------------|------------------|
+| **Case Workspace & Lineage** | Base package | Only registered outputs are included in the case inventory |
+| **Offline Forensic Analysis** | Local evidence; native core where applicable | Carved records and heuristic findings require independent review |
+| **Device Artifact Extraction** | ADB authorization; root for protected paths | Android version, OEM, encryption, and app schemas affect access |
+| **APK Decompilation** | `apk` extra; JADX or apktool | Archive unpacking does not reconstruct source code |
+| **Runtime Instrumentation** | `frida` extra; compatible target Frida server | Hooks depend on app implementation and target permissions |
+| **Credential Recovery** | Supported legacy hashes or accessible artifacts | Modern hardware-backed credentials cannot be assumed recoverable |
+| **Threat Intelligence** | `threat-intel` extra; service credentials | Requests send selected indicators to external providers |
+| **PDF Reports** | `weasyprint` or `xhtml2pdf` | Without a renderer, use HTML or the documented HTML fallback |
+| **Wireless Research** | Platform tools, suitable hardware, and authorization | PoC or unavailable exploit capabilities are not live implementations |
 
 ---
 
@@ -468,19 +466,11 @@ LockKnife loads configuration files in the following priority order:
 log_level = "INFO"
 log_format = "console"
 adb_path = "adb"
-preferred_device = ""
-
-[case]
-default_examiner = "Analyst"
-default_case_dir = "./cases"
-
-[ui]
-theme = "dark"
-
-[intel]
-virustotal_api_key = ""
-otx_api_key = ""
+rate_limit_per_device = 10
+rate_limit_global = 50
 ```
+
+Use `--config /path/to/lockknife.toml` or `LOCKKNIFE_CONFIG` to select a configuration file explicitly. Keep service credentials in the `VT_API_KEY` and `OTX_API_KEY` environment variables or a private `.env` file, not in examples or shared configuration. Explicit artifact sealing requires `LOCKKNIFE_SIGNING_KEY` or a supplied key. See [Case Integrity & Privacy](docs/case-integrity-and-privacy.md).
 
 ---
 
@@ -490,8 +480,9 @@ otx_api_key = ""
 - **[Headless CLI Walkthrough](docs/headless-cli-walkthrough.md)**: Command-line reference and automation examples.
 - **[Classic Menu Walkthrough](docs/legacy-interactive-walkthrough.md)**: Guide for classic interactive mode.
 - **[Changelog](CHANGELOG.md)**: Release history and version notes.
-- **[Contributing](CONTRIBUTING.md)**: Development guidelines and pull request instructions.
 - **[Security Policy](SECURITY.md)**: Vulnerability disclosure guidelines.
+- **[Installation & Troubleshooting](docs/installation-and-troubleshooting.md)**: Installation methods, optional dependencies, and common setup failures.
+- **[Case Integrity & Privacy](docs/case-integrity-and-privacy.md)**: Evidence storage, verification, external services, and safe sharing.
 
 ---
 
