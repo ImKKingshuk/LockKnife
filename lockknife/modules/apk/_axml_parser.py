@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+import math
 import pathlib
+import re
 import struct
+import xml.etree.ElementTree as ET
 import zipfile
 
+from defusedxml.ElementTree import fromstring
+
+MAX_MANIFEST_BYTES = 16 * 1024 * 1024
+MAX_STRINGS = 100_000
+MAX_DEPTH = 256
 RES_STRING_POOL_TYPE = 0x0001
 RES_XML_TYPE = 0x0003
 RES_XML_START_NAMESPACE_TYPE = 0x0100
@@ -12,223 +20,217 @@ RES_XML_START_ELEMENT_TYPE = 0x0102
 RES_XML_END_ELEMENT_TYPE = 0x0103
 RES_XML_CDATA_TYPE = 0x0104
 RES_XML_RESOURCE_MAP_TYPE = 0x0180
-
-TYPE_NULL = 0x00
-TYPE_REFERENCE = 0x01
-TYPE_ATTRIBUTE = 0x02
-TYPE_STRING = 0x03
-TYPE_FLOAT = 0x04
-TYPE_DIMENSION = 0x05
-TYPE_FRACTION = 0x06
-TYPE_INT_DEC = 0x10
-TYPE_INT_HEX = 0x11
-TYPE_INT_BOOLEAN = 0x12
-TYPE_INT_COLOR_ARGB8 = 0x1C
-TYPE_INT_COLOR_RGB8 = 0x1D
-TYPE_INT_COLOR_ARGB4 = 0x1E
-TYPE_INT_COLOR_RGB4 = 0x1F
-
-DIMENSION_UNITS = ["px", "dp", "sp", "pt", "in", "mm"]
-FRACTION_UNITS = ["%", "%p"]
+_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]*\Z")
+ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
 
 
-def _escape_xml_attr(value: str) -> str:
-    return (
-        value.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&apos;")
-    )
+def _decode_string_pool(chunk: bytes) -> list[str]:
+    if len(chunk) < 28:
+        raise ValueError("Truncated string pool")
+    header_size = struct.unpack_from("<H", chunk, 2)[0]
+    count, styles, flags, start, styles_start = struct.unpack_from("<IIIII", chunk, 8)
+    offsets_end = header_size + (count + styles) * 4
+    end = styles_start or len(chunk)
+    if count > MAX_STRINGS or not (28 <= header_size <= offsets_end <= start <= end <= len(chunk)):
+        raise ValueError("Invalid string pool bounds")
+    strings = []
 
+    def length(pos: int, *, utf8: bool) -> tuple[int, int]:
+        width, high, mask = (1, 0x80, 0x7F) if utf8 else (2, 0x8000, 0x7FFF)
+        if pos + width > end:
+            raise ValueError("Truncated string length")
+        first = int.from_bytes(chunk[pos : pos + width], "little")
+        pos += width
+        if first & high:
+            if pos + width > end:
+                raise ValueError("Truncated extended string length")
+            second = int.from_bytes(chunk[pos : pos + width], "little")
+            pos += width
+            first = ((first & mask) << (width * 8)) | second
+        return first, pos
 
-def _decode_string_pool(data: bytes, chunk_offset: int) -> list[str]:
-    scount, _style_count, flags, strings_start, _styles_start = struct.unpack_from(
-        "<IIIII", data, chunk_offset + 8
-    )
-    is_utf8 = bool(flags & (1 << 8))
-    offsets = [
-        struct.unpack_from("<I", data, chunk_offset + 28 + i * 4)[0]
-        for i in range(scount)
-    ]
-    pool_base = chunk_offset + strings_start
-    strings: list[str] = []
-
-    for off in offsets:
-        str_pos = pool_base + off
-        if str_pos >= len(data):
-            strings.append("")
-            continue
-        if is_utf8:
-            # UTF-8: skip UTF-16 character length (1 or 2 bytes)
-            if str_pos >= len(data):
-                strings.append("")
-                continue
-            b1 = data[str_pos]
-            str_pos += 1
-            if b1 & 0x80 and str_pos < len(data):
-                str_pos += 1
-
-            if str_pos >= len(data):
-                strings.append("")
-                continue
-            b2 = data[str_pos]
-            str_pos += 1
-            u8len = b2
-            if b2 & 0x80 and str_pos < len(data):
-                u8len = ((b2 & 0x7F) << 8) | data[str_pos]
-                str_pos += 1
-
-            s_bytes = data[str_pos : str_pos + u8len]
-            strings.append(s_bytes.decode("utf-8", errors="replace"))
+    for i in range(count):
+        offset = struct.unpack_from("<I", chunk, header_size + i * 4)[0]
+        pos = start + offset
+        if not start <= pos < end:
+            raise ValueError("String offset outside pool")
+        utf8 = bool(flags & 0x100)
+        chars, pos = length(pos, utf8=utf8)
+        if utf8:
+            size, pos = length(pos, utf8=True)
+            width, encoding = 1, "utf-8"
         else:
-            # UTF-16LE
-            if str_pos + 2 > len(data):
-                strings.append("")
-                continue
-            u16len = struct.unpack_from("<H", data, str_pos)[0]
-            str_pos += 2
-            if u16len & 0x8000:
-                if str_pos + 2 > len(data):
-                    strings.append("")
-                    continue
-                next_part = struct.unpack_from("<H", data, str_pos)[0]
-                u16len = ((u16len & 0x7FFF) << 16) | next_part
-                str_pos += 2
-
-            byte_len = u16len * 2
-            s_bytes = data[str_pos : str_pos + byte_len]
-            strings.append(s_bytes.decode("utf-16le", errors="replace"))
-
+            size, width, encoding = chars * 2, 2, "utf-16le"
+        if pos + size + width > end or chunk[pos + size : pos + size + width] != b"\0" * width:
+            raise ValueError("Truncated or unterminated string")
+        value = chunk[pos : pos + size].decode(encoding)
+        if utf8 and len(value.encode("utf-16le")) // 2 != chars:
+            raise ValueError("Incorrect string character length")
+        strings.append(value)
     return strings
 
 
-def parse_axml_to_xml(data: bytes) -> str:
-    """Decode raw bytes of an AndroidManifest.xml (binary AXML or plain XML) to XML string."""
-    stripped = data.strip()
-    if stripped.startswith(b"<?xml") or stripped.startswith(b"<"):
-        return data.decode("utf-8", errors="replace")
+def _typed_value(kind: int, data: int, string_at) -> str:
+    if kind == 0x03:
+        return string_at(data)
+    if kind == 0x12:
+        return "true" if data else "false"
+    if kind == 0x10:
+        return str(data if data < 0x80000000 else data - 0x100000000)
+    if kind == 0x11:
+        return f"0x{data:x}"
+    if kind in (0x01, 0x02):
+        return f"{'@' if kind == 0x01 else '?'}0x{data:08x}"
+    if kind == 0x04:
+        value = struct.unpack("<f", struct.pack("<I", data))[0]
+        if not math.isfinite(value):
+            raise ValueError("Non-finite float attribute")
+        return str(value)
+    if kind in (0x05, 0x06):
+        # Android complex values use a signed 24-bit mantissa and a two-bit radix.
+        mantissa = data & 0xFFFFFF00
+        if mantissa >= 0x80000000:
+            mantissa -= 0x100000000
+        value = mantissa * (1 / 256, 1 / 32768, 1 / 8388608, 1 / 2147483648)[(data >> 4) & 3]
+        units = ("px", "dp", "sp", "pt", "in", "mm") if kind == 0x05 else ("%", "%p")
+        unit = data & 0xF
+        if unit >= len(units):
+            raise ValueError("Invalid complex attribute unit")
+        if kind == 0x06:
+            value *= 100
+        return f"{value:g}{units[unit]}"
+    if 0x1C <= kind <= 0x1F:
+        width = (8, 6, 4, 3)[kind - 0x1C]
+        return f"#{data & ((1 << (width * 4)) - 1):0{width}x}"
+    if kind == 0:
+        return ""
+    raise ValueError(f"Unsupported attribute type: {kind}")
 
+
+def parse_axml_to_xml(data: bytes) -> str:
+    """Decode a bounded, structurally valid Android binary or plain XML document."""
+    if len(data) > MAX_MANIFEST_BYTES:
+        raise ValueError("Manifest exceeds size limit")
+    if data.lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"<"):
+        text = data.decode("utf-8-sig")
+        fromstring(text)
+        return text
     if len(data) < 8:
         raise ValueError("Data too short for Android Binary XML")
+    kind, header, size = struct.unpack_from("<HHI", data)
+    if kind != RES_XML_TYPE or header != 8 or size != len(data):
+        raise ValueError("Invalid binary XML header")
 
-    chunk_type, header_size, _chunk_size = struct.unpack_from("<HHI", data, 0)
-    if chunk_type != RES_XML_TYPE:
-        # If not RES_XML_TYPE, attempt plain UTF-8 decoding fallback
-        return data.decode("utf-8", errors="replace")
-
-    pos = header_size
     strings: list[str] = []
-    lines: list[str] = []
-    ns_map: dict[str, str] = {}  # uri -> prefix
+    namespaces: list[tuple[int, int]] = []
+    stack: list[ET.Element] = []
+    root: ET.Element | None = None
+    pool_seen = False
 
-    while pos < len(data):
-        if pos + 8 > len(data):
-            break
-        c_type, _c_hsize, c_size = struct.unpack_from("<HHI", data, pos)
-        if c_size <= 0:
-            break
-        chunk_end = pos + c_size
+    def string_at(index: int) -> str:
+        if not 0 <= index < len(strings):
+            raise ValueError("Invalid string index")
+        return strings[index]
 
+    def name_at(ns: int, index: int) -> str:
+        name = string_at(index)
+        if not _NAME.fullmatch(name):
+            raise ValueError("Invalid XML name")
+        return name if ns == 0xFFFFFFFF else f"{{{string_at(ns)}}}{name}"
+
+    pos = header
+    while pos < size:
+        if pos + 8 > size:
+            raise ValueError("Truncated XML chunk")
+        c_type, c_header, c_size = struct.unpack_from("<HHI", data, pos)
+        if not 8 <= c_header <= c_size <= size - pos:
+            raise ValueError("Invalid XML chunk bounds")
+        chunk = data[pos : pos + c_size]
         if c_type == RES_STRING_POOL_TYPE:
-            strings = _decode_string_pool(data, pos)
-
-        elif c_type == RES_XML_START_NAMESPACE_TYPE:
-            if pos + 24 <= len(data):
-                _line, _comment, prefix_idx, uri_idx = struct.unpack_from(
-                    "<IIII", data, pos + 8
-                )
-                prefix = strings[prefix_idx] if 0 <= prefix_idx < len(strings) else ""
-                uri = strings[uri_idx] if 0 <= uri_idx < len(strings) else ""
-                if uri:
-                    ns_map[uri] = prefix
-
+            if pool_seen or root is not None:
+                raise ValueError("Duplicate or misplaced string pool")
+            strings = _decode_string_pool(chunk)
+            pool_seen = True
+        elif c_type == RES_XML_RESOURCE_MAP_TYPE:
+            if c_header != 8 or (c_size - c_header) % 4:
+                raise ValueError("Invalid XML resource map")
+        elif c_type in (RES_XML_START_NAMESPACE_TYPE, RES_XML_END_NAMESPACE_TYPE):
+            if c_header != 16 or c_size != 24:
+                raise ValueError("Invalid namespace chunk")
+            prefix, uri = struct.unpack_from("<II", chunk, 16)
+            if prefix != 0xFFFFFFFF:
+                value = string_at(prefix)
+                if value and not _NAME.fullmatch(value):
+                    raise ValueError("Invalid namespace prefix")
+            string_at(uri)
+            if c_type == RES_XML_START_NAMESPACE_TYPE:
+                namespaces.append((prefix, uri))
+            elif not namespaces or namespaces.pop() != (prefix, uri):
+                raise ValueError("Unbalanced namespace")
         elif c_type == RES_XML_START_ELEMENT_TYPE:
-            if pos + 28 <= len(data):
-                _ns_idx, name_idx, attr_start, attr_size, attr_count = (
-                    struct.unpack_from("<IIHHH", data, pos + 16)
+            if c_header != 16 or c_size < 36 or len(stack) >= MAX_DEPTH:
+                raise ValueError("Invalid start element")
+            ns, name, start, stride, count = struct.unpack_from("<IIHHH", chunk, 16)
+            offset = 16 + start
+            if start < 20 or stride < 20 or offset + count * stride > c_size:
+                raise ValueError("Invalid attribute bounds")
+            element = ET.Element(name_at(ns, name))
+            for i in range(count):
+                ans, aname, raw, vsize, reserved, vtype, value = struct.unpack_from(
+                    "<IIIHBBI", chunk, offset + i * stride
                 )
-                tag_name = (
-                    strings[name_idx] if 0 <= name_idx < len(strings) else "unknown"
+                if vsize != 8 or reserved:
+                    raise ValueError("Invalid attribute value header")
+                key = name_at(ans, aname)
+                if key in element.attrib:
+                    raise ValueError("Duplicate attribute")
+                element.set(
+                    key,
+                    string_at(raw) if raw != 0xFFFFFFFF else _typed_value(vtype, value, string_at),
                 )
-
-                attrs: list[str] = []
-                attr_offset = pos + 16 + attr_start
-                for a_idx in range(attr_count):
-                    curr = attr_offset + a_idx * attr_size
-                    if curr + 20 > len(data):
-                        break
-                    a_ns, a_name, a_raw, _val_size, _val_res0, val_type, val_data = (
-                        struct.unpack_from("<IIIHBBI", data, curr)
-                    )
-                    aname = strings[a_name] if 0 <= a_name < len(strings) else "attr"
-                    ans_uri = strings[a_ns] if 0 <= a_ns < len(strings) else None
-                    prefix = ns_map.get(ans_uri) if ans_uri else None
-                    if not prefix and ans_uri and "android" in ans_uri.lower():
-                        prefix = "android"
-                    full_name = f"{prefix}:{aname}" if prefix else aname
-
-                    # Determine attribute value representation
-                    if a_raw != 0xFFFFFFFF and 0 <= a_raw < len(strings):
-                        val_str = strings[a_raw]
-                    elif val_type == TYPE_STRING and 0 <= val_data < len(strings):
-                        val_str = strings[val_data]
-                    elif val_type == TYPE_INT_BOOLEAN:
-                        val_str = "true" if val_data != 0 else "false"
-                    elif val_type in (TYPE_INT_DEC, TYPE_INT_HEX):
-                        val_str = str(val_data)
-                    elif val_type == TYPE_REFERENCE:
-                        val_str = f"@0x{val_data:08x}"
-                    elif val_type in (
-                        TYPE_INT_COLOR_ARGB8,
-                        TYPE_INT_COLOR_RGB8,
-                        TYPE_INT_COLOR_ARGB4,
-                        TYPE_INT_COLOR_RGB4,
-                    ):
-                        val_str = f"#{val_data:08x}"
-                    elif val_type == TYPE_DIMENSION:
-                        unit = DIMENSION_UNITS[val_data & 0x0F] if (val_data & 0x0F) < len(DIMENSION_UNITS) else ""
-                        val_str = f"{val_data >> 8}{unit}"
-                    elif val_type == TYPE_FRACTION:
-                        unit = FRACTION_UNITS[val_data & 0x0F] if (val_data & 0x0F) < len(FRACTION_UNITS) else ""
-                        val_str = f"{val_data >> 8}{unit}"
-                    else:
-                        val_str = str(val_data)
-
-                    attrs.append(f'{full_name}="{_escape_xml_attr(val_str)}"')
-
-                attr_str = (" " + " ".join(attrs)) if attrs else ""
-                if tag_name == "manifest" and "xmlns:android" not in attr_str:
-                    attr_str = (
-                        ' xmlns:android="http://schemas.android.com/apk/res/android"'
-                        + attr_str
-                    )
-                lines.append(f"<{tag_name}{attr_str}>")
-
+            if stack:
+                stack[-1].append(element)
+            elif root is None:
+                root = element
+            else:
+                raise ValueError("Multiple XML roots")
+            stack.append(element)
         elif c_type == RES_XML_END_ELEMENT_TYPE:
-            if pos + 24 <= len(data):
-                _ns_idx, name_idx = struct.unpack_from("<II", data, pos + 16)
-                tag_name = (
-                    strings[name_idx] if 0 <= name_idx < len(strings) else "unknown"
-                )
-                lines.append(f"</{tag_name}>")
-
+            if c_header != 16 or c_size != 24:
+                raise ValueError("Invalid end element")
+            ns, name = struct.unpack_from("<II", chunk, 16)
+            if not stack or stack.pop().tag != name_at(ns, name):
+                raise ValueError("Unbalanced XML element")
         elif c_type == RES_XML_CDATA_TYPE:
-            if pos + 20 <= len(data):
-                data_idx = struct.unpack_from("<I", data, pos + 16)[0]
-                if 0 <= data_idx < len(strings):
-                    lines.append(_escape_xml_attr(strings[data_idx]))
-
-        pos = chunk_end
-
-    return '<?xml version="1.0" encoding="utf-8"?>\n' + "\n".join(lines)
+            if c_header != 16 or c_size != 28 or not stack:
+                raise ValueError("Invalid XML text chunk")
+            text = string_at(struct.unpack_from("<I", chunk, 16)[0])
+            parent = stack[-1]
+            if len(parent):
+                parent[-1].tail = (parent[-1].tail or "") + text
+            else:
+                parent.text = (parent.text or "") + text
+        else:
+            raise ValueError(f"Unsupported XML chunk: {c_type}")
+        pos += c_size
+    if root is None or stack or namespaces:
+        raise ValueError("Incomplete XML document")
+    result = ET.tostring(root, encoding="unicode")
+    fromstring(result)
+    return '<?xml version="1.0" encoding="utf-8"?>\n' + result
 
 
 def extract_manifest_xml_from_apk(apk_path: pathlib.Path) -> str:
-    """Extract and decode AndroidManifest.xml from an APK file."""
-    with zipfile.ZipFile(apk_path, "r") as archive:
-        for name in archive.namelist():
-            if name.lower() == "androidmanifest.xml":
-                raw_bytes = archive.read(name)
-                return parse_axml_to_xml(raw_bytes)
-    raise FileNotFoundError(f"AndroidManifest.xml not found in {apk_path}")
+    """Extract a single bounded manifest from an APK."""
+    with zipfile.ZipFile(apk_path) as archive:
+        matches = [
+            entry for entry in archive.infolist() if entry.filename.lower() == "androidmanifest.xml"
+        ]
+        if len(matches) != 1:
+            raise ValueError("APK must contain exactly one AndroidManifest.xml")
+        entry = matches[0]
+        if entry.file_size > MAX_MANIFEST_BYTES:
+            raise ValueError("Manifest exceeds size limit")
+        with archive.open(entry) as handle:
+            data = handle.read(MAX_MANIFEST_BYTES + 1)
+        return parse_axml_to_xml(data)

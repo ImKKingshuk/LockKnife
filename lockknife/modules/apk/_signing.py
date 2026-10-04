@@ -18,28 +18,58 @@ def _detect_signing_schemes(apk_path: pathlib.Path, inventory: dict[str, Any]) -
     try:
         import struct
 
-        data = apk_path.read_bytes()
-        eocd_idx = data.rfind(b"PK\x05\x06")
-        if eocd_idx != -1 and eocd_idx + 22 <= len(data):
-            _cd_size, cd_offset = struct.unpack_from("<II", data, eocd_idx + 12)
-            if cd_offset >= 24:
-                magic = data[cd_offset - 16 : cd_offset]
-                if magic == b"APK Sig Block 42":
-                    block_size = struct.unpack_from("<Q", data, cd_offset - 24)[0]
-                    block_start = cd_offset - 8 - block_size
-                    pos = block_start
-                    while pos + 12 < cd_offset - 24:
-                        pair_len = struct.unpack_from("<Q", data, pos)[0]
-                        pos += 8
-                        if pos + pair_len > cd_offset - 24:
-                            break
-                        sig_id = struct.unpack_from("<I", data, pos)[0]
-                        if sig_id == 0x7109871A:
-                            schemes["v2"] = True
-                        elif sig_id in (0xF05368C0, 0x1B93AD61):
-                            schemes["v3"] = True
-                        pos += pair_len
-    except Exception:
+        # Read the ZIP tail and signing block metadata without loading the APK.
+        with apk_path.open("rb") as handle:
+            handle.seek(0, 2)
+            file_size = handle.tell()
+            tail_size = min(file_size, 65557)
+            handle.seek(file_size - tail_size)
+            tail = handle.read(tail_size)
+            eocd = tail.rfind(b"PK\x05\x06")
+            while eocd >= 0:
+                if eocd + 22 <= len(tail):
+                    comment_len = struct.unpack_from("<H", tail, eocd + 20)[0]
+                    if eocd + 22 + comment_len == len(tail):
+                        break
+                eocd = tail.rfind(b"PK\x05\x06", 0, eocd)
+            if eocd < 0:
+                return schemes
+            disk, cd_disk, disk_entries, entries, cd_size, cd_offset = struct.unpack_from(
+                "<HHHHII", tail, eocd + 4
+            )
+            if (
+                disk
+                or cd_disk
+                or disk_entries != entries
+                or cd_offset + cd_size != file_size - tail_size + eocd
+                or cd_offset < 32
+            ):
+                return schemes
+            handle.seek(cd_offset - 24)
+            footer = handle.read(24)
+            if footer[8:] != b"APK Sig Block 42":
+                return schemes
+            block_size = struct.unpack_from("<Q", footer)[0]
+            block_start = cd_offset - 8 - block_size
+            if block_size < 24 or block_start < 0:
+                return schemes
+            handle.seek(block_start)
+            if struct.unpack("<Q", handle.read(8))[0] != block_size:
+                return schemes
+            pos, end = block_start + 8, cd_offset - 24
+            detected: set[int] = set()
+            while pos < end:
+                if end - pos < 12:
+                    return schemes
+                handle.seek(pos)
+                pair_len, sig_id = struct.unpack("<QI", handle.read(12))
+                if pair_len < 4 or pair_len > end - pos - 8:
+                    return schemes
+                detected.add(sig_id)
+                pos += 8 + pair_len
+            schemes["v2"] = 0x7109871A in detected
+            schemes["v3"] = bool(detected & {0xF05368C0, 0x1B93AD61})
+    except (OSError, ValueError, struct.error):
         pass
     return schemes
 
@@ -104,6 +134,8 @@ def signing_summary(apk_obj: Any, apk_path: pathlib.Path) -> dict[str, Any]:
         "lineage_count": len(lineage),
         "rotation_capable": bool(schemes.get("v3") or schemes.get("v4")),
         "strict_verification": {
+            "cryptographic_verification_performed": False,
+            "scope": "signing metadata inspection, not signature validation",
             "status": status,
             "findings": findings,
             "recommended_next": _recommended_next(status, findings, schemes),

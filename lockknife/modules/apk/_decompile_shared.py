@@ -46,9 +46,12 @@ class ApkError(LockKnifeError):
 
 def _require_androguard(raise_on_missing: bool = True) -> Any:
     try:
-        from androguard.core.bytecodes.apk import APK
+        from androguard.core.apk import APK
     except ImportError as e:
-        if not raise_on_missing:
-            return None
-        raise ApkError("androguard is required (install extras: uv sync --extra apk)") from e
+        try:
+            from androguard.core.bytecodes.apk import APK
+        except ImportError:
+            if not raise_on_missing:
+                return None
+            raise ApkError("androguard is required (install extras: uv sync --extra apk)") from e
     return APK

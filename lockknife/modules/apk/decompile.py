@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pathlib
+import zipfile
 from typing import Any
 
 from defusedxml.ElementTree import ParseError, fromstring
@@ -34,8 +35,13 @@ lockknife_core = None
 def _parse_apk_manifest_native(apk_path: pathlib.Path) -> dict[str, Any]:
     from lockknife.modules.apk._axml_parser import extract_manifest_xml_from_apk
 
-    manifest_xml = extract_manifest_xml_from_apk(apk_path)
-    root = fromstring(manifest_xml)
+    try:
+        manifest_xml = extract_manifest_xml_from_apk(apk_path)
+        root = fromstring(manifest_xml)
+    except (OSError, ValueError, zipfile.BadZipFile, ParseError) as exc:
+        raise ApkError(f"Unable to parse APK manifest: {exc}") from exc
+    if root.tag != "manifest":
+        raise ApkError("APK XML root must be manifest")
 
     package = root.get("package")
     version_code = _android_attr(root, "versionCode")
@@ -52,19 +58,13 @@ def _parse_apk_manifest_native(apk_path: pathlib.Path) -> dict[str, Any]:
                 [
                     _android_attr(node, "name")
                     for node in root.findall("uses-permission")
+                    + root.findall("uses-permission-sdk-23")
                 ]
             )
         )
     )
     features = sorted(
-        set(
-            _clean_strings(
-                [
-                    _android_attr(node, "name")
-                    for node in root.findall("uses-feature")
-                ]
-            )
-        )
+        set(_clean_strings([_android_attr(node, "name") for node in root.findall("uses-feature")]))
     )
 
     app_node = root.find("application")
@@ -87,7 +87,7 @@ def _parse_apk_manifest_native(apk_path: pathlib.Path) -> dict[str, Any]:
     providers: list[str] = []
 
     if app_node is not None:
-        for act in app_node.findall("activity"):
+        for act in app_node.findall("activity") + app_node.findall("activity-alias"):
             name = _android_attr(act, "name")
             if name:
                 norm = _normalize_component_name(package, name)
@@ -155,14 +155,8 @@ def _parse_apk_manifest_native(apk_path: pathlib.Path) -> dict[str, Any]:
         if app_node is not None
         else None
     )
-    net_sec = (
-        _android_attr(app_node, "networkSecurityConfig")
-        if app_node is not None
-        else None
-    )
-    backup_agent = (
-        _android_attr(app_node, "backupAgent") if app_node is not None else None
-    )
+    net_sec = _android_attr(app_node, "networkSecurityConfig") if app_node is not None else None
+    backup_agent = _android_attr(app_node, "backupAgent") if app_node is not None else None
 
     info = {
         "package": package,
@@ -220,9 +214,7 @@ def parse_apk_manifest(apk_path: pathlib.Path) -> dict[str, Any]:
             manifest = apk_obj.get_android_manifest_xml()
             manifest_xml = manifest.toxml() if manifest is not None else None
             package = _apk_method(apk_obj, "get_package")
-            permissions = sorted(
-                set(_clean_strings(_apk_method(apk_obj, "get_permissions", [])))
-            )
+            permissions = sorted(set(_clean_strings(_apk_method(apk_obj, "get_permissions", []))))
             target_sdk = _apk_method(apk_obj, "get_target_sdk_version")
             components = component_details(manifest_xml, package, target_sdk=target_sdk)
             archive = archive_inventory(apk_path)
@@ -248,26 +240,15 @@ def parse_apk_manifest(apk_path: pathlib.Path) -> dict[str, Any]:
                     "max": _apk_method(apk_obj, "get_max_sdk_version"),
                 },
                 "permissions": permissions,
-                "permission_details": _apk_method(
-                    apk_obj, "get_details_permissions", {}
-                )
-                or {},
-                "features": sorted(
-                    set(_clean_strings(_apk_method(apk_obj, "get_features", [])))
-                ),
+                "permission_details": _apk_method(apk_obj, "get_details_permissions", {}) or {},
+                "features": sorted(set(_clean_strings(_apk_method(apk_obj, "get_features", [])))),
                 "uses_libraries": sorted(
                     set(_clean_strings(_apk_method(apk_obj, "get_libraries", [])))
                 ),
-                "activities": _clean_strings(
-                    _apk_method(apk_obj, "get_activities", [])
-                ),
+                "activities": _clean_strings(_apk_method(apk_obj, "get_activities", [])),
                 "services": _clean_strings(_apk_method(apk_obj, "get_services", [])),
-                "receivers": _clean_strings(
-                    _apk_method(apk_obj, "get_receivers", [])
-                ),
-                "providers": _clean_strings(
-                    _apk_method(apk_obj, "get_providers", [])
-                ),
+                "receivers": _clean_strings(_apk_method(apk_obj, "get_receivers", [])),
+                "providers": _clean_strings(_apk_method(apk_obj, "get_providers", [])),
                 "components": components,
                 "component_summary": components.get("summary") or {},
                 "component_interactions": components.get("interaction_analysis") or {},

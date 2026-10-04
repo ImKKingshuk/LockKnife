@@ -4,6 +4,7 @@ import pathlib
 import struct
 import zipfile
 
+import pytest
 from click.testing import CliRunner
 
 from lockknife.modules.apk._axml_parser import extract_manifest_xml_from_apk, parse_axml_to_xml
@@ -85,9 +86,7 @@ def _build_binary_axml() -> bytes:
     manifest_start = bytearray()
     manifest_start.extend(struct.pack("<HHII", 0x0102, 16, 16 + 20 + 60, 1))
     manifest_start.extend(struct.pack("<I", 0xFFFFFFFF))
-    manifest_start.extend(
-        struct.pack("<IIHHHHHH", 0xFFFFFFFF, 7, 20, 20, 3, 0, 0, 0)
-    )
+    manifest_start.extend(struct.pack("<IIHHHHHH", 0xFFFFFFFF, 7, 20, 20, 3, 0, 0, 0))
     # attr package
     manifest_start.extend(struct.pack("<III", 0xFFFFFFFF, 2, 3))
     manifest_start.extend(struct.pack("<HBB", 8, 0, 3))
@@ -106,9 +105,7 @@ def _build_binary_axml() -> bytes:
     uses_sdk = bytearray()
     uses_sdk.extend(struct.pack("<HHII", 0x0102, 16, 16 + 20 + 40, 2))
     uses_sdk.extend(struct.pack("<I", 0xFFFFFFFF))
-    uses_sdk.extend(
-        struct.pack("<IIHHHHHH", 0xFFFFFFFF, 24, 20, 20, 2, 0, 0, 0)
-    )
+    uses_sdk.extend(struct.pack("<IIHHHHHH", 0xFFFFFFFF, 24, 20, 20, 2, 0, 0, 0))
     # minSdkVersion = 21
     uses_sdk.extend(struct.pack("<III", 0, 25, 0xFFFFFFFF))
     uses_sdk.extend(struct.pack("<HBB", 8, 0, 16))
@@ -118,47 +115,35 @@ def _build_binary_axml() -> bytes:
     uses_sdk.extend(struct.pack("<HBB", 8, 0, 16))
     uses_sdk.extend(struct.pack("<I", 34))
     xml_chunks.extend(uses_sdk)
-    xml_chunks.extend(
-        struct.pack("<HHIIIII", 0x0103, 16, 24, 2, 0xFFFFFFFF, 0xFFFFFFFF, 24)
-    )
+    xml_chunks.extend(struct.pack("<HHIIIII", 0x0103, 16, 24, 2, 0xFFFFFFFF, 0xFFFFFFFF, 24))
 
     # 4. <uses-permission android:name="android.permission.INTERNET"/>
     up_net = bytearray()
     up_net.extend(struct.pack("<HHII", 0x0102, 16, 56, 3))
     up_net.extend(struct.pack("<I", 0xFFFFFFFF))
-    up_net.extend(
-        struct.pack("<IIHHHHHH", 0xFFFFFFFF, 8, 20, 20, 1, 0, 0, 0)
-    )
+    up_net.extend(struct.pack("<IIHHHHHH", 0xFFFFFFFF, 8, 20, 20, 1, 0, 0, 0))
     up_net.extend(struct.pack("<III", 0, 9, 10))
     up_net.extend(struct.pack("<HBB", 8, 0, 3))
     up_net.extend(struct.pack("<I", 10))
     xml_chunks.extend(up_net)
-    xml_chunks.extend(
-        struct.pack("<HHIIIII", 0x0103, 16, 24, 3, 0xFFFFFFFF, 0xFFFFFFFF, 8)
-    )
+    xml_chunks.extend(struct.pack("<HHIIIII", 0x0103, 16, 24, 3, 0xFFFFFFFF, 0xFFFFFFFF, 8))
 
     # 5. <uses-permission android:name="android.permission.READ_SMS"/>
     up_sms = bytearray()
     up_sms.extend(struct.pack("<HHII", 0x0102, 16, 56, 4))
     up_sms.extend(struct.pack("<I", 0xFFFFFFFF))
-    up_sms.extend(
-        struct.pack("<IIHHHHHH", 0xFFFFFFFF, 8, 20, 20, 1, 0, 0, 0)
-    )
+    up_sms.extend(struct.pack("<IIHHHHHH", 0xFFFFFFFF, 8, 20, 20, 1, 0, 0, 0))
     up_sms.extend(struct.pack("<III", 0, 9, 11))
     up_sms.extend(struct.pack("<HBB", 8, 0, 3))
     up_sms.extend(struct.pack("<I", 11))
     xml_chunks.extend(up_sms)
-    xml_chunks.extend(
-        struct.pack("<HHIIIII", 0x0103, 16, 24, 4, 0xFFFFFFFF, 0xFFFFFFFF, 8)
-    )
+    xml_chunks.extend(struct.pack("<HHIIIII", 0x0103, 16, 24, 4, 0xFFFFFFFF, 0xFFFFFFFF, 8))
 
     # 6. <application android:debuggable="true" android:allowBackup="true" android:usesCleartextTraffic="true">
     app_start = bytearray()
     app_start.extend(struct.pack("<HHII", 0x0102, 16, 16 + 20 + 60, 5))
     app_start.extend(struct.pack("<I", 0xFFFFFFFF))
-    app_start.extend(
-        struct.pack("<IIHHHHHH", 0xFFFFFFFF, 12, 20, 20, 3, 0, 0, 0)
-    )
+    app_start.extend(struct.pack("<IIHHHHHH", 0xFFFFFFFF, 12, 20, 20, 3, 0, 0, 0))
     # debuggable = true
     app_start.extend(struct.pack("<III", 0, 13, 0xFFFFFFFF))
     app_start.extend(struct.pack("<HBB", 8, 0, 18))  # TYPE_INT_BOOLEAN
@@ -177,9 +162,7 @@ def _build_binary_axml() -> bytes:
     act_start = bytearray()
     act_start.extend(struct.pack("<HHII", 0x0102, 16, 16 + 20 + 40, 6))
     act_start.extend(struct.pack("<I", 0xFFFFFFFF))
-    act_start.extend(
-        struct.pack("<IIHHHHHH", 0xFFFFFFFF, 16, 20, 20, 2, 0, 0, 0)
-    )
+    act_start.extend(struct.pack("<IIHHHHHH", 0xFFFFFFFF, 16, 20, 20, 2, 0, 0, 0))
     act_start.extend(struct.pack("<III", 0, 9, 17))  # android:name=".MainActivity"
     act_start.extend(struct.pack("<HBB", 8, 0, 3))
     act_start.extend(struct.pack("<I", 17))
@@ -192,65 +175,45 @@ def _build_binary_axml() -> bytes:
     if_start = bytearray()
     if_start.extend(struct.pack("<HHII", 0x0102, 16, 36, 7))
     if_start.extend(struct.pack("<I", 0xFFFFFFFF))
-    if_start.extend(
-        struct.pack("<IIHHHHHH", 0xFFFFFFFF, 19, 20, 20, 0, 0, 0, 0)
-    )
+    if_start.extend(struct.pack("<IIHHHHHH", 0xFFFFFFFF, 19, 20, 20, 0, 0, 0, 0))
     xml_chunks.extend(if_start)
 
     # <action android:name="android.intent.action.MAIN"/>
     act_action = bytearray()
     act_action.extend(struct.pack("<HHII", 0x0102, 16, 56, 8))
     act_action.extend(struct.pack("<I", 0xFFFFFFFF))
-    act_action.extend(
-        struct.pack("<IIHHHHHH", 0xFFFFFFFF, 20, 20, 20, 1, 0, 0, 0)
-    )
+    act_action.extend(struct.pack("<IIHHHHHH", 0xFFFFFFFF, 20, 20, 20, 1, 0, 0, 0))
     act_action.extend(struct.pack("<III", 0, 9, 21))
     act_action.extend(struct.pack("<HBB", 8, 0, 3))
     act_action.extend(struct.pack("<I", 21))
     xml_chunks.extend(act_action)
-    xml_chunks.extend(
-        struct.pack("<HHIIIII", 0x0103, 16, 24, 8, 0xFFFFFFFF, 0xFFFFFFFF, 20)
-    )
+    xml_chunks.extend(struct.pack("<HHIIIII", 0x0103, 16, 24, 8, 0xFFFFFFFF, 0xFFFFFFFF, 20))
 
     # <category android:name="android.intent.category.LAUNCHER"/>
     act_cat = bytearray()
     act_cat.extend(struct.pack("<HHII", 0x0102, 16, 56, 9))
     act_cat.extend(struct.pack("<I", 0xFFFFFFFF))
-    act_cat.extend(
-        struct.pack("<IIHHHHHH", 0xFFFFFFFF, 22, 20, 20, 1, 0, 0, 0)
-    )
+    act_cat.extend(struct.pack("<IIHHHHHH", 0xFFFFFFFF, 22, 20, 20, 1, 0, 0, 0))
     act_cat.extend(struct.pack("<III", 0, 9, 23))
     act_cat.extend(struct.pack("<HBB", 8, 0, 3))
     act_cat.extend(struct.pack("<I", 23))
     xml_chunks.extend(act_cat)
-    xml_chunks.extend(
-        struct.pack("<HHIIIII", 0x0103, 16, 24, 9, 0xFFFFFFFF, 0xFFFFFFFF, 22)
-    )
+    xml_chunks.extend(struct.pack("<HHIIIII", 0x0103, 16, 24, 9, 0xFFFFFFFF, 0xFFFFFFFF, 22))
 
     # </intent-filter>
-    xml_chunks.extend(
-        struct.pack("<HHIIIII", 0x0103, 16, 24, 7, 0xFFFFFFFF, 0xFFFFFFFF, 19)
-    )
+    xml_chunks.extend(struct.pack("<HHIIIII", 0x0103, 16, 24, 7, 0xFFFFFFFF, 0xFFFFFFFF, 19))
 
     # </activity>
-    xml_chunks.extend(
-        struct.pack("<HHIIIII", 0x0103, 16, 24, 6, 0xFFFFFFFF, 0xFFFFFFFF, 16)
-    )
+    xml_chunks.extend(struct.pack("<HHIIIII", 0x0103, 16, 24, 6, 0xFFFFFFFF, 0xFFFFFFFF, 16))
 
     # </application>
-    xml_chunks.extend(
-        struct.pack("<HHIIIII", 0x0103, 16, 24, 5, 0xFFFFFFFF, 0xFFFFFFFF, 12)
-    )
+    xml_chunks.extend(struct.pack("<HHIIIII", 0x0103, 16, 24, 5, 0xFFFFFFFF, 0xFFFFFFFF, 12))
 
     # </manifest>
-    xml_chunks.extend(
-        struct.pack("<HHIIIII", 0x0103, 16, 24, 10, 0xFFFFFFFF, 0xFFFFFFFF, 7)
-    )
+    xml_chunks.extend(struct.pack("<HHIIIII", 0x0103, 16, 24, 10, 0xFFFFFFFF, 0xFFFFFFFF, 7))
 
     # End namespace
-    xml_chunks.extend(
-        struct.pack("<HHIIIII", 0x0101, 16, 24, 10, 0xFFFFFFFF, 1, 0)
-    )
+    xml_chunks.extend(struct.pack("<HHIIIII", 0x0101, 16, 24, 10, 0xFFFFFFFF, 1, 0))
 
     total_size = 8 + len(sp_chunk) + len(xml_chunks)
     file_header = struct.pack("<HHI", 0x0003, 8, total_size)
@@ -377,3 +340,58 @@ def test_cli_apk_vulnerability_no_external_dependency(tmp_path: pathlib.Path) ->
     assert res.exit_code == 0
     assert "com.lockknife.test" in res.output
     assert "cve" in res.output
+
+
+@pytest.mark.parametrize(
+    "mutation", ["header", "chunk", "count", "offset", "attributes", "truncated"]
+)
+def test_axml_rejects_malformed_boundaries(mutation):
+    data = bytearray(_build_binary_axml())
+    if mutation == "header":
+        struct.pack_into("<H", data, 2, 0)
+    elif mutation == "chunk":
+        struct.pack_into("<I", data, 12, len(data) + 1)
+    elif mutation == "count":
+        struct.pack_into("<I", data, 16, 0xFFFFFFFF)
+    elif mutation == "offset":
+        struct.pack_into("<I", data, 36, len(data))
+    elif mutation == "attributes":
+        pool_size = struct.unpack_from("<I", data, 12)[0]
+        struct.pack_into("<H", data, 8 + pool_size + 24 + 26, 0)
+    else:
+        data = data[:-1]
+    with pytest.raises(ValueError):
+        parse_axml_to_xml(bytes(data))
+
+
+def test_axml_duplicate_manifest_and_size_limit(tmp_path, monkeypatch):
+    from lockknife.modules.apk import _axml_parser
+
+    path = tmp_path / "duplicate.apk"
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("AndroidManifest.xml", b"<manifest/>")
+        archive.writestr("androidmanifest.xml", b"<manifest/>")
+    with pytest.raises(ValueError, match="exactly one"):
+        extract_manifest_xml_from_apk(path)
+    monkeypatch.setattr(_axml_parser, "MAX_MANIFEST_BYTES", 8)
+    with pytest.raises(ValueError, match="size limit"):
+        parse_axml_to_xml(b"<manifest/>")
+
+
+def test_signing_block_detects_real_pairs_and_rejects_malformed(tmp_path):
+    path = tmp_path / "signing.apk"
+    _create_synthetic_apk(path)
+    raw = path.read_bytes()
+    eocd = raw.rfind(b"PK\x05\x06")
+    cd_offset = struct.unpack_from("<I", raw, eocd + 16)[0]
+    pairs = struct.pack("<QI", 5, 0x7109871A) + b"x" + struct.pack("<QI", 5, 0xF05368C0) + b"y"
+    size = len(pairs) + 24
+    block = struct.pack("<Q", size) + pairs + struct.pack("<Q", size) + b"APK Sig Block 42"
+    updated = bytearray(raw[:cd_offset] + block + raw[cd_offset:])
+    struct.pack_into("<I", updated, eocd + len(block) + 16, cd_offset + len(block))
+    path.write_bytes(updated)
+    assert _detect_signing_schemes(path, {})["v2"] is True
+    assert _detect_signing_schemes(path, {})["v3"] is True
+    struct.pack_into("<Q", updated, cd_offset + 8, 0)
+    path.write_bytes(updated)
+    assert _detect_signing_schemes(path, {})["v2"] is False
