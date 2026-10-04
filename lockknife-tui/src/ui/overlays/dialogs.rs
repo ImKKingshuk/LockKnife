@@ -103,7 +103,10 @@ pub(in crate::ui) fn render_prompt(
     } else {
         state.fields.len()
     };
-    let hint_lines = prompt_hint_lines(state, area);
+    let mut hint_lines = prompt_hint_lines(state, area);
+    if field_lines_count + hint_lines.len() > inner_height {
+        hint_lines = hint_lines.into_iter().rev().take(1).collect();
+    }
     let required_bottom_lines = field_lines_count + hint_lines.len();
 
     let intro = prompt_intro_lines(state);
@@ -113,7 +116,16 @@ pub(in crate::ui) fn render_prompt(
         lines.extend(intro.into_iter().take(allowed_intro));
     }
 
-    for (i, f) in state.fields.iter().enumerate() {
+    // Keep the focused field visible even when the terminal cannot fit the form.
+    let field_capacity = inner_height.saturating_sub(lines.len() + hint_lines.len());
+    let first_field = state.index.saturating_add(1).saturating_sub(field_capacity);
+    for (i, f) in state
+        .fields
+        .iter()
+        .enumerate()
+        .skip(first_field)
+        .take(field_capacity)
+    {
         let marker = if i == state.index { "›" } else { " " };
         let val = if matches!(f.kind, crate::app::FieldKind::Bool) {
             if f.value.to_lowercase() == "true" {
@@ -130,9 +142,8 @@ pub(in crate::ui) fn render_prompt(
         lines.push(Line::from("No parameters — press Enter to continue."));
     }
     lines.extend(hint_lines);
-    let paragraph = Paragraph::new(Text::from(lines))
-        .block(block)
-        .wrap(Wrap { trim: true });
+    // Fields stay on one row so long values cannot displace the focused field.
+    let paragraph = Paragraph::new(Text::from(lines)).block(block);
     frame.render_widget(paragraph, area);
 }
 

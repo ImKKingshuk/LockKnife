@@ -1,6 +1,40 @@
 use super::*;
 
 #[test]
+fn compact_prompt_keeps_last_focused_field_visible() {
+    init_python();
+    let backend = TestBackend::new(40, 10);
+    let mut terminal = Terminal::new(backend).unwrap();
+    let callback = pyo3::Python::attach(|py| py.None());
+    let mut app = App::new(callback);
+    app.overlay = Overlay::Prompt(PromptState {
+        title: "Parameters".to_string(),
+        description: None,
+        help_lines: vec![],
+        fields: (0..20)
+            .map(|index| PromptField {
+                key: format!("field{index}"),
+                label: format!("Field {index}"),
+                value: "long value ".repeat(20),
+                kind: FieldKind::Text,
+                options: vec![],
+            })
+            .collect(),
+        index: 19,
+        target: PromptTarget::Export,
+    });
+    terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    let buffer = terminal.backend().buffer();
+    let mut text = String::new();
+    for y in 0..buffer.area.height {
+        for x in 0..buffer.area.width {
+            text.push_str(buffer[(x, y)].symbol());
+        }
+    }
+    assert!(text.contains("Field 19"));
+}
+
+#[test]
 fn renders_header_and_panels() {
     init_python();
     let backend = TestBackend::new(80, 24);
