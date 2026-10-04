@@ -22,13 +22,15 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             requirements: "adb",
             notes: "Device management requires adb binaries in PATH or lockknife[adb] extras. Connection and shell actions may require device authorization.",
         }),
-        "credentials.pin" | "credentials.gesture" | "credentials.wifi" | "credentials.keystore" => {
-            Some(CapabilityMetadata {
-                status: "production-ready",
-                requirements: "adb + device access",
-                notes: "Modern APEX / multi-user paths, root staging fallback, and synthetic password diagnostics.",
-            })
-        }
+        "credentials.pin"
+        | "credentials.gesture"
+        | "credentials.wifi"
+        | "credentials.keystore"
+        | "credentials.passkeys" => Some(CapabilityMetadata {
+            status: "production-ready",
+            requirements: "adb + device access",
+            notes: "Structured passkey SQLite parsing (FIDO2, Android 14+ Credential Provider, Chromium Web Data) and Keystore 2.0 APEX inventory.",
+        }),
         "extraction.messaging" => Some(CapabilityMetadata {
             status: "production-ready",
             requirements: "adb + app access",
@@ -66,14 +68,14 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             })
         }
         "report.generate" => Some(CapabilityMetadata {
-            status: "functional",
+            status: "production-ready",
             requirements: "base install; PDF also needs weasyprint or xhtml2pdf",
-            notes: "Case-aware reporting now folds in workspace inventory, integrity verification, and evidence summaries; PDF output remains dependency-gated.",
+            notes: "Case-aware multi-format reporting (HTML, Markdown, JSON, CSV) with workspace inventory, integrity summaries, and evidence aggregation.",
         }),
         "report.chain_of_custody" | "report.integrity" => Some(CapabilityMetadata {
-            status: "functional",
+            status: "production-ready",
             requirements: "base install; integrity requires a managed case workspace",
-            notes: "These reporting support flows are case-manifest aware and help operators package evidence with clearer provenance and drift signals.",
+            notes: "Cryptographically verifies artifact SHA-256 hashes against case manifests and derives audit-ready evidence custody trails.",
         }),
         "case.init"
         | "case.summary"
@@ -142,8 +144,12 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             requirements: "APK analysis JSON or APK path; adb optional for live probes",
             notes: "Static assessment works offline, while safe package-manager probes enrich exported component, provider, and deep-link reachability when a device and package are available.",
         }),
-        "security.audit"
-        | "security.selinux"
+        "security.audit" => Some(CapabilityMetadata {
+            status: "production-ready",
+            requirements: "adb + device access",
+            notes: "Deep security posture engine auditing gatekeeper, lockscreen, covert HTTP proxy, private DNS, wireless ADB, and Play Protect.",
+        }),
+        "security.selinux"
         | "security.network_scan"
         | "security.bootloader"
         | "security.hardware"
@@ -204,15 +210,10 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             requirements: "base install + case workspace",
             notes: "Lists Frida/runtime sessions tracked within a case workspace.",
         }),
-        "case.chain_of_custody" => Some(CapabilityMetadata {
-            status: "functional",
+        "case.chain_of_custody" | "case.integrity" => Some(CapabilityMetadata {
+            status: "production-ready",
             requirements: "base install + case workspace",
-            notes: "Case-aware chain-of-custody derived from the managed artifact manifest.",
-        }),
-        "case.integrity" => Some(CapabilityMetadata {
-            status: "functional",
-            requirements: "base install + case workspace",
-            notes: "Verifies artifact hashes against the case manifest to detect tampering or drift.",
+            notes: "Cryptographically verifies artifact SHA-256 hashes against case manifests and derives audit-ready evidence custody trails.",
         }),
         "apk.dex" => Some(CapabilityMetadata {
             status: "functional",

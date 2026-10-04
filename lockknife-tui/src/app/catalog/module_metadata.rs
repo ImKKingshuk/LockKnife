@@ -163,9 +163,9 @@ pub(super) fn module_capability_metadata(module_id: &str) -> Option<CapabilityMe
             notes: "Local IOC/CVE-style helpers are broader than the external-intelligence lookups that require services and credentials.",
         }),
         "case" => Some(CapabilityMetadata {
-            status: "functional",
+            status: "production-ready",
             requirements: "base install",
-            notes: "Case workspace primitives are real today, but resumable jobs and deeper persistent execution are still ahead.",
+            notes: "Case workspaces, lineage graphs, artifact manifests, and resumable/retryable job execution flows are fully operational.",
         }),
         "core" => Some(CapabilityMetadata {
             status: "functional",
@@ -178,9 +178,9 @@ pub(super) fn module_capability_metadata(module_id: &str) -> Option<CapabilityMe
             notes: "AI helpers are optional triage accelerators, not authoritative findings.",
         }),
         "crypto" => Some(CapabilityMetadata {
-            status: "functional",
-            requirements: "local wallet DB",
-            notes: "Useful wallet parsing exists now, but coverage is narrower than specialized crypto-forensics suites.",
+            status: "production-ready",
+            requirements: "local wallet DB / adb device",
+            notes: "Multi-chain carving (ETH, BTC bech32/legacy, SOL, TRX), BIP-39 mnemonic seeds, Web3 keystores, and on-device mobile wallet vault discovery.",
         }),
         "analyze" => Some(CapabilityMetadata {
             status: "functional",

@@ -178,6 +178,163 @@ def run_device_audit(devices: DeviceManager, serial: str) -> list[AuditFinding]:
             )
         )
 
+    # Lockscreen authentication & Gatekeeper posture
+    ls_disabled = _shell_best_effort(
+        devices, serial, "settings get secure lockscreen.disabled 2>/dev/null || echo ''"
+    )
+    if ls_disabled and ls_disabled.strip() == "1":
+        findings.append(
+            AuditFinding(
+                id="lockscreen_disabled",
+                severity="high",
+                title="Lockscreen authentication disabled",
+                details={"lockscreen.disabled": ls_disabled},
+            )
+        )
+
+    autolock = _shell_best_effort(
+        devices, serial, "settings get secure lock_pattern_autolock 2>/dev/null || echo ''"
+    )
+    if autolock and autolock.strip() == "0":
+        findings.append(
+            AuditFinding(
+                id="pattern_autolock_disabled",
+                severity="medium",
+                title="Lock pattern auto-lock disabled",
+                details={"lock_pattern_autolock": autolock},
+            )
+        )
+
+    if devices.has_root(serial):
+        gk_check = _shell_best_effort(
+            devices,
+            serial,
+            'su -c "ls /data/system/gatekeeper*.key /data/system/users/0/spblob 2>/dev/null || echo \'\'"',
+        )
+        if gk_check and gk_check.strip():
+            findings.append(
+                AuditFinding(
+                    id="credential_enrolled",
+                    severity="info",
+                    title="Device lock credentials enrolled",
+                    details={"gatekeeper": "present"},
+                )
+            )
+
+    # Covert HTTP Proxy / Traffic Interception
+    http_proxy = _shell_best_effort(
+        devices, serial, "settings get global http_proxy 2>/dev/null || echo ''"
+    )
+    global_proxy_host = _shell_best_effort(
+        devices, serial, "settings get global global_http_proxy_host 2>/dev/null || echo ''"
+    )
+    if http_proxy and http_proxy.strip() not in {":0", "null", "", "0"}:
+        findings.append(
+            AuditFinding(
+                id="http_proxy",
+                severity="high",
+                title="Covert global HTTP proxy configured",
+                details={"http_proxy": http_proxy.strip()},
+            )
+        )
+    elif global_proxy_host and global_proxy_host.strip() not in {":0", "null", "", "0"}:
+        findings.append(
+            AuditFinding(
+                id="http_proxy",
+                severity="high",
+                title="Global HTTP proxy host configured",
+                details={"global_http_proxy_host": global_proxy_host.strip()},
+            )
+        )
+
+    # Private DNS Posture
+    dns_mode = _shell_best_effort(
+        devices, serial, "settings get global private_dns_mode 2>/dev/null || echo ''"
+    )
+    dns_spec = _shell_best_effort(
+        devices, serial, "settings get global private_dns_specifier 2>/dev/null || echo ''"
+    )
+    if dns_mode:
+        dns_mode_str = dns_mode.strip()
+        if dns_mode_str == "off":
+            findings.append(
+                AuditFinding(
+                    id="private_dns",
+                    severity="medium",
+                    title="Private DNS disabled (cleartext DNS queries)",
+                    details={"private_dns_mode": dns_mode_str},
+                )
+            )
+        elif dns_mode_str in {"hostname", "opportunistic"}:
+            findings.append(
+                AuditFinding(
+                    id="private_dns",
+                    severity="info",
+                    title="Private DNS enabled",
+                    details={
+                        "private_dns_mode": dns_mode_str,
+                        "specifier": (dns_spec or "").strip() or "opportunistic",
+                    },
+                )
+            )
+
+    # Developer & Wireless Debugging
+    wifi_adb = _shell_best_effort(
+        devices, serial, "settings get global adb_wifi_enabled 2>/dev/null || echo ''"
+    )
+    if wifi_adb and wifi_adb.strip() == "1":
+        findings.append(
+            AuditFinding(
+                id="adb_wifi",
+                severity="medium",
+                title="Wireless ADB debugging enabled",
+                details={"adb_wifi_enabled": wifi_adb.strip()},
+            )
+        )
+
+    # App Verification over ADB & Mock Locations
+    verify_adb = _shell_best_effort(
+        devices, serial, "settings get global verifier_verify_adb_installs 2>/dev/null || echo ''"
+    )
+    if verify_adb and verify_adb.strip() == "0":
+        findings.append(
+            AuditFinding(
+                id="verify_adb_installs",
+                severity="medium",
+                title="ADB package verification disabled",
+                details={"verifier_verify_adb_installs": verify_adb.strip()},
+            )
+        )
+
+    mock_loc = _shell_best_effort(
+        devices, serial, "settings get secure mock_location 2>/dev/null || echo ''"
+    )
+    if mock_loc and mock_loc.strip() == "1":
+        findings.append(
+            AuditFinding(
+                id="mock_location",
+                severity="medium",
+                title="Mock locations allowed",
+                details={"mock_location": mock_loc.strip()},
+            )
+        )
+
+    # Device Administrator & MDM policies
+    dpm_raw = _shell_best_effort(
+        devices,
+        serial,
+        "dumpsys device_policy 2>/dev/null | grep -E '(Active Admin|Device Owner)' | head -n 10 || echo ''",
+    )
+    if dpm_raw and dpm_raw.strip():
+        findings.append(
+            AuditFinding(
+                id="device_policy",
+                severity="info",
+                title="Device management (MDM/Admin) policies active",
+                details={"device_policy_summary": dpm_raw.strip()},
+            )
+        )
+
     if devices.has_root(serial):
         findings.append(
             AuditFinding(id="root", severity="info", title="su binary present", details={})

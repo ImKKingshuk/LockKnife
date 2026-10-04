@@ -253,8 +253,8 @@ fn modules_and_actions_expose_truth_alignment_metadata() {
     let report_meta = report
         .capability_metadata()
         .expect("report.generate should expose capability metadata");
-    assert_eq!(report_meta.status, "functional");
-    assert!(report_meta.notes.contains("PDF"));
+    assert_eq!(report_meta.status, "production-ready");
+    assert!(report_meta.notes.contains("multi-format"));
 
     let integrity = modules
         .iter()
@@ -264,6 +264,6 @@ fn modules_and_actions_expose_truth_alignment_metadata() {
     let integrity_meta = integrity
         .capability_metadata()
         .expect("report.integrity should expose capability metadata");
-    assert_eq!(integrity_meta.status, "functional");
-    assert!(integrity_meta.notes.contains("case-manifest"));
+    assert_eq!(integrity_meta.status, "production-ready");
+    assert!(integrity_meta.notes.contains("case manifests"));
 }

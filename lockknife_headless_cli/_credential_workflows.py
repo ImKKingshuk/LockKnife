@@ -313,18 +313,35 @@ def run_passkey_workflow(
     readiness = _readiness(devices, serial, source_command, requires_root=True)
     output_dir = _workflow_dir(output_dir, case_dir, f"passkeys_{serial}")
     items = pull_passkey_artifacts(devices, serial, output_dir=output_dir, limit=limit)
-    rows = [
-        dataclasses.asdict(item)
-        if dataclasses.is_dataclass(item) and not isinstance(item, type)
-        else dict(item)
-        for item in items
-    ]
+    rows: list[dict[str, Any]] = []
+    for item in items:
+        if dataclasses.is_dataclass(item) and not isinstance(item, type):
+            rows.append(dataclasses.asdict(item))
+        elif isinstance(item, dict):
+            rows.append(dict(item))
+        else:
+            rows.append({
+                "remote_path": getattr(item, "remote_path", None),
+                "local_path": getattr(item, "local_path", None),
+                "size": getattr(item, "size", 0),
+            })
+    from lockknife.modules.credentials.fido2 import parse_passkey_database
+
+    parsed_passkeys: list[dict[str, Any]] = []
+    for item in rows:
+        loc = item.get("local_path")
+        if loc and pathlib.Path(loc).is_file():
+            recs = parse_passkey_database(pathlib.Path(loc))
+            parsed_passkeys.extend([dataclasses.asdict(r) for r in recs])
+
     success_count = sum(1 for item in rows if item.get("local_path"))
     payload = {
         "serial": serial,
         "limit": limit,
         "artifacts": rows,
         "artifact_count": len(rows),
+        "passkeys": parsed_passkeys,
+        "passkey_count": len(parsed_passkeys),
         "success_count": success_count,
         "failed_count": len(rows) - success_count,
         "readiness": readiness,
@@ -332,6 +349,22 @@ def run_passkey_workflow(
     manifest_path = output_dir / "passkeys_manifest.json"
     write_json(manifest_path, payload)
     parent_ids: list[str] = []
+    if parsed_passkeys:
+        passkeys_json_path = output_dir / "passkeys.json"
+        write_json(passkeys_json_path, parsed_passkeys)
+        if case_dir is not None:
+            pk_art = register_case_artifact(
+                case_dir=case_dir,
+                path=passkeys_json_path,
+                category="crack-passkeys",
+                source_command=source_command,
+                device_serial=serial,
+                metadata={"passkey_count": len(parsed_passkeys)},
+            )
+            pk_id = getattr(pk_art, "artifact_id", None)
+            if isinstance(pk_id, str):
+                parent_ids.append(pk_id)
+
     if case_dir is not None:
         for item in rows:
             local_path = item.get("local_path")
@@ -356,7 +389,12 @@ def run_passkey_workflow(
         source_command=source_command,
         serial=serial,
         parent_artifact_ids=parent_ids,
-        metadata={"limit": limit, "artifact_count": len(rows), "success_count": success_count},
+        metadata={
+            "limit": limit,
+            "artifact_count": len(rows),
+            "passkey_count": len(parsed_passkeys),
+            "success_count": success_count,
+        },
     )
     payload.update(_artifact_payload(manifest_path, case_dir, manifest_artifact_id, parent_ids))
     return payload

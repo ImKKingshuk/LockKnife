@@ -13,7 +13,11 @@ _LAVA_DB_NAMES = ("_lava_artifacts.db", "lava_artifacts.db")
 
 
 def looks_like_aleapp_output(input_dir: pathlib.Path) -> bool:
-    return _find_first(input_dir, _LAVA_JSON_NAMES) is not None or any(input_dir.rglob("*.tsv"))
+    return (
+        _find_first(input_dir, _LAVA_JSON_NAMES) is not None
+        or any(input_dir.rglob("*.tsv"))
+        or any(input_dir.rglob("*.csv"))
+    )
 
 
 def import_aleapp_artifacts(input_dir: pathlib.Path) -> dict[str, Any]:
@@ -33,6 +37,11 @@ def import_aleapp_artifacts(input_dir: pathlib.Path) -> dict[str, Any]:
         tsv_artifacts = _import_tsv_artifacts(input_dir)
         artifacts.extend(tsv_artifacts)
         source_formats["tsv"] += len(tsv_artifacts)
+    if not artifacts:
+        csv_artifacts = _import_csv_artifacts(input_dir)
+        artifacts.extend(csv_artifacts)
+        source_formats["csv"] += len(csv_artifacts)
+
     artifact_family_counts = Counter(
         str(item.get("artifact_family") or "generic") for item in artifacts
     )
@@ -180,6 +189,53 @@ def _import_tsv_artifacts(input_dir: pathlib.Path) -> list[dict[str, Any]]:
             }
         )
     return out
+
+
+def _import_csv_artifacts(input_dir: pathlib.Path) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for path in sorted(input_dir.rglob("*.csv")):
+        try:
+            with path.open("r", encoding="utf-8", errors="ignore", newline="") as handle:
+                sample = handle.read(4096)
+                handle.seek(0)
+                delimiter = ","
+                if sample:
+                    try:
+                        dialect = csv.Sniffer().sniff(sample, delimiters=",\t;|")
+                        delimiter = dialect.delimiter
+                    except Exception:
+                        delimiter = ","
+                reader = csv.DictReader(handle, delimiter=delimiter)
+                rows = [
+                    _normalize_tsv_row(row, artifact_name=path.stem)
+                    for row in reader
+                    if isinstance(row, dict)
+                ]
+        except (csv.Error, OSError, UnicodeError):
+            continue
+        if not rows:
+            continue
+        category = path.parent.name
+        family = infer_aleapp_family(
+            artifact_name=path.stem, category=category, module_name=path.stem, rows=rows
+        )
+        out.append(
+            {
+                "artifact_name": path.stem.replace("_", " ").title(),
+                "artifact_family": family,
+                "parser_id": f"aleapp:csv:{path.stem}",
+                "source_file": str(path),
+                "records": rows,
+                "summary": {
+                    "record_count": len(rows),
+                    "source_format": "csv",
+                    "aleapp_category": category,
+                    "table_name": path.stem,
+                },
+            }
+        )
+    return out
+
 
 
 def _normalize_tsv_row(row: dict[str, Any], *, artifact_name: str) -> dict[str, Any]:
