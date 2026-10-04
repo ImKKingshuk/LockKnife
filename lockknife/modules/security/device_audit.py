@@ -209,7 +209,7 @@ def run_device_audit(devices: DeviceManager, serial: str) -> list[AuditFinding]:
         gk_check = _shell_best_effort(
             devices,
             serial,
-            'su -c "ls /data/system/gatekeeper*.key /data/system/users/0/spblob 2>/dev/null || echo \'\'"',
+            "su -c \"ls /data/system/gatekeeper*.key /data/system/users/0/spblob 2>/dev/null || echo ''\"",
         )
         if gk_check and gk_check.strip():
             findings.append(

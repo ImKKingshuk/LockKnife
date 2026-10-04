@@ -4,6 +4,8 @@ import types
 
 import pytest
 
+from lockknife.core.exceptions import DeviceError
+
 
 def test_extract_sms_contacts_call_logs(tmp_path) -> None:
     from lockknife.modules.extraction.call_logs import extract_call_logs
@@ -83,6 +85,9 @@ def test_location_artifacts_parsing() -> None:
 
         def shell(self, serial: str, command: str, timeout_s: float = 0.0) -> str:
             return self._adb.shell(serial, command, timeout_s=timeout_s)
+
+        def pull(self, serial, remote, local, timeout_s=0.0):
+            raise DeviceError("No history database")
 
         def has_root(self, serial: str) -> bool:
             return True

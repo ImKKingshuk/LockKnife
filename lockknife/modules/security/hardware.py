@@ -49,7 +49,9 @@ def analyze_hardware_security(devices: DeviceManager, serial: str) -> HardwareSe
     # --- StrongBox detection ---
     strongbox = False
     for k, v in props.items():
-        if "strongbox" in k.lower() or "strongbox" in (v or "").lower():
+        if ("strongbox" in k.lower() or "strongbox" in (v or "").lower()) and (
+            v or ""
+        ).strip().lower() not in {"", "0", "false", "no", "none", "disabled"}:
             strongbox = True
             break
 
@@ -73,9 +75,8 @@ def analyze_hardware_security(devices: DeviceManager, serial: str) -> HardwareSe
 
     # --- Version info ---
     keystore_version = props.get("ro.hardware.keystore.version")
-    keymaster_version = (
-        props.get("ro.hardware.keymaster.version")
-        or props.get("ro.hardware.keymaster_hal.version")
+    keymaster_version = props.get("ro.hardware.keymaster.version") or props.get(
+        "ro.hardware.keymaster_hal.version"
     )
 
     # --- Biometric class ---
@@ -89,14 +90,15 @@ def analyze_hardware_security(devices: DeviceManager, serial: str) -> HardwareSe
 
     # --- Encryption ---
     crypto_state = props.get("ro.crypto.state")
-    disk_encryption = (
-        props.get("ro.crypto.type")
-        or props.get("ro.crypto.fs_type")
-    )
+    disk_encryption = props.get("ro.crypto.type") or props.get("ro.crypto.fs_type")
 
     posture = _assess_hardware_posture(
-        ks=ks, km=km, gk=gk, strongbox=strongbox,
-        tee_type=tee_type, tee_vendor=tee_vendor,
+        ks=ks,
+        km=km,
+        gk=gk,
+        strongbox=strongbox,
+        tee_type=tee_type,
+        tee_vendor=tee_vendor,
         attestation_capable=attestation_capable,
         biometric_class=biometric_class,
         security_patch=security_patch,
@@ -170,7 +172,7 @@ def _detect_tee(props: dict[str, str]) -> tuple[str | None, str | None]:
     elif "beanpod" in hal_clues or "isee" in hal_clues:
         tee_type = tee_type or "ISEE"
         tee_vendor = "Beanpod"
-    elif "huawei" in hal_clues or "iTrustee" in hal_clues:
+    elif "huawei" in hal_clues or "itrustee" in hal_clues:
         tee_type = tee_type or "iTrustee"
         tee_vendor = "Huawei"
 
@@ -194,9 +196,7 @@ def _detect_tee(props: dict[str, str]) -> tuple[str | None, str | None]:
     return tee_type, tee_vendor
 
 
-def _detect_attestation(
-    props: dict[str, str], ks: str | None, km: str | None
-) -> bool:
+def _detect_attestation(props: dict[str, str], ks: str | None, km: str | None) -> bool:
     """Heuristically determine if the device supports hardware key attestation."""
     # Devices with hardware keystore/keymaster on API >= 26 generally support attestation
     api_level_str = props.get("ro.build.version.sdk") or "0"
@@ -209,7 +209,10 @@ def _detect_attestation(
         return False
 
     # Must have some hardware-backed keystore or keymaster
-    has_hw = bool(ks or km)
+    has_hw = any(
+        value and not any(token in value.lower() for token in ("software", "softkey", "default"))
+        for value in (ks, km)
+    )
     if not has_hw:
         return False
 
@@ -240,16 +243,8 @@ def _assess_biometric_class(
     if not sensors:
         return None
 
-    # Iris + StrongBox = Class 3 (highest)
-    # Fingerprint on most modern devices = Class 3
-    # Face without depth sensor typically = Class 2 or lower
-    if iris or (fp and strongbox):
-        return "class-3"
-    if fp:
-        return "class-3"
-    if face:
-        return "class-2"
-    return "class-1"
+    # Sensor presence and StrongBox do not establish Android biometric strength.
+    return "unverified"
 
 
 def _assess_hardware_posture(
@@ -273,91 +268,197 @@ def _assess_hardware_posture(
 
     # --- Keystore/Keymaster ---
     if ks or km:
-        findings.append({"signal": "hw_keystore", "value": ks or km or "present",
-                         "severity": "ok",
-                         "detail": "Hardware-backed keystore/keymaster is available for key operations."})
+        findings.append(
+            {
+                "signal": "hw_keystore",
+                "value": ks or km or "present",
+                "severity": "ok",
+                "detail": "Hardware-backed keystore/keymaster is available for key operations.",
+            }
+        )
     else:
-        findings.append({"signal": "hw_keystore", "value": "absent", "severity": "high",
-                         "detail": "No hardware-backed keystore detected; keys may use software-only storage."})
+        findings.append(
+            {
+                "signal": "hw_keystore",
+                "value": "absent",
+                "severity": "high",
+                "detail": "No hardware-backed keystore detected; keys may use software-only storage.",
+            }
+        )
         risk_score += 3
 
     # --- Gatekeeper ---
     if gk:
-        findings.append({"signal": "hw_gatekeeper", "value": gk, "severity": "ok",
-                         "detail": "Hardware-backed gatekeeper is present for credential verification throttling."})
+        findings.append(
+            {
+                "signal": "hw_gatekeeper",
+                "value": gk,
+                "severity": "ok",
+                "detail": "Hardware-backed gatekeeper is present for credential verification throttling.",
+            }
+        )
     else:
-        findings.append({"signal": "hw_gatekeeper", "value": "absent", "severity": "warning",
-                         "detail": "No hardware gatekeeper detected; credential throttling may be software-only."})
+        findings.append(
+            {
+                "signal": "hw_gatekeeper",
+                "value": "absent",
+                "severity": "warning",
+                "detail": "No hardware gatekeeper detected; credential throttling may be software-only.",
+            }
+        )
         risk_score += 1
 
     # --- StrongBox ---
     if strongbox:
-        findings.append({"signal": "strongbox", "value": "present", "severity": "ok",
-                         "detail": "StrongBox secure element provides tamper-resistant key storage."})
+        findings.append(
+            {
+                "signal": "strongbox",
+                "value": "present",
+                "severity": "ok",
+                "detail": "StrongBox secure element provides tamper-resistant key storage.",
+            }
+        )
     else:
-        findings.append({"signal": "strongbox", "value": "absent", "severity": "info",
-                         "detail": "No StrongBox detected; TEE-level key protection is the ceiling."})
+        findings.append(
+            {
+                "signal": "strongbox",
+                "value": "absent",
+                "severity": "info",
+                "detail": "No StrongBox detected; TEE-level key protection is the ceiling.",
+            }
+        )
 
     # --- TEE ---
     if tee_type:
-        findings.append({"signal": "tee_type", "value": f"{tee_type} ({tee_vendor or 'unknown'})",
-                         "severity": "ok",
-                         "detail": f"Trusted Execution Environment: {tee_type} from {tee_vendor or 'unknown vendor'}."})
+        findings.append(
+            {
+                "signal": "tee_type",
+                "value": f"{tee_type} ({tee_vendor or 'unknown'})",
+                "severity": "ok",
+                "detail": f"Trusted Execution Environment: {tee_type} from {tee_vendor or 'unknown vendor'}.",
+            }
+        )
     else:
-        findings.append({"signal": "tee_type", "value": "undetected", "severity": "warning",
-                         "detail": "TEE type could not be determined from system properties."})
+        findings.append(
+            {
+                "signal": "tee_type",
+                "value": "undetected",
+                "severity": "warning",
+                "detail": "TEE type could not be determined from system properties.",
+            }
+        )
         risk_score += 1
 
     # --- Attestation ---
     if attestation_capable:
-        findings.append({"signal": "attestation", "value": "capable", "severity": "ok",
-                         "detail": "Device supports hardware key attestation (API 26+, HW keymaster)."})
+        findings.append(
+            {
+                "signal": "attestation",
+                "value": "capable",
+                "severity": "ok",
+                "detail": "Device supports hardware key attestation (API 26+, HW keymaster).",
+            }
+        )
     else:
-        findings.append({"signal": "attestation", "value": "not detected", "severity": "warning",
-                         "detail": "Hardware attestation capability not confirmed; may be absent or pre-API 26."})
+        findings.append(
+            {
+                "signal": "attestation",
+                "value": "not detected",
+                "severity": "warning",
+                "detail": "Hardware attestation capability not confirmed; may be absent or pre-API 26.",
+            }
+        )
         risk_score += 1
 
     # --- Biometric class ---
     if biometric_class:
         sev = "ok" if biometric_class == "class-3" else "info"
-        findings.append({"signal": "biometric_class", "value": biometric_class, "severity": sev,
-                         "detail": f"Biometric authentication classified as {biometric_class}."})
+        findings.append(
+            {
+                "signal": "biometric_class",
+                "value": biometric_class,
+                "severity": sev,
+                "detail": f"Biometric authentication classified as {biometric_class}.",
+            }
+        )
     else:
-        findings.append({"signal": "biometric_class", "value": "none", "severity": "info",
-                         "detail": "No biometric hardware detected in system properties."})
+        findings.append(
+            {
+                "signal": "biometric_class",
+                "value": "none",
+                "severity": "info",
+                "detail": "No biometric hardware detected in system properties.",
+            }
+        )
 
     # --- Security patch freshness ---
     if security_patch:
         freshness = _patch_freshness(security_patch)
         sev = "ok" if freshness == "current" else ("warning" if freshness == "stale" else "high")
-        findings.append({"signal": "security_patch", "value": security_patch, "severity": sev,
-                         "detail": f"Security patch level: {security_patch} ({freshness})."})
+        findings.append(
+            {
+                "signal": "security_patch",
+                "value": security_patch,
+                "severity": sev,
+                "detail": f"Security patch level: {security_patch} ({freshness}).",
+            }
+        )
         if freshness == "outdated":
             risk_score += 3
         elif freshness == "stale":
             risk_score += 1
     else:
-        findings.append({"signal": "security_patch", "value": "unknown", "severity": "warning",
-                         "detail": "Security patch level could not be determined."})
+        findings.append(
+            {
+                "signal": "security_patch",
+                "value": "unknown",
+                "severity": "warning",
+                "detail": "Security patch level could not be determined.",
+            }
+        )
         risk_score += 1
 
     # --- Encryption ---
     cs = (crypto_state or "").lower().strip()
     if cs == "encrypted":
-        findings.append({"signal": "encryption", "value": "encrypted", "severity": "ok",
-                         "detail": "Device storage reports encrypted state."})
+        findings.append(
+            {
+                "signal": "encryption",
+                "value": "encrypted",
+                "severity": "ok",
+                "detail": "Device storage reports encrypted state.",
+            }
+        )
     elif cs:
-        findings.append({"signal": "encryption", "value": cs, "severity": "warning",
-                         "detail": f"Device encryption state: {cs}."})
+        findings.append(
+            {
+                "signal": "encryption",
+                "value": cs,
+                "severity": "warning",
+                "detail": f"Device encryption state: {cs}.",
+            }
+        )
         risk_score += 2
     else:
-        findings.append({"signal": "encryption", "value": "unknown", "severity": "info",
-                         "detail": "Encryption state not reported in system properties."})
+        findings.append(
+            {
+                "signal": "encryption",
+                "value": "unknown",
+                "severity": "info",
+                "detail": "Encryption state not reported in system properties.",
+            }
+        )
 
     # --- Knox ---
     if knox:
-        findings.append({"signal": "knox", "value": knox, "severity": "ok",
-                         "detail": f"Samsung Knox platform version: {knox}."})
+        findings.append(
+            {
+                "signal": "knox",
+                "value": knox,
+                "severity": "ok",
+                "detail": f"Samsung Knox platform version: {knox}.",
+            }
+        )
 
     # --- Overall ---
     if risk_score >= 6:
@@ -371,6 +472,7 @@ def _assess_hardware_posture(
         assessment = "Hardware security posture is strong with hardware-backed key protection and current patch levels."
 
     return {
+        "evidence_source": "device-reported properties; attestation and biometric strength are not verified",
         "risk_level": risk_level,
         "risk_score": risk_score,
         "assessment": assessment,

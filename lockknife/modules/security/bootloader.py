@@ -38,10 +38,7 @@ def analyze_bootloader(devices: DeviceManager, serial: str) -> BootloaderStatus:
     props = devices.info(serial).props
 
     oem_unlock_supported = props.get("ro.oem_unlock_supported")
-    oem_unlock_allowed = (
-        props.get("sys.oem_unlock_allowed")
-        or props.get("ro.oem_unlock_supported")
-    )
+    oem_unlock_allowed = props.get("sys.oem_unlock_allowed")
     flash_locked = props.get("ro.boot.flash.locked")
     verifiedbootstate = props.get("ro.boot.verifiedbootstate")
     vbmeta_device_state = props.get("ro.boot.vbmeta.device_state")
@@ -50,19 +47,13 @@ def analyze_bootloader(devices: DeviceManager, serial: str) -> BootloaderStatus:
     warranty_bit = props.get("ro.boot.warranty_bit")
 
     # AVB / Android Verified Boot 2.0 properties
-    avb_version = (
-        props.get("ro.boot.avb_version")
-        or props.get("ro.boot.vbmeta.avb_version")
-    )
-    dm_verity_state = (
-        props.get("ro.boot.veritymode")
-        or props.get("ro.boot.veritymode.managed")
-    )
-    anti_rollback_index = props.get("ro.boot.vbmeta.security_patch_level")
+    avb_version = props.get("ro.boot.avb_version") or props.get("ro.boot.vbmeta.avb_version")
+    dm_verity_state = props.get("ro.boot.veritymode") or props.get("ro.boot.veritymode.managed")
+    anti_rollback_index = props.get("ro.boot.rollback_index")
     vbmeta_hash_alg = props.get("ro.boot.vbmeta.hash_alg")
     vbmeta_digest = props.get("ro.boot.vbmeta.digest")
     boot_reason = props.get("ro.boot.bootreason") or props.get("sys.boot.reason")
-    secure_boot = props.get("ro.boot.secureboot") or props.get("ro.secure")
+    secure_boot = props.get("ro.boot.secureboot")
     device_state = props.get("ro.boot.vbmeta.device_state") or props.get("ro.boot.device_state")
     hardware_revision = (
         props.get("ro.boot.hardware.revision")
@@ -124,93 +115,207 @@ def _assess_boot_posture(
     # --- Verified Boot State ---
     vbs = (verifiedbootstate or "").lower().strip()
     if vbs == "green":
-        findings.append({"signal": "verified_boot_state", "value": "green", "severity": "ok",
-                         "detail": "Boot chain is fully verified with OEM-signed images."})
+        findings.append(
+            {
+                "signal": "verified_boot_state",
+                "value": "green",
+                "severity": "ok",
+                "detail": "Boot chain is fully verified with OEM-signed images.",
+            }
+        )
     elif vbs == "yellow":
-        findings.append({"signal": "verified_boot_state", "value": "yellow", "severity": "warning",
-                         "detail": "Boot chain verified with user-installed root of trust (custom key)."})
+        findings.append(
+            {
+                "signal": "verified_boot_state",
+                "value": "yellow",
+                "severity": "warning",
+                "detail": "Boot chain verified with user-installed root of trust (custom key).",
+            }
+        )
         risk_score += 2
     elif vbs == "orange":
-        findings.append({"signal": "verified_boot_state", "value": "orange", "severity": "high",
-                         "detail": "Bootloader is unlocked; boot image signature enforcement is disabled."})
+        findings.append(
+            {
+                "signal": "verified_boot_state",
+                "value": "orange",
+                "severity": "high",
+                "detail": "Bootloader is unlocked; boot image signature enforcement is disabled.",
+            }
+        )
         risk_score += 4
     elif vbs == "red":
-        findings.append({"signal": "verified_boot_state", "value": "red", "severity": "critical",
-                         "detail": "Boot verification failed; device may be running tampered firmware."})
+        findings.append(
+            {
+                "signal": "verified_boot_state",
+                "value": "red",
+                "severity": "critical",
+                "detail": "Boot verification failed; device may be running tampered firmware.",
+            }
+        )
         risk_score += 6
     elif vbs:
-        findings.append({"signal": "verified_boot_state", "value": vbs, "severity": "info",
-                         "detail": f"Non-standard verified boot state: {vbs}"})
+        findings.append(
+            {
+                "signal": "verified_boot_state",
+                "value": vbs,
+                "severity": "info",
+                "detail": f"Non-standard verified boot state: {vbs}",
+            }
+        )
         risk_score += 1
 
     # --- OEM Unlock ---
     oem = (oem_unlock_allowed or "").strip()
     if oem == "1":
-        findings.append({"signal": "oem_unlock_allowed", "value": "enabled", "severity": "warning",
-                         "detail": "OEM unlock is permitted; bootloader can be unlocked from fastboot."})
+        findings.append(
+            {
+                "signal": "oem_unlock_allowed",
+                "value": "enabled",
+                "severity": "warning",
+                "detail": "OEM unlock is permitted; bootloader can be unlocked from fastboot.",
+            }
+        )
         risk_score += 2
     elif oem == "0":
-        findings.append({"signal": "oem_unlock_allowed", "value": "disabled", "severity": "ok",
-                         "detail": "OEM unlock is disabled in developer settings."})
+        findings.append(
+            {
+                "signal": "oem_unlock_allowed",
+                "value": "disabled",
+                "severity": "ok",
+                "detail": "OEM unlock is disabled in developer settings.",
+            }
+        )
 
     # --- Flash Lock ---
     fl = (flash_locked or "").strip()
     if fl == "0":
-        findings.append({"signal": "flash_locked", "value": "unlocked", "severity": "high",
-                         "detail": "Flash lock is disengaged; firmware partitions can be overwritten."})
+        findings.append(
+            {
+                "signal": "flash_locked",
+                "value": "unlocked",
+                "severity": "high",
+                "detail": "Flash lock is disengaged; firmware partitions can be overwritten.",
+            }
+        )
         risk_score += 4
     elif fl == "1":
-        findings.append({"signal": "flash_locked", "value": "locked", "severity": "ok",
-                         "detail": "Flash lock is engaged; firmware partitions are protected."})
+        findings.append(
+            {
+                "signal": "flash_locked",
+                "value": "locked",
+                "severity": "ok",
+                "detail": "Flash lock is engaged; firmware partitions are protected.",
+            }
+        )
 
     # --- vbmeta Device State ---
     vds = (vbmeta_device_state or "").lower().strip()
     if vds == "unlocked":
-        findings.append({"signal": "vbmeta_device_state", "value": "unlocked", "severity": "high",
-                         "detail": "vbmeta reports unlocked state; AVB enforcement is weakened."})
+        findings.append(
+            {
+                "signal": "vbmeta_device_state",
+                "value": "unlocked",
+                "severity": "high",
+                "detail": "vbmeta reports unlocked state; AVB enforcement is weakened.",
+            }
+        )
         risk_score += 3
     elif vds == "locked":
-        findings.append({"signal": "vbmeta_device_state", "value": "locked", "severity": "ok",
-                         "detail": "vbmeta reports locked state; AVB verification is active."})
+        findings.append(
+            {
+                "signal": "vbmeta_device_state",
+                "value": "locked",
+                "severity": "ok",
+                "detail": "vbmeta reports locked state; AVB verification is active.",
+            }
+        )
 
     # --- dm-verity ---
     dv = (dm_verity_state or "").lower().strip()
     if dv in {"enforcing", "true", "1"}:
-        findings.append({"signal": "dm_verity", "value": "enforcing", "severity": "ok",
-                         "detail": "dm-verity is enforcing; partition integrity is validated at runtime."})
+        findings.append(
+            {
+                "signal": "dm_verity",
+                "value": "enforcing",
+                "severity": "ok",
+                "detail": "dm-verity is enforcing; partition integrity is validated at runtime.",
+            }
+        )
     elif dv in {"disabled", "false", "0", "logging"}:
-        findings.append({"signal": "dm_verity", "value": dv, "severity": "high",
-                         "detail": f"dm-verity is {dv}; runtime partition integrity verification is absent."})
+        findings.append(
+            {
+                "signal": "dm_verity",
+                "value": dv,
+                "severity": "high",
+                "detail": f"dm-verity is {dv}; runtime partition integrity verification is absent.",
+            }
+        )
         risk_score += 3
 
     # --- AVB version ---
     if avb_version:
-        findings.append({"signal": "avb_version", "value": avb_version, "severity": "info",
-                         "detail": f"Android Verified Boot version {avb_version} is present."})
+        findings.append(
+            {
+                "signal": "avb_version",
+                "value": avb_version,
+                "severity": "info",
+                "detail": f"Android Verified Boot version {avb_version} is present.",
+            }
+        )
     else:
-        findings.append({"signal": "avb_version", "value": "absent", "severity": "warning",
-                         "detail": "No AVB version property detected; device may use legacy boot verification."})
+        findings.append(
+            {
+                "signal": "avb_version",
+                "value": "absent",
+                "severity": "warning",
+                "detail": "No AVB version property detected; device may use legacy boot verification.",
+            }
+        )
         risk_score += 1
 
     # --- Secure Boot flag ---
     sb = (secure_boot or "").strip()
     if sb in {"1", "true"}:
-        findings.append({"signal": "secure_boot", "value": "enabled", "severity": "ok",
-                         "detail": "Platform secure boot flag is set."})
+        findings.append(
+            {
+                "signal": "secure_boot",
+                "value": "enabled",
+                "severity": "ok",
+                "detail": "Platform secure boot flag is set.",
+            }
+        )
     elif sb in {"0", "false"}:
-        findings.append({"signal": "secure_boot", "value": "disabled", "severity": "high",
-                         "detail": "Platform secure boot flag reports disabled."})
+        findings.append(
+            {
+                "signal": "secure_boot",
+                "value": "disabled",
+                "severity": "high",
+                "detail": "Platform secure boot flag reports disabled.",
+            }
+        )
         risk_score += 3
 
     # --- Warranty bit ---
     wb = (warranty_bit or "").strip()
     if wb == "1":
-        findings.append({"signal": "warranty_bit", "value": "tripped", "severity": "warning",
-                         "detail": "Warranty bit is tripped; device has been modified or unlocked at some point."})
+        findings.append(
+            {
+                "signal": "warranty_bit",
+                "value": "tripped",
+                "severity": "warning",
+                "detail": "Warranty bit is tripped; device has been modified or unlocked at some point.",
+            }
+        )
         risk_score += 1
     elif wb == "0":
-        findings.append({"signal": "warranty_bit", "value": "intact", "severity": "ok",
-                         "detail": "Warranty bit is intact."})
+        findings.append(
+            {
+                "signal": "warranty_bit",
+                "value": "intact",
+                "severity": "ok",
+                "detail": "Warranty bit is intact.",
+            }
+        )
 
     # --- Overall risk level ---
     if risk_score >= 8:
@@ -227,6 +332,7 @@ def _assess_boot_posture(
         assessment = "Boot chain appears intact with standard OEM-verified configuration."
 
     return {
+        "evidence_source": "device-reported properties; not independent boot verification",
         "risk_level": risk_level,
         "risk_score": risk_score,
         "assessment": assessment,

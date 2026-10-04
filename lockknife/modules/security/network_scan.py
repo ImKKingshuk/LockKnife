@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import ipaddress
 import re
 from typing import Any
 
@@ -51,8 +52,16 @@ _RE_PORT = re.compile(r":(\d+)$")
 _KNOWN_PORTS: dict[int, tuple[str, str, str]] = {
     # port: (service_name, risk_level, risk_note)
     21: ("FTP", "high", "FTP transmits credentials in cleartext; should not be exposed."),
-    22: ("SSH", "medium", "SSH may be expected on rooted devices but increases remote attack surface."),
-    23: ("Telnet", "critical", "Telnet is an insecure cleartext protocol; highly suspicious on mobile."),
+    22: (
+        "SSH",
+        "medium",
+        "SSH may be expected on rooted devices but increases remote attack surface.",
+    ),
+    23: (
+        "Telnet",
+        "critical",
+        "Telnet is an insecure cleartext protocol; highly suspicious on mobile.",
+    ),
     53: ("DNS", "low", "DNS resolver; generally expected for VPN or tethering."),
     80: ("HTTP", "medium", "Unencrypted HTTP server; review if intentional."),
     443: ("HTTPS", "low", "HTTPS server; typically a proxy or local service."),
@@ -62,7 +71,11 @@ _KNOWN_PORTS: dict[int, tuple[str, str, str]] = {
     3128: ("Squid", "high", "HTTP proxy; verify this is not a covert proxy."),
     4444: ("Metasploit", "critical", "Common Metasploit/reverse-shell port; highly suspicious."),
     5037: ("ADB-daemon", "medium", "ADB daemon; expected on developer-mode devices."),
-    5555: ("ADB-TCP", "high", "ADB over TCP; allows remote unauthenticated device access."),
+    5555: (
+        "ADB-TCP",
+        "high",
+        "ADB over TCP; verify authentication and network access restrictions.",
+    ),
     5900: ("VNC", "high", "VNC server; remote desktop access is a significant exposure."),
     6666: ("IRC/Backdoor", "critical", "Common backdoor/IRC bot port; requires investigation."),
     8080: ("HTTP-alt", "medium", "Alternative HTTP; review for proxy, debug, or dev-server usage."),
@@ -70,7 +83,11 @@ _KNOWN_PORTS: dict[int, tuple[str, str, str]] = {
     8888: ("HTTP-proxy", "medium", "HTTP proxy or debug server; verify purpose."),
     9090: ("WebSocket", "medium", "WebSocket or management interface; review exposure."),
     27042: ("Frida", "medium", "Frida default port; expected during runtime instrumentation."),
-    31337: ("Elite/Backdoor", "critical", "Classic backdoor port; requires immediate investigation."),
+    31337: (
+        "Elite/Backdoor",
+        "critical",
+        "Classic backdoor port; requires immediate investigation.",
+    ),
 }
 
 
@@ -167,20 +184,31 @@ def _parse_listening_ports(raw: str) -> list[ListeningPort]:
     listening: list[ListeningPort] = []
     for ln in raw.splitlines():
         s = ln.strip()
-        m = _RE_NETSTAT.match(s)
-        if not m:
+        fields = s.split()
+        if len(fields) < 5 or fields[0] not in {"tcp", "tcp6", "udp", "udp6"}:
             continue
-        proto, local, _remote, state, pidprog = (
-            m.group(1),
-            m.group(2),
-            m.group(3),
-            m.group(4),
-            m.group(5),
-        )
-        pid = None
-        prog = None
-        if pidprog and "/" in pidprog:
-            pid, prog = pidprog.split("/", 1)
+        proto = fields[0]
+        pid = prog = state = None
+        if fields[1].isdigit():
+            # netstat: proto recv-q send-q local peer [state] [pid/program]
+            local = fields[3]
+            rest = fields[5:]
+            if rest and rest[0] in {"LISTEN", "ESTABLISHED", "TIME_WAIT", "CLOSE_WAIT", "UNCONN"}:
+                state = rest.pop(0)
+            if proto.startswith("tcp") and state != "LISTEN":
+                continue
+            if rest and "/" in rest[0]:
+                pid, prog = rest[0].split("/", 1)
+        else:
+            # ss: netid state recv-q send-q local peer [users:(...)]
+            if len(fields) < 6:
+                continue
+            state, local = fields[1], fields[4]
+            if state not in {"LISTEN", "UNCONN"}:
+                continue
+            process = re.search(r'users:\(\("([^"]+)",pid=(\d+)', s)
+            if process:
+                prog, pid = process.groups()
 
         # Extract port number
         port_num = _extract_port(local)
@@ -256,17 +284,15 @@ def _detect_tethering(devices: DeviceManager, serial: str) -> bool:
         )
     except Exception:
         return False
-    return bool(
-        "Tethering: true" in tether_raw
-        or "active" in tether_raw.lower()
-        and "tether" in tether_raw.lower()
-    )
+    return bool(re.search(r"\btethering\s*:\s*true\b|\bTetheredState\b", tether_raw, re.IGNORECASE))
 
 
 def _collect_iptables(devices: DeviceManager, serial: str) -> list[str]:
     """Collect IPv4 iptables rules."""
     try:
-        raw = devices.shell(serial, 'su -c "iptables -L -n --line-numbers 2>/dev/null"', timeout_s=15.0)
+        raw = devices.shell(
+            serial, 'su -c "iptables -L -n --line-numbers 2>/dev/null"', timeout_s=15.0
+        )
     except Exception:
         log.debug("iptables_probe_failed", exc_info=True, serial=serial)
         return []
@@ -277,7 +303,9 @@ def _collect_iptables(devices: DeviceManager, serial: str) -> list[str]:
 def _collect_ip6tables(devices: DeviceManager, serial: str) -> list[str]:
     """Collect IPv6 ip6tables rules."""
     try:
-        raw = devices.shell(serial, 'su -c "ip6tables -L -n --line-numbers 2>/dev/null"', timeout_s=15.0)
+        raw = devices.shell(
+            serial, 'su -c "ip6tables -L -n --line-numbers 2>/dev/null"', timeout_s=15.0
+        )
     except Exception:
         log.debug("ip6tables_probe_failed", exc_info=True, serial=serial)
         return []
@@ -340,83 +368,110 @@ def _assess_network_posture(
 
     if critical_ports:
         for p in critical_ports:
-            findings.append({
-                "signal": "critical_port",
-                "value": f"{p.proto}:{p.port} ({p.service_name or 'unknown'})",
-                "severity": "critical",
-                "detail": p.risk_note or "Critical-risk port detected.",
-            })
+            findings.append(
+                {
+                    "signal": "critical_port",
+                    "value": f"{p.proto}:{p.port} ({p.service_name or 'unknown'})",
+                    "severity": "critical",
+                    "detail": p.risk_note or "Critical-risk port detected.",
+                }
+            )
             risk_score += 5
 
     if high_risk_ports:
         for p in high_risk_ports[:5]:
-            findings.append({
-                "signal": "high_risk_port",
-                "value": f"{p.proto}:{p.port} ({p.service_name or 'unknown'})",
-                "severity": "high",
-                "detail": p.risk_note or "High-risk port detected.",
-            })
+            findings.append(
+                {
+                    "signal": "high_risk_port",
+                    "value": f"{p.proto}:{p.port} ({p.service_name or 'unknown'})",
+                    "severity": "high",
+                    "detail": p.risk_note or "High-risk port detected.",
+                }
+            )
             risk_score += 2
 
     # --- Wildcard listeners ---
-    wildcard = [p for p in listening if "0.0.0.0" in p.local or ":::" in p.local]
+    def is_wildcard(endpoint: str) -> bool:
+        host = endpoint.rsplit(":", 1)[0].strip("[]")
+        if host == "*":
+            return True
+        try:
+            return ipaddress.ip_address(host).is_unspecified
+        except ValueError:
+            return False
+
+    wildcard = [p for p in listening if is_wildcard(p.local)]
     if wildcard:
-        findings.append({
-            "signal": "wildcard_listeners",
-            "value": str(len(wildcard)),
-            "severity": "warning" if len(wildcard) <= 3 else "high",
-            "detail": f"{len(wildcard)} services are listening on all interfaces (0.0.0.0/::).",
-        })
+        findings.append(
+            {
+                "signal": "wildcard_listeners",
+                "value": str(len(wildcard)),
+                "severity": "warning" if len(wildcard) <= 3 else "high",
+                "detail": f"{len(wildcard)} services are listening on all interfaces (0.0.0.0/::).",
+            }
+        )
         if len(wildcard) > 3:
             risk_score += 2
 
     # --- Total open ports ---
-    findings.append({
-        "signal": "total_listening",
-        "value": str(len(listening)),
-        "severity": "info",
-        "detail": f"{len(listening)} total listening ports detected.",
-    })
+    findings.append(
+        {
+            "signal": "total_listening",
+            "value": str(len(listening)),
+            "severity": "info",
+            "detail": f"{len(listening)} total listening ports detected.",
+        }
+    )
 
     # --- VPN ---
     if vpn_active:
-        findings.append({
-            "signal": "vpn",
-            "value": "active",
-            "severity": "info",
-            "detail": "Active VPN tunnel detected; traffic may be routed through a tunnel.",
-        })
+        findings.append(
+            {
+                "signal": "vpn",
+                "value": "active",
+                "severity": "info",
+                "detail": "Active VPN tunnel detected; traffic may be routed through a tunnel.",
+            }
+        )
 
     # --- Tethering ---
     if tethering_active:
-        findings.append({
-            "signal": "tethering",
-            "value": "active",
-            "severity": "warning",
-            "detail": "Tethering is active; device is sharing its network connection.",
-        })
+        findings.append(
+            {
+                "signal": "tethering",
+                "value": "active",
+                "severity": "warning",
+                "detail": "Tethering is active; device is sharing its network connection.",
+            }
+        )
         risk_score += 1
 
     # --- ADB TCP ---
     adb_tcp = [p for p in listening if p.port == 5555]
     if adb_tcp:
-        findings.append({
-            "signal": "adb_tcp",
-            "value": "open",
-            "severity": "high",
-            "detail": "ADB over TCP (port 5555) is listening; this allows unauthenticated remote access.",
-        })
+        findings.append(
+            {
+                "signal": "adb_tcp",
+                "value": "open",
+                "severity": "high",
+                "detail": "ADB over TCP (port 5555) is listening; verify device authentication and network restrictions.",
+            }
+        )
         risk_score += 3
 
     # --- iptables presence ---
-    non_default_rules = [r for r in iptables_rules if "ACCEPT" not in r and "Chain" not in r and r.strip()]
+    non_default_rules = [
+        r for r in iptables_rules if "ACCEPT" not in r and "Chain" not in r and r.strip()
+    ]
     if non_default_rules:
-        findings.append({
-            "signal": "iptables_custom",
-            "value": str(len(non_default_rules)),
-            "severity": "info",
-            "detail": f"{len(non_default_rules)} non-default iptables rules detected.",
-        })
+        findings.append(
+            {
+                "signal": "iptables_custom",
+                "value": str(len(non_default_rules)),
+                "severity": "info",
+                "detail": f"{len(non_default_rules)} non-default iptables rules detected.",
+            }
+        )
 
     # --- Overall ---
     if risk_score >= 8:
@@ -424,10 +479,14 @@ def _assess_network_posture(
         assessment = "Multiple critical network exposures detected; the device has highly suspicious network-accessible services."
     elif risk_score >= 4:
         risk_level = "high"
-        assessment = "Significant network exposure detected; review open ports and listening services."
+        assessment = (
+            "Significant network exposure detected; review open ports and listening services."
+        )
     elif risk_score >= 2:
         risk_level = "medium"
-        assessment = "Some network exposure signals detected; most are likely benign but warrant review."
+        assessment = (
+            "Some network exposure signals detected; most are likely benign but warrant review."
+        )
     else:
         risk_level = "low"
         assessment = "Network exposure appears minimal with no high-risk services detected."

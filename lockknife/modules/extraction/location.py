@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import dataclasses
+import math
+import pathlib
 import re
+import sqlite3
 from typing import Any
 
 from lockknife.core.device import DeviceManager
 from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
+from lockknife.core.security import secure_temp_dir
+from lockknife.modules.extraction._extraction_common import try_root_staging_pull
 
 log = get_logger()
 
@@ -44,6 +49,7 @@ class CellTower:
 @dataclasses.dataclass(frozen=True)
 class LocationSettings:
     """Device-level location configuration from settings_secure."""
+
     location_mode: str | None = None
     location_providers_allowed: str | None = None
     high_accuracy: bool = False
@@ -55,6 +61,7 @@ class LocationSettings:
 @dataclasses.dataclass(frozen=True)
 class GnssStatus:
     """GNSS satellite and raw measurement metadata."""
+
     satellite_count: int = 0
     fix_type: str | None = None
     constellations: list[str] = dataclasses.field(default_factory=list)
@@ -64,6 +71,7 @@ class GnssStatus:
 @dataclasses.dataclass(frozen=True)
 class LocationHistoryEntry:
     """A parsed Google Location History / timeline record."""
+
     timestamp: str | None = None
     latitude: float | None = None
     longitude: float | None = None
@@ -243,7 +251,7 @@ def _extract_location_settings(devices: DeviceManager, serial: str) -> LocationS
     has_root = devices.has_root(serial)
 
     def _setting(namespace: str, key: str) -> str | None:
-        cmd = f'settings get {namespace} {key}'
+        cmd = f"settings get {namespace} {key}"
         if has_root:
             cmd = f'su -c "{cmd}"'
         try:
@@ -282,7 +290,7 @@ def _extract_gnss_status(devices: DeviceManager, serial: str) -> GnssStatus:
     cmd = (
         'su -c "dumpsys location | grep -A 50 gnss 2>/dev/null | head -n 60"'
         if has_root
-        else 'dumpsys location 2>/dev/null | grep -A 50 gnss | head -n 60'
+        else "dumpsys location 2>/dev/null | grep -A 50 gnss | head -n 60"
     )
     try:
         raw = devices.shell(serial, cmd, timeout_s=20.0)
@@ -322,64 +330,101 @@ def _extract_gnss_status(devices: DeviceManager, serial: str) -> GnssStatus:
     )
 
 
+def _parse_location_history_database(path: pathlib.Path, limit: int) -> list[LocationHistoryEntry]:
+    if not 1 <= limit <= 100_000:
+        raise ValueError("limit must be between 1 and 100000")
+    con = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
+    con.row_factory = sqlite3.Row
+    try:
+        columns = {row[1] for row in con.execute("PRAGMA table_info(location_history)")}
+        order_queries = {
+            "timestamp": "SELECT * FROM location_history ORDER BY timestamp DESC LIMIT ?",
+            "timestamp_ms": "SELECT * FROM location_history ORDER BY timestamp_ms DESC LIMIT ?",
+            "time": "SELECT * FROM location_history ORDER BY time DESC LIMIT ?",
+        }
+        timestamp_column = next((name for name in order_queries if name in columns), None)
+        if timestamp_column is None:
+            return []
+        latitude_column = next(
+            (name for name in ("latitudeE7", "lat_e7", "latitude", "lat") if name in columns), None
+        )
+        longitude_column = next(
+            (name for name in ("longitudeE7", "lon_e7", "longitude", "lon") if name in columns),
+            None,
+        )
+        if latitude_column is None or longitude_column is None:
+            return []
+        history = []
+        for row in con.execute(order_queries[timestamp_column], (limit,)):
+            try:
+                latitude = float(row[latitude_column])
+                longitude = float(row[longitude_column])
+                e7 = (
+                    latitude_column in ("latitudeE7", "lat_e7")
+                    or longitude_column in ("longitudeE7", "lon_e7")
+                    or abs(latitude) > 90
+                    or abs(longitude) > 180
+                )
+                if e7:
+                    latitude /= 1e7
+                    longitude /= 1e7
+                if not (
+                    math.isfinite(latitude)
+                    and math.isfinite(longitude)
+                    and -90 <= latitude <= 90
+                    and -180 <= longitude <= 180
+                ):
+                    continue
+                accuracy = (
+                    int(row["accuracy"])
+                    if "accuracy" in columns and row["accuracy"] is not None
+                    else None
+                )
+                if accuracy is not None and accuracy < 0:
+                    accuracy = None
+                timestamp = row[timestamp_column]
+                source = row["source"] if "source" in columns else None
+                history.append(
+                    LocationHistoryEntry(
+                        timestamp=str(timestamp) if timestamp is not None else None,
+                        latitude=latitude,
+                        longitude=longitude,
+                        accuracy=accuracy,
+                        source=str(source) if source is not None else None,
+                    )
+                )
+            except (ValueError, TypeError, OverflowError):
+                continue
+        return history
+    finally:
+        con.close()
+
+
 def _extract_location_history(
     devices: DeviceManager, serial: str, limit: int = 50
 ) -> list[LocationHistoryEntry]:
-    """Attempt to extract Google Location History entries from known database paths."""
-    has_root = devices.has_root(serial)
-    if not has_root:
+    """Read supported location-history schemas without requiring device-side SQLite."""
+    if not 1 <= limit <= 100_000:
+        raise ValueError("limit must be between 1 and 100000")
+    if not devices.has_root(serial):
         return []
-
-    history: list[LocationHistoryEntry] = []
-    db_paths = [
+    db_paths = (
         "/data/data/com.google.android.gms/databases/history_db",
         "/data/user/0/com.google.android.gms/databases/history_db",
         "/data/data/com.google.android.gms/databases/gms_location.db",
-    ]
-
-    for db_path in db_paths:
-        cmd = (
-            f'su -c "sqlite3 {db_path} '
-            f"\\\"SELECT timestamp, latitude, longitude, accuracy, source "
-            f"FROM location_history ORDER BY timestamp DESC LIMIT {limit}\\\" 2>/dev/null\""
-        )
-        try:
-            raw = devices.shell(serial, cmd, timeout_s=20.0)
-        except Exception:
-            continue
-
-        if not raw.strip():
-            continue
-
-        for ln in raw.strip().splitlines():
-            parts = ln.split("|")
-            if len(parts) < 3:
+    )
+    with secure_temp_dir(prefix="lockknife-location-") as directory:
+        for index, remote in enumerate(db_paths):
+            local = directory / f"history-{index}.db"
+            if not try_root_staging_pull(devices, serial, remote, local):
                 continue
             try:
-                ts = parts[0].strip() if parts[0].strip() else None
-                lat_val = float(parts[1]) if parts[1].strip() else None
-                lon_val = float(parts[2]) if parts[2].strip() else None
-                acc = int(parts[3]) if len(parts) > 3 and parts[3].strip() else None
-                src = parts[4].strip() if len(parts) > 4 and parts[4].strip() else None
-            except (ValueError, IndexError):
+                history = _parse_location_history_database(local, limit)
+            except sqlite3.Error:
                 continue
-
-            # Google stores lat/lon as E7 integers in some schemas
-            if lat_val and abs(lat_val) > 1_000_000:
-                lat_val = lat_val / 1e7
-            if lon_val and abs(lon_val) > 1_000_000:
-                lon_val = lon_val / 1e7
-
-            history.append(
-                LocationHistoryEntry(
-                    timestamp=ts, latitude=lat_val, longitude=lon_val, accuracy=acc, source=src
-                )
-            )
-
-        if history:
-            break
-
-    return history[:limit]
+            if history:
+                return history
+    return []
 
 
 def _build_provider_summary(
@@ -389,12 +434,14 @@ def _build_provider_summary(
     providers: list[dict[str, Any]] = []
 
     if settings.gps_enabled:
-        providers.append({
-            "name": "gps",
-            "enabled": True,
-            "satellites": gnss.satellite_count,
-            "constellations": gnss.constellations,
-        })
+        providers.append(
+            {
+                "name": "gps",
+                "enabled": True,
+                "satellites": gnss.satellite_count,
+                "constellations": gnss.constellations,
+            }
+        )
     else:
         providers.append({"name": "gps", "enabled": False})
 
@@ -428,55 +475,87 @@ def _assess_location_posture(
 
     # --- Location mode ---
     if settings.location_mode == "off":
-        findings.append({
-            "signal": "location_mode", "value": "off", "severity": "info",
-            "detail": "Location services are disabled; no fresh location data will be available.",
-        })
+        findings.append(
+            {
+                "signal": "location_mode",
+                "value": "off",
+                "severity": "info",
+                "detail": "Location services are disabled; no fresh location data will be available.",
+            }
+        )
     elif settings.high_accuracy:
-        findings.append({
-            "signal": "location_mode", "value": "high_accuracy", "severity": "ok",
-            "detail": "High-accuracy mode combines GPS, network, and sensors for precise positioning.",
-        })
+        findings.append(
+            {
+                "signal": "location_mode",
+                "value": "high_accuracy",
+                "severity": "ok",
+                "detail": "High-accuracy mode combines GPS, network, and sensors for precise positioning.",
+            }
+        )
 
     # --- Mock location ---
     if settings.mock_location and settings.mock_location not in {"0", "false"}:
-        findings.append({
-            "signal": "mock_location", "value": settings.mock_location, "severity": "warning",
-            "detail": "Mock location provider is enabled; location data may be spoofed.",
-        })
+        findings.append(
+            {
+                "signal": "mock_location",
+                "value": settings.mock_location,
+                "severity": "warning",
+                "detail": "Mock location provider is enabled; location data may be spoofed.",
+            }
+        )
 
     # --- GNSS ---
     if gnss.satellite_count > 0:
-        findings.append({
-            "signal": "gnss_satellites", "value": str(gnss.satellite_count), "severity": "ok",
-            "detail": f"{gnss.satellite_count} GNSS satellites visible across {len(gnss.constellations)} constellations.",
-        })
+        findings.append(
+            {
+                "signal": "gnss_satellites",
+                "value": str(gnss.satellite_count),
+                "severity": "ok",
+                "detail": f"{gnss.satellite_count} GNSS satellites visible across {len(gnss.constellations)} constellations.",
+            }
+        )
     if gnss.constellations:
-        findings.append({
-            "signal": "gnss_constellations", "value": ", ".join(gnss.constellations), "severity": "info",
-            "detail": f"Active constellations: {', '.join(gnss.constellations)}.",
-        })
+        findings.append(
+            {
+                "signal": "gnss_constellations",
+                "value": ", ".join(gnss.constellations),
+                "severity": "info",
+                "detail": f"Active constellations: {', '.join(gnss.constellations)}.",
+            }
+        )
 
     # --- Data richness ---
     data_sources = 0
     if history_count > 0:
         data_sources += 1
-        findings.append({
-            "signal": "location_history", "value": str(history_count), "severity": "info",
-            "detail": f"{history_count} Google Location History entries recovered.",
-        })
+        findings.append(
+            {
+                "signal": "location_history",
+                "value": str(history_count),
+                "severity": "info",
+                "detail": f"{history_count} Google Location History entries recovered.",
+            }
+        )
     if wifi_count > 0:
         data_sources += 1
-        findings.append({
-            "signal": "wifi_aps", "value": str(wifi_count), "severity": "info",
-            "detail": f"{wifi_count} nearby WiFi access points captured for positioning correlation.",
-        })
+        findings.append(
+            {
+                "signal": "wifi_aps",
+                "value": str(wifi_count),
+                "severity": "info",
+                "detail": f"{wifi_count} nearby WiFi access points captured for positioning correlation.",
+            }
+        )
     if cell_count > 0:
         data_sources += 1
-        findings.append({
-            "signal": "cell_towers", "value": str(cell_count), "severity": "info",
-            "detail": f"{cell_count} cell tower identifiers captured for network-based positioning.",
-        })
+        findings.append(
+            {
+                "signal": "cell_towers",
+                "value": str(cell_count),
+                "severity": "info",
+                "detail": f"{cell_count} cell tower identifiers captured for network-based positioning.",
+            }
+        )
 
     richness = "rich" if data_sources >= 2 else ("moderate" if data_sources == 1 else "limited")
 

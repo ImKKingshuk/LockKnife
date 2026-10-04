@@ -3,10 +3,46 @@
 from __future__ import annotations
 
 import dataclasses
+import pathlib
+import sqlite3
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+
+def test_network_ss_udp_and_inactive_tethering():
+    from lockknife.modules.security.network_scan import _detect_tethering, _parse_listening_ports
+
+    ports = _parse_listening_ports(
+        'tcp LISTEN 0 128 [::]:5555 [::]:* users:(("adbd",pid=123,fd=5))\nudp 0 0 0.0.0.0:53 0.0.0.0:* 456/dns\ntcp 0 0 127.0.0.1:4444 127.0.0.1:80 ESTABLISHED 789/client'
+    )
+    assert [p.port for p in ports] == [5555, 53]
+    assert ports[0].pid == "123"
+    assert ports[1].program == "dns"
+    dm = _make_device_manager({}, shell_returns={"dumpsys tethering": "Tethering inactive"})
+    assert _detect_tethering(dm, "serial") is False
+
+
+def test_property_inference_does_not_verify_security_strength():
+    from lockknife.modules.security.bootloader import analyze_bootloader
+    from lockknife.modules.security.hardware import analyze_hardware_security
+
+    dm = _make_device_manager(
+        {
+            "ro.secure": "1",
+            "ro.oem_unlock_supported": "1",
+            "ro.hardware.strongbox": "false",
+            "ro.hardware.keymaster": "software",
+            "ro.build.version.sdk": "35",
+        }
+    )
+    boot = analyze_bootloader(dm, "serial")
+    assert boot.secure_boot is None
+    assert boot.oem_unlock_allowed is None
+    hw = analyze_hardware_security(dm, "serial")
+    assert hw.strongbox is False
+    assert hw.attestation_capable is False
 
 
 # ---------------------------------------------------------------------------
@@ -14,7 +50,9 @@ import pytest
 # ---------------------------------------------------------------------------
 
 
-def _make_device_manager(props: dict[str, str], shell_returns: dict[str, str] | None = None, has_root: bool = True) -> MagicMock:
+def _make_device_manager(
+    props: dict[str, str], shell_returns: dict[str, str] | None = None, has_root: bool = True
+) -> MagicMock:
     """Build a mocked DeviceManager returning *props* from info() and optional shell returns."""
     dm = MagicMock()
     info_obj = MagicMock()
@@ -83,7 +121,7 @@ class TestBootloaderHardening:
         assert status.vbmeta_hash_alg == "sha256"
         assert status.vbmeta_digest == "abc123"
         assert status.secure_boot == "1"
-        assert status.anti_rollback_index == "2025-09-05"
+        assert status.anti_rollback_index is None
 
     def test_green_boot_low_risk(self) -> None:
         from lockknife.modules.security.bootloader import analyze_bootloader
@@ -231,7 +269,7 @@ class TestHardwareHardening:
         props = {"ro.hardware.fingerprint": "goodix"}
         dm = _make_device_manager(props)
         status = analyze_hardware_security(dm, "device1")
-        assert status.biometric_class == "class-3"
+        assert status.biometric_class == "unverified"
 
     def test_biometric_class_face_only(self) -> None:
         from lockknife.modules.security.hardware import analyze_hardware_security
@@ -239,10 +277,11 @@ class TestHardwareHardening:
         props = {"ro.hardware.biometrics.face": "vendor_face"}
         dm = _make_device_manager(props)
         status = analyze_hardware_security(dm, "device1")
-        assert status.biometric_class == "class-2"
+        assert status.biometric_class == "unverified"
 
     def test_security_patch_current(self) -> None:
         import datetime
+
         from lockknife.modules.security.hardware import analyze_hardware_security
 
         today = datetime.date.today()
@@ -255,7 +294,9 @@ class TestHardwareHardening:
         dm = _make_device_manager(props)
         status = analyze_hardware_security(dm, "device1")
         # Should detect current patch
-        patch_findings = [f for f in status.posture.get("findings", []) if f.get("signal") == "security_patch"]
+        patch_findings = [
+            f for f in status.posture.get("findings", []) if f.get("signal") == "security_patch"
+        ]
         assert len(patch_findings) == 1
         assert "current" in patch_findings[0]["detail"]
 
@@ -269,7 +310,9 @@ class TestHardwareHardening:
         }
         dm = _make_device_manager(props)
         status = analyze_hardware_security(dm, "device1")
-        patch_findings = [f for f in status.posture.get("findings", []) if f.get("signal") == "security_patch"]
+        patch_findings = [
+            f for f in status.posture.get("findings", []) if f.get("signal") == "security_patch"
+        ]
         assert len(patch_findings) == 1
         assert "outdated" in patch_findings[0]["detail"]
 
@@ -284,6 +327,7 @@ class TestHardwareHardening:
 
     def test_posture_low_risk_full_hw(self) -> None:
         import datetime
+
         from lockknife.modules.security.hardware import analyze_hardware_security
 
         today = datetime.date.today()
@@ -371,7 +415,10 @@ class TestNetworkScanHardening:
         assert _extract_port("some_garbage") is None
 
     def test_posture_critical_with_backdoor_port(self) -> None:
-        from lockknife.modules.security.network_scan import _parse_listening_ports, _assess_network_posture
+        from lockknife.modules.security.network_scan import (
+            _assess_network_posture,
+            _parse_listening_ports,
+        )
 
         raw = "tcp        0      0 0.0.0.0:4444            0.0.0.0:*               LISTEN      666/revshell\n"
         ports = _parse_listening_ports(raw)
@@ -389,15 +436,19 @@ class TestNetworkScanHardening:
         assert posture["risk_level"] == "low"
 
     def test_scan_requires_root(self) -> None:
-        from lockknife.modules.security.network_scan import scan_network
         from lockknife.core.exceptions import DeviceError
+        from lockknife.modules.security.network_scan import scan_network
 
         dm = _make_device_manager({}, has_root=False)
         with pytest.raises(DeviceError, match="Root required"):
             scan_network(dm, "device1")
 
     def test_remediation_hints_adb_tcp(self) -> None:
-        from lockknife.modules.security.network_scan import _parse_listening_ports, _assess_network_posture, _network_remediation_hints
+        from lockknife.modules.security.network_scan import (
+            _assess_network_posture,
+            _network_remediation_hints,
+            _parse_listening_ports,
+        )
 
         raw = "tcp        0      0 0.0.0.0:5555            0.0.0.0:*               LISTEN      123/adbd\n"
         ports = _parse_listening_ports(raw)
@@ -443,12 +494,7 @@ class TestLocationHardening:
     def test_gnss_parsing(self) -> None:
         from lockknife.modules.extraction.location import _extract_gnss_status
 
-        gnss_raw = (
-            "gnss_provider:\n"
-            "  num_svs=12\n"
-            "  fix_type=1\n"
-            "  GPS GLONASS GALILEO\n"
-        )
+        gnss_raw = "gnss_provider:\n  num_svs=12\n  fix_type=1\n  GPS GLONASS GALILEO\n"
         shell_returns = {"gnss": gnss_raw}
         dm = _make_device_manager({}, shell_returns=shell_returns)
         gnss = _extract_gnss_status(dm, "device1")
@@ -501,64 +547,86 @@ class TestLocationHardening:
 
     def test_posture_rich_data(self) -> None:
         from lockknife.modules.extraction.location import (
-            _assess_location_posture,
-            LocationSettings,
             GnssStatus,
+            LocationSettings,
+            _assess_location_posture,
         )
 
         settings = LocationSettings(
-            location_mode="high_accuracy", high_accuracy=True,
-            gps_enabled=True, network_enabled=True,
+            location_mode="high_accuracy",
+            high_accuracy=True,
+            gps_enabled=True,
+            network_enabled=True,
         )
         gnss = GnssStatus(satellite_count=10, constellations=["GPS", "GLONASS"])
-        posture = _assess_location_posture(settings, gnss, history_count=25, wifi_count=10, cell_count=3)
+        posture = _assess_location_posture(
+            settings, gnss, history_count=25, wifi_count=10, cell_count=3
+        )
         assert posture["data_richness"] == "rich"
         assert posture["data_source_count"] >= 2
 
     def test_posture_limited_data(self) -> None:
         from lockknife.modules.extraction.location import (
-            _assess_location_posture,
-            LocationSettings,
             GnssStatus,
+            LocationSettings,
+            _assess_location_posture,
         )
 
         settings = LocationSettings(location_mode="off")
         gnss = GnssStatus()
-        posture = _assess_location_posture(settings, gnss, history_count=0, wifi_count=0, cell_count=0)
+        posture = _assess_location_posture(
+            settings, gnss, history_count=0, wifi_count=0, cell_count=0
+        )
         assert posture["data_richness"] == "limited"
 
     def test_mock_location_warning(self) -> None:
         from lockknife.modules.extraction.location import (
-            _assess_location_posture,
-            LocationSettings,
             GnssStatus,
+            LocationSettings,
+            _assess_location_posture,
         )
 
         settings = LocationSettings(mock_location="com.example.mockgps")
         gnss = GnssStatus()
-        posture = _assess_location_posture(settings, gnss, history_count=0, wifi_count=0, cell_count=0)
-        mock_findings = [f for f in posture.get("findings", []) if f.get("signal") == "mock_location"]
+        posture = _assess_location_posture(
+            settings, gnss, history_count=0, wifi_count=0, cell_count=0
+        )
+        mock_findings = [
+            f for f in posture.get("findings", []) if f.get("signal") == "mock_location"
+        ]
         assert len(mock_findings) == 1
         assert mock_findings[0]["severity"] == "warning"
 
-    def test_location_history_e7_conversion(self) -> None:
+    def test_location_history_e7_conversion(self, tmp_path: pathlib.Path) -> None:
         """Verify E7 integer lat/lon is converted to decimal degrees."""
-        from lockknife.modules.extraction.location import _extract_location_history
+        from lockknife.modules.extraction.location import _parse_location_history_database
 
-        # Simulate shell that returns E7-formatted lat/lon
-        history_raw = "1696500000|377749000|-1224194000|25|gps"
-        shell_returns = {"sqlite3": history_raw}
-        dm = _make_device_manager({}, shell_returns=shell_returns)
-        entries = _extract_location_history(dm, "device1")
-        assert len(entries) == 1
+        path = tmp_path / "history.db"
+        con = sqlite3.connect(path)
+        con.execute(
+            "CREATE TABLE location_history (timestamp, latitudeE7, longitudeE7, accuracy, source)"
+        )
+        con.executemany(
+            "INSERT INTO location_history VALUES (?, ?, ?, ?, ?)",
+            [
+                (1696500000, 377749000, -1224194000, 25, "gps"),
+                (1696400000, 500000, 0, 5, "gps"),
+            ],
+        )
+        con.commit()
+        con.close()
+        entries = _parse_location_history_database(path, 50)
+        assert len(entries) == 2
         assert entries[0].latitude == pytest.approx(37.7749, rel=1e-3)
         assert entries[0].longitude == pytest.approx(-122.4194, rel=1e-3)
+        assert entries[1].latitude == pytest.approx(0.05)
+        assert entries[1].longitude == 0
 
     def test_provider_summary_structure(self) -> None:
         from lockknife.modules.extraction.location import (
-            _build_provider_summary,
-            LocationSettings,
             GnssStatus,
+            LocationSettings,
+            _build_provider_summary,
         )
 
         settings = LocationSettings(gps_enabled=True, network_enabled=True)
