@@ -4,6 +4,16 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 
 ## [Unreleased]
 
+## [v1.3.0] - 2026-10-04
+
+### Investigation And Workflow Improvements
+
+- Added SQLite account artifact parsing and device wallet extraction commands.
+- Expanded messaging extraction for modern WhatsApp schemas, WhatsApp Business, Signal, and Telegram, with clearer handling of encrypted or unsupported data.
+- Improved multi-user artifact discovery, root-assisted staging, ContentProvider fallbacks, credential-format detection, and Keystore/passkey artifact inspection.
+- Hardened deleted-record recovery and SQLite carving with bounded processing and clearer separation of active records from recovery candidates.
+- Restored case job replay and improved evidence preservation, concurrent case initialization, report bundles, and snapshot consistency.
+
 ### Fixed
 
 - Refreshed the README with a branded layout, detailed feature sections, current installation instructions, case examples, and capability requirements.
@@ -14,7 +24,7 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 - Made interrupted case migration retryable and prevented case initialization from replacing existing evidence inventories.
 - Enforced append-only audit rows, added event-chain verification to integrity reports, and included consistent SQLite backups in case bundles.
 - Made compatibility manifests atomic and serialized snapshot writers to prevent stale or partial snapshots.
-- Fixed TUI dialogs immediately disappearing after main shortcuts and module selection (issue #14).
+- Fixed TUI dialogs immediately disappearing after main shortcuts and module selection.
 - Preserved built-in action forms, device requirements, and confirmation checks when importing metadata-only registry entries; accepted Python catalog field defaults and choices.
 - Preserved action confirmations after form submission and executed confirmed actions without asking for confirmation again.
 - Ignored key-release and repeat events to prevent duplicate input and accidental submissions on Windows.
@@ -22,6 +32,18 @@ All notable changes to `LockKnife : The Ultimate Android Security Research Tool`
 - Restored the advertised export shortcut, which was shadowed by exploit-panel navigation.
 - Replaced misleading success messages from unfinished exploit-panel shortcuts with explicit unsupported-action feedback.
 - Added real-dispatcher regression tests for shortcuts, dialogs, cancellation, and action-catalog callback routing.
+- Restored missing extraction command dependencies and TUI AI/reporting dependencies.
+- Updated diagnostics to recognize modern Androguard installations.
+- Updated BLE service discovery for the current Bleak API and prevented missing BLE dependencies from returning simulated successes.
+- Made Bluetooth scan, fingerprint, and GATT dry runs side-effect-free, validated GATT write arguments before connecting, and recorded failed connections accurately.
+
+### Release And Security
+
+- Upgraded Scapy to 2.8.0, cryptography to 50.0.2, and urllib3 to 2.8.0; the network extra now requires Scapy 2.8.0 or newer.
+- Pinned Rust 1.99.0 and included the toolchain configuration in source distributions to avoid native-loader failures with older compilers on recent macOS versions.
+- Added isolated wheel/source installation checks that exercise the native extension, shared action catalog, and public command help pages.
+- Expanded release validation to include Python tests, linting, formatting, type checking, dependency audits, and security checks before uploading artifacts.
+- Restored previously skipped CLI, TUI, case, and Bluetooth regression coverage.
 
 
 ## [v1.2.0] - 2026-09-11
