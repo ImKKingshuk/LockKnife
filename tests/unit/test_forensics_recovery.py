@@ -1,5 +1,10 @@
 import pathlib
+import sqlite3
+from contextlib import closing
 
+import pytest
+
+from lockknife.modules.forensics import recovery
 from lockknife.modules.forensics.recovery import recover_deleted_records
 
 
@@ -37,39 +42,59 @@ def test_recover_deleted_records_walks_freelist_pages(tmp_path: pathlib.Path) ->
     assert any(fragment["source_kind"] == "freelist-page" for fragment in out["fragments"])
 
 
-def test_recover_deleted_records_recovers_structured_deleted_rows(tmp_path: pathlib.Path) -> None:
-    import sqlite3
+@pytest.mark.parametrize("connection_default", [0, 1], ids=["default-off", "default-on"])
+@pytest.mark.parametrize("secure_delete", [False, True], ids=["retained", "erased"])
+@pytest.mark.parametrize(
+    "python_fallback", [False, True], ids=["default-backend", "python-fallback"]
+)
+def test_recover_deleted_records_recovers_structured_deleted_rows(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+    connection_default: int,
+    secure_delete: bool,
+    python_fallback: bool,
+) -> None:
+    if python_fallback:
+        monkeypatch.setattr(recovery, "_native_sqlite_carve_records", None)
 
-    db_path = tmp_path / "target_investigation.db"
-    con = sqlite3.connect(str(db_path))
-    con.execute("PRAGMA auto_vacuum = NONE")
-    con.execute(
-        "CREATE TABLE evidence (id INTEGER PRIMARY KEY, suspect TEXT, email TEXT, notes TEXT)"
-    )
-    con.execute(
-        "INSERT INTO evidence VALUES (1, 'Alice Smith', 'alice@secure-intel.org', 'Lead investigator')"
-    )
-    con.execute(
-        "INSERT INTO evidence VALUES (2, 'Bob Jones', 'bob@classified-drop.net', 'Target suspect')"
-    )
-    con.execute(
-        "INSERT INTO evidence VALUES (3, 'Charlie Brown', 'charlie@neutral-hub.io', 'Witness')"
-    )
-    con.commit()
+    db_path = tmp_path / "example-evidence.db"
+    deleted_email = "person-b@example.invalid"
+    with closing(sqlite3.connect(db_path)) as con:
+        # Model both platform defaults, then explicitly select this fixture's deletion behavior.
+        con.execute(f"PRAGMA secure_delete = {connection_default}")
+        con.execute(f"PRAGMA secure_delete = {int(secure_delete)}")
+        assert con.execute("PRAGMA secure_delete").fetchone()[0] == int(secure_delete)
+        con.execute("PRAGMA auto_vacuum = NONE")
+        con.execute("PRAGMA journal_mode = DELETE")
+        con.execute(
+            "CREATE TABLE evidence (id INTEGER PRIMARY KEY, suspect TEXT, email TEXT, notes TEXT)"
+        )
+        con.executemany(
+            "INSERT INTO evidence VALUES (?, ?, ?, ?)",
+            [
+                (1, "Example Person A", "person-a@example.invalid", "Example note A"),
+                (2, "Example Person B", deleted_email, "Example note B"),
+                (3, "Example Person C", "person-c@example.invalid", "Example note C"),
+            ],
+        )
+        con.commit()
+        con.execute("DELETE FROM evidence WHERE id = ?", (2,))
+        con.commit()
+        assert con.execute("SELECT email FROM evidence WHERE id = ?", (2,)).fetchone() is None
 
-    # Delete Bob Jones to place record in freeblock / deleted cells
-    con.execute("DELETE FROM evidence WHERE suspect = 'Bob Jones'")
-    con.commit()
-    con.close()
+    assert (deleted_email.encode() in db_path.read_bytes()) is not secure_delete
 
     res = recover_deleted_records(db_path, max_fragments=100)
     assert res["summary"]["record_count"] >= 1 or res["summary"]["fragment_count"] >= 1
 
-    # Verify that either structured carved records or fragments found Bob Jones
     all_record_values = [
         str(col) for rec in res.get("records", []) for col in rec.get("columns", [])
     ]
     all_fragment_texts = [f["text"] for f in res.get("fragments", [])]
     combined_matches = " ".join(all_record_values + all_fragment_texts)
 
-    assert "bob@classified-drop.net" in combined_matches or "Bob Jones" in combined_matches
+    if secure_delete:
+        assert deleted_email not in combined_matches
+        assert "Example Person B" not in combined_matches
+    else:
+        assert deleted_email in combined_matches
