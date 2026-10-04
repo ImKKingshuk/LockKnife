@@ -66,8 +66,15 @@ def _register_wallet_output(
 @crypto_wallet.command("wallet")
 @click.argument("db_path", type=READABLE_FILE)
 @click.option("--lookup", "do_lookup", is_flag=True, default=False)
-@click.option("--carve-seeds", is_flag=True, default=False, help="Carve BIP-39 mnemonic seed phrases.")
-@click.option("--carve-vaults", is_flag=True, default=False, help="Carve Web3 keystore and wallet vault blobs.")
+@click.option(
+    "--carve-seeds", is_flag=True, default=False, help="Carve BIP-39 mnemonic seed phrases."
+)
+@click.option(
+    "--carve-vaults",
+    is_flag=True,
+    default=False,
+    help="Carve Web3 keystore and wallet vault blobs.",
+)
 @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
 @click.option("--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path))
 def wallet_cmd(
@@ -85,7 +92,9 @@ def wallet_cmd(
         addr_rows = [dataclasses.asdict(r) for r in addrs]
 
     mnemonics = extract_mnemonics(db_path.read_bytes(), source=str(db_path)) if carve_seeds else []
-    vaults = extract_web3_keystores(db_path.read_bytes(), source=str(db_path)) if carve_vaults else []
+    vaults = (
+        extract_web3_keystores(db_path.read_bytes(), source=str(db_path)) if carve_vaults else []
+    )
 
     if carve_seeds or carve_vaults:
         payload: Any = {

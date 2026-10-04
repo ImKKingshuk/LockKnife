@@ -320,11 +320,13 @@ def run_passkey_workflow(
         elif isinstance(item, dict):
             rows.append(dict(item))
         else:
-            rows.append({
-                "remote_path": getattr(item, "remote_path", None),
-                "local_path": getattr(item, "local_path", None),
-                "size": getattr(item, "size", 0),
-            })
+            rows.append(
+                {
+                    "remote_path": getattr(item, "remote_path", None),
+                    "local_path": getattr(item, "local_path", None),
+                    "size": getattr(item, "size", 0),
+                }
+            )
     from lockknife.modules.credentials.fido2 import parse_passkey_database
 
     parsed_passkeys: list[dict[str, Any]] = []

@@ -149,7 +149,7 @@ Acquire logical evidence and system artifacts directly from connected Android de
 - **Web Browsers**: Recover history, bookmarks, downloads, cookies, and saved logins for Chrome and Firefox (`extract browser`).
 - **Messaging Apps**: Extract chat databases and media for WhatsApp, Telegram, and Signal (`extract messaging`).
 - **Media & EXIF**: Pull images, videos, and audio files with automatic extraction of embedded camera and GPS metadata (`extract media`).
-- **System & Geolocation**: Acquire Wi-Fi network history, cell tower cache data, and dumpsys diagnostics (`extract location`).
+- **System & Geolocation**: Acquire Wi-Fi and cell-tower observations, dumpsys diagnostics, and supported rooted-device location-history databases. Database parsing runs on the host and does not require an on-device SQLite executable (`extract location`).
 - **Batch Acquisition**: Automated multi-dataset acquisition across accessible partitions (`extract all`).
 
 ```bash
@@ -170,7 +170,7 @@ Inspect disk dumps, application databases, and extracted filesystem artifacts:
 - **Unified Timeline**: Consolidate filesystem events, browser history, communication logs, and application activity into a chronological timeline (`forensics timeline`).
 - **Cross-Artifact Correlation**: Automatically connect related identifiers (IP addresses, timestamps, phone numbers) across disparate datasets (`forensics correlate`).
 - **ALEAPP Integration**: Import, normalize, and correlate forensic dumps from ALEAPP (`forensics import-aleapp`).
-- **Deleted Record Carving**: Heuristic scanning of database free-pages and unallocated space for deleted records (`forensics recover`).
+- **Record Carving**: Inspect SQLite free blocks and unallocated regions for structured record candidates, with bounded native parsing and source offsets. Raw database and journal fragments can also contain live records; a candidate is not proof of deletion (`forensics recover`).
 - **Protobuf Decoding**: Parse raw binary protocol buffer streams from app caches (`forensics decode-protobuf`).
 
 ```bash
@@ -259,7 +259,7 @@ Analyze network traffic and assess device configuration security:
 
 - **PCAP Packet Analysis**: Parse network captures to identify API endpoints, cleartext transmissions, and DNS requests (`network analyze`, `network api-discovery`).
 - **Traffic Capture**: Manage on-device `tcpdump` packet capture sessions over ADB (`network capture`).
-- **Device Security Posture**: Check SELinux enforcement, bootloader lock state, Knox status, and USB attack surfaces (`security scan`).
+- **Device Security Posture**: Assess SELinux enforcement, reported bootloader state, Knox indicators, listener exposure, and USB configuration (`security scan`). Property-based hardware assessments do not independently verify attestation, rollback protection, or biometric strength.
 - **OWASP MASTG Mapping**: Map automated audit findings directly to the OWASP Mobile Application Security Testing Guide (`security owasp`).
 
 ```bash

@@ -50,7 +50,9 @@ def _sqlite_records(path: pathlib.Path) -> list[dict[str, Any]]:
             "SELECT name FROM sqlite_master WHERE type='table' AND name='authtokens'"
         ).fetchone()
         if has_authtokens:
-            token_rows = cur.execute("SELECT accounts_id, type, authtoken FROM authtokens").fetchall()
+            token_rows = cur.execute(
+                "SELECT accounts_id, type, authtoken FROM authtokens"
+            ).fetchall()
             for r in token_rows:
                 aid = r["accounts_id"]
                 if aid not in auth_tokens_map:

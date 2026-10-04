@@ -103,7 +103,9 @@ def test_pull_and_workflow_passkeys(monkeypatch, tmp_path: pathlib.Path) -> None
     conn = sqlite3.connect(str(target_db))
     cur = conn.cursor()
     cur.execute("CREATE TABLE fido_credentials (rp_id TEXT, credential_id TEXT, user_name TEXT)")
-    cur.execute("INSERT INTO fido_credentials VALUES ('apple.com', 'cred-apple-789', 'user@icloud.com')")
+    cur.execute(
+        "INSERT INTO fido_credentials VALUES ('apple.com', 'cred-apple-789', 'user@icloud.com')"
+    )
     conn.commit()
     conn.close()
 
@@ -159,7 +161,9 @@ def test_cli_crack_passkeys_command(monkeypatch, tmp_path: pathlib.Path) -> None
     monkeypatch.setattr(
         "lockknife_headless_cli.crack.pull_passkey_artifacts",
         lambda d, s, output_dir, limit=200: [
-            PasskeyArtifact(remote_path="/data/fido2.db", local_path=str(test_db), size=test_db.stat().st_size)
+            PasskeyArtifact(
+                remote_path="/data/fido2.db", local_path=str(test_db), size=test_db.stat().st_size
+            )
         ],
     )
 
