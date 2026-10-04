@@ -31,55 +31,168 @@ from lockknife.modules.apk._signing import signing_summary
 lockknife_core = None
 
 
-def parse_apk_manifest(apk_path: pathlib.Path) -> dict[str, Any]:
-    APK = _require_androguard()
-    apk_obj = APK(str(apk_path))
-    manifest = apk_obj.get_android_manifest_xml()
-    manifest_xml = manifest.toxml() if manifest is not None else None
-    package = _apk_method(apk_obj, "get_package")
-    permissions = sorted(set(_clean_strings(_apk_method(apk_obj, "get_permissions", []))))
-    target_sdk = _apk_method(apk_obj, "get_target_sdk_version")
+def _parse_apk_manifest_native(apk_path: pathlib.Path) -> dict[str, Any]:
+    from lockknife.modules.apk._axml_parser import extract_manifest_xml_from_apk
+
+    manifest_xml = extract_manifest_xml_from_apk(apk_path)
+    root = fromstring(manifest_xml)
+
+    package = root.get("package")
+    version_code = _android_attr(root, "versionCode")
+    version_name = _android_attr(root, "versionName")
+
+    sdk_node = root.find("uses-sdk")
+    min_sdk = _android_attr(sdk_node, "minSdkVersion")
+    target_sdk = _android_attr(sdk_node, "targetSdkVersion")
+    max_sdk = _android_attr(sdk_node, "maxSdkVersion")
+
+    permissions = sorted(
+        set(
+            _clean_strings(
+                [
+                    _android_attr(node, "name")
+                    for node in root.findall("uses-permission")
+                ]
+            )
+        )
+    )
+    features = sorted(
+        set(
+            _clean_strings(
+                [
+                    _android_attr(node, "name")
+                    for node in root.findall("uses-feature")
+                ]
+            )
+        )
+    )
+
+    app_node = root.find("application")
+    app_name = _android_attr(app_node, "label")
+    uses_libraries = sorted(
+        set(
+            _clean_strings(
+                [
+                    _android_attr(node, "name")
+                    for node in (app_node.findall("uses-library") if app_node is not None else [])
+                ]
+            )
+        )
+    )
+
+    main_activity = None
+    activities: list[str] = []
+    services: list[str] = []
+    receivers: list[str] = []
+    providers: list[str] = []
+
+    if app_node is not None:
+        for act in app_node.findall("activity"):
+            name = _android_attr(act, "name")
+            if name:
+                norm = _normalize_component_name(package, name)
+                if norm:
+                    activities.append(norm)
+                for inf in act.findall("intent-filter"):
+                    has_main = any(
+                        _android_attr(a, "name") == "android.intent.action.MAIN"
+                        for a in inf.findall("action")
+                    )
+                    has_launcher = any(
+                        _android_attr(c, "name")
+                        in {
+                            "android.intent.category.LAUNCHER",
+                            "android.intent.category.INFO",
+                        }
+                        for c in inf.findall("category")
+                    )
+                    if has_main and has_launcher and not main_activity:
+                        main_activity = norm
+
+        for srv in app_node.findall("service"):
+            name = _android_attr(srv, "name")
+            if name:
+                norm = _normalize_component_name(package, name)
+                if norm:
+                    services.append(norm)
+
+        for rec in app_node.findall("receiver"):
+            name = _android_attr(rec, "name")
+            if name:
+                norm = _normalize_component_name(package, name)
+                if norm:
+                    receivers.append(norm)
+
+        for prv in app_node.findall("provider"):
+            name = _android_attr(prv, "name")
+            if name:
+                norm = _normalize_component_name(package, name)
+                if norm:
+                    providers.append(norm)
+
     components = component_details(manifest_xml, package, target_sdk=target_sdk)
     archive = archive_inventory(apk_path)
     strings = scan_archive_code_signals(apk_path)
-    signing = signing_summary(apk_obj, apk_path)
+    signing = signing_summary(None, apk_path)
     deeplinks = [
         str(item.get("uri"))
         for item in components.get("deeplinks") or []
         if isinstance(item, dict) and str(item.get("uri") or "").strip()
     ]
 
+    debuggable = (
+        _coerce_manifest_bool(_android_attr(app_node, "debuggable"))
+        if app_node is not None
+        else False
+    )
+    allow_backup = (
+        _coerce_manifest_bool(_android_attr(app_node, "allowBackup"))
+        if app_node is not None
+        else None
+    )
+    uses_cleartext = (
+        _coerce_manifest_bool(_android_attr(app_node, "usesCleartextTraffic"))
+        if app_node is not None
+        else None
+    )
+    net_sec = (
+        _android_attr(app_node, "networkSecurityConfig")
+        if app_node is not None
+        else None
+    )
+    backup_agent = (
+        _android_attr(app_node, "backupAgent") if app_node is not None else None
+    )
+
     info = {
         "package": package,
-        "app_name": _apk_method(apk_obj, "get_app_name"),
-        "main_activity": _normalize_component_name(
-            package, _apk_method(apk_obj, "get_main_activity")
-        ),
-        "version_name": _apk_method(apk_obj, "get_androidversion_name"),
-        "version_code": _apk_method(apk_obj, "get_androidversion_code"),
+        "app_name": app_name,
+        "main_activity": main_activity,
+        "version_name": version_name,
+        "version_code": version_code,
         "sdk": {
-            "min": _apk_method(apk_obj, "get_min_sdk_version"),
+            "min": min_sdk,
             "target": target_sdk,
-            "max": _apk_method(apk_obj, "get_max_sdk_version"),
+            "max": max_sdk,
         },
         "permissions": permissions,
-        "permission_details": _apk_method(apk_obj, "get_details_permissions", {}) or {},
-        "features": sorted(set(_clean_strings(_apk_method(apk_obj, "get_features", [])))),
-        "uses_libraries": sorted(set(_clean_strings(_apk_method(apk_obj, "get_libraries", [])))),
-        "activities": _clean_strings(_apk_method(apk_obj, "get_activities", [])),
-        "services": _clean_strings(_apk_method(apk_obj, "get_services", [])),
-        "receivers": _clean_strings(_apk_method(apk_obj, "get_receivers", [])),
-        "providers": _clean_strings(_apk_method(apk_obj, "get_providers", [])),
+        "permission_details": {},
+        "features": features,
+        "uses_libraries": uses_libraries,
+        "activities": _clean_strings(activities),
+        "services": _clean_strings(services),
+        "receivers": _clean_strings(receivers),
+        "providers": _clean_strings(providers),
         "components": components,
         "component_summary": components.get("summary") or {},
         "component_interactions": components.get("interaction_analysis") or {},
         "deeplinks": sorted(set(deeplinks)),
         "manifest_xml": manifest_xml,
-        "debuggable": bool(_apk_method(apk_obj, "is_debuggable", False)),
-        "allow_backup": None,
-        "uses_cleartext_traffic": None,
-        "network_security_config": None,
-        "backup_agent": None,
+        "debuggable": bool(debuggable),
+        "allow_backup": allow_backup,
+        "uses_cleartext_traffic": uses_cleartext,
+        "network_security_config": net_sec,
+        "backup_agent": backup_agent,
         "archive": archive,
         "string_analysis": strings,
         "code_signals": {
@@ -88,29 +201,122 @@ def parse_apk_manifest(apk_path: pathlib.Path) -> dict[str, Any]:
             "signals": strings.get("code_signals") or [],
         },
         "signing": signing,
+        "manifest_flags": {
+            "debuggable": bool(debuggable),
+            "allow_backup": allow_backup,
+            "uses_cleartext_traffic": uses_cleartext,
+            "network_security_config": net_sec,
+            "backup_agent": backup_agent,
+        },
     }
-
-    if manifest_xml:
-        try:
-            root = fromstring(manifest_xml)
-            app_node = root.find("application")
-            info["allow_backup"] = _coerce_manifest_bool(_android_attr(app_node, "allowBackup"))
-            info["uses_cleartext_traffic"] = _coerce_manifest_bool(
-                _android_attr(app_node, "usesCleartextTraffic")
-            )
-            info["network_security_config"] = _android_attr(app_node, "networkSecurityConfig")
-            info["backup_agent"] = _android_attr(app_node, "backupAgent")
-            info["manifest_flags"] = {
-                "debuggable": info["debuggable"],
-                "allow_backup": info["allow_backup"],
-                "uses_cleartext_traffic": info["uses_cleartext_traffic"],
-                "network_security_config": info["network_security_config"],
-                "backup_agent": info["backup_agent"],
-            }
-        except ParseError:
-            pass
-
     return info
+
+
+def parse_apk_manifest(apk_path: pathlib.Path) -> dict[str, Any]:
+    APK = _require_androguard(raise_on_missing=False)
+    if APK is not None:
+        try:
+            apk_obj = APK(str(apk_path))
+            manifest = apk_obj.get_android_manifest_xml()
+            manifest_xml = manifest.toxml() if manifest is not None else None
+            package = _apk_method(apk_obj, "get_package")
+            permissions = sorted(
+                set(_clean_strings(_apk_method(apk_obj, "get_permissions", [])))
+            )
+            target_sdk = _apk_method(apk_obj, "get_target_sdk_version")
+            components = component_details(manifest_xml, package, target_sdk=target_sdk)
+            archive = archive_inventory(apk_path)
+            strings = scan_archive_code_signals(apk_path)
+            signing = signing_summary(apk_obj, apk_path)
+            deeplinks = [
+                str(item.get("uri"))
+                for item in components.get("deeplinks") or []
+                if isinstance(item, dict) and str(item.get("uri") or "").strip()
+            ]
+
+            info = {
+                "package": package,
+                "app_name": _apk_method(apk_obj, "get_app_name"),
+                "main_activity": _normalize_component_name(
+                    package, _apk_method(apk_obj, "get_main_activity")
+                ),
+                "version_name": _apk_method(apk_obj, "get_androidversion_name"),
+                "version_code": _apk_method(apk_obj, "get_androidversion_code"),
+                "sdk": {
+                    "min": _apk_method(apk_obj, "get_min_sdk_version"),
+                    "target": target_sdk,
+                    "max": _apk_method(apk_obj, "get_max_sdk_version"),
+                },
+                "permissions": permissions,
+                "permission_details": _apk_method(
+                    apk_obj, "get_details_permissions", {}
+                )
+                or {},
+                "features": sorted(
+                    set(_clean_strings(_apk_method(apk_obj, "get_features", [])))
+                ),
+                "uses_libraries": sorted(
+                    set(_clean_strings(_apk_method(apk_obj, "get_libraries", [])))
+                ),
+                "activities": _clean_strings(
+                    _apk_method(apk_obj, "get_activities", [])
+                ),
+                "services": _clean_strings(_apk_method(apk_obj, "get_services", [])),
+                "receivers": _clean_strings(
+                    _apk_method(apk_obj, "get_receivers", [])
+                ),
+                "providers": _clean_strings(
+                    _apk_method(apk_obj, "get_providers", [])
+                ),
+                "components": components,
+                "component_summary": components.get("summary") or {},
+                "component_interactions": components.get("interaction_analysis") or {},
+                "deeplinks": sorted(set(deeplinks)),
+                "manifest_xml": manifest_xml,
+                "debuggable": bool(_apk_method(apk_obj, "is_debuggable", False)),
+                "allow_backup": None,
+                "uses_cleartext_traffic": None,
+                "network_security_config": None,
+                "backup_agent": None,
+                "archive": archive,
+                "string_analysis": strings,
+                "code_signals": {
+                    "libraries": strings.get("libraries") or [],
+                    "trackers": strings.get("trackers") or [],
+                    "signals": strings.get("code_signals") or [],
+                },
+                "signing": signing,
+            }
+
+            if manifest_xml:
+                try:
+                    root = fromstring(manifest_xml)
+                    app_node = root.find("application")
+                    info["allow_backup"] = _coerce_manifest_bool(
+                        _android_attr(app_node, "allowBackup")
+                    )
+                    info["uses_cleartext_traffic"] = _coerce_manifest_bool(
+                        _android_attr(app_node, "usesCleartextTraffic")
+                    )
+                    info["network_security_config"] = _android_attr(
+                        app_node, "networkSecurityConfig"
+                    )
+                    info["backup_agent"] = _android_attr(app_node, "backupAgent")
+                    info["manifest_flags"] = {
+                        "debuggable": info["debuggable"],
+                        "allow_backup": info["allow_backup"],
+                        "uses_cleartext_traffic": info["uses_cleartext_traffic"],
+                        "network_security_config": info["network_security_config"],
+                        "backup_agent": info["backup_agent"],
+                    }
+                except ParseError:
+                    pass
+
+            return info
+        except Exception:
+            return _parse_apk_manifest_native(apk_path)
+
+    return _parse_apk_manifest_native(apk_path)
 
 
 def decompile_apk_report(

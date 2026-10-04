@@ -201,10 +201,10 @@ FEATURE_MATRIX: tuple[FeatureEntry, ...] = (
     FeatureEntry(
         "security",
         "Device posture / SELinux / bootloader / hardware",
-        "lockknife security scan|selinux|bootloader|hardware",
+        "lockknife security scan|selinux|bootloader|hardware|network-scan",
         "production-ready",
         "adb + device access",
-        "Deep security posture engine auditing gatekeeper, lockscreen, covert HTTP proxy, private DNS, wireless ADB, and Play Protect.",
+        "Deep security posture engines: Verified Boot chain & AVB analysis, TEE/attestation/biometric assessment, network exposure scoring with port risk classification, gatekeeper, lockscreen, and Play Protect auditing.",
     ),
     FeatureEntry(
         "security",

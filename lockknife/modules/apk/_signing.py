@@ -8,17 +8,56 @@ from lockknife.modules.apk._decompile_archive import archive_inventory
 from lockknife.modules.apk._decompile_inspection import _apk_method
 
 
+def _detect_signing_schemes(apk_path: pathlib.Path, inventory: dict[str, Any]) -> dict[str, bool]:
+    schemes = {
+        "v1": bool(inventory.get("meta_inf_signers")),
+        "v2": False,
+        "v3": False,
+        "v4": False,
+    }
+    try:
+        import struct
+
+        data = apk_path.read_bytes()
+        eocd_idx = data.rfind(b"PK\x05\x06")
+        if eocd_idx != -1 and eocd_idx + 22 <= len(data):
+            _cd_size, cd_offset = struct.unpack_from("<II", data, eocd_idx + 12)
+            if cd_offset >= 24:
+                magic = data[cd_offset - 16 : cd_offset]
+                if magic == b"APK Sig Block 42":
+                    block_size = struct.unpack_from("<Q", data, cd_offset - 24)[0]
+                    block_start = cd_offset - 8 - block_size
+                    pos = block_start
+                    while pos + 12 < cd_offset - 24:
+                        pair_len = struct.unpack_from("<Q", data, pos)[0]
+                        pos += 8
+                        if pos + pair_len > cd_offset - 24:
+                            break
+                        sig_id = struct.unpack_from("<I", data, pos)[0]
+                        if sig_id == 0x7109871A:
+                            schemes["v2"] = True
+                        elif sig_id in (0xF05368C0, 0x1B93AD61):
+                            schemes["v3"] = True
+                        pos += pair_len
+    except Exception:
+        pass
+    return schemes
+
+
 def signing_summary(apk_obj: Any, apk_path: pathlib.Path) -> dict[str, Any]:
     certificates = [
         certificate_payload(cert) for cert in (_apk_method(apk_obj, "get_certificates", []) or [])
     ]
     inventory = archive_inventory(apk_path)
-    schemes = {
-        "v1": bool(_apk_method(apk_obj, "is_signed_v1", False)),
-        "v2": bool(_apk_method(apk_obj, "is_signed_v2", False)),
-        "v3": bool(_apk_method(apk_obj, "is_signed_v3", False)),
-        "v4": bool(_apk_method(apk_obj, "is_signed_v4", False)),
-    }
+    if apk_obj is not None:
+        schemes = {
+            "v1": bool(_apk_method(apk_obj, "is_signed_v1", False)),
+            "v2": bool(_apk_method(apk_obj, "is_signed_v2", False)),
+            "v3": bool(_apk_method(apk_obj, "is_signed_v3", False)),
+            "v4": bool(_apk_method(apk_obj, "is_signed_v4", False)),
+        }
+    else:
+        schemes = _detect_signing_schemes(apk_path, inventory)
     certificate_count = len(certificates)
     signature_algorithms = sorted(
         {

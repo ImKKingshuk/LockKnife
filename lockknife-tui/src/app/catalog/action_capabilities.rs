@@ -46,9 +46,9 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             notes: "Production-ready extraction with multi-user CE/DE paths, root staging, and ContentProvider fallback.",
         }),
         "extraction.location" => Some(CapabilityMetadata {
-            status: "functional",
+            status: "production-ready",
             requirements: "adb + device access",
-            notes: "Broad coverage exists today, but some outputs remain device- and app-specific.",
+            notes: "Enhanced location extraction with settings, GNSS satellite metadata, Google Location History recovery, WiFi AP and cell tower correlation, provider summaries, and data richness posture.",
         }),
         "forensics.recover" => Some(CapabilityMetadata {
             status: "production-ready",
@@ -59,6 +59,21 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             status: "functional",
             requirements: "adb + device/root for deeper coverage",
             notes: "Creates encrypted or plain device archive snapshots with integrity metadata.",
+        }),
+        "security.bootloader" => Some(CapabilityMetadata {
+            status: "production-ready",
+            requirements: "adb + device access",
+            notes: "Full Verified Boot posture engine with AVB/dm-verity analysis, anti-rollback detection, boot chain risk scoring, and remediation hints.",
+        }),
+        "security.hardware" => Some(CapabilityMetadata {
+            status: "production-ready",
+            requirements: "adb + device access",
+            notes: "Hardware security assessment with TEE vendor detection (Trusty/QSEE/TEEGRIS/Kinibi), attestation readiness, biometric class analysis, security patch freshness, and encryption state.",
+        }),
+        "security.network_scan" => Some(CapabilityMetadata {
+            status: "production-ready",
+            requirements: "adb + root",
+            notes: "Network exposure analysis with known-service port risk classification, VPN/tethering detection, iptables rule capture, interface inventory, and composite posture assessment.",
         }),
         "forensics.sqlite" | "forensics.timeline" | "forensics.parse" | "forensics.correlate" => {
             Some(CapabilityMetadata {
@@ -150,9 +165,6 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             notes: "Deep security posture engine auditing gatekeeper, lockscreen, covert HTTP proxy, private DNS, wireless ADB, and Play Protect.",
         }),
         "security.selinux"
-        | "security.network_scan"
-        | "security.bootloader"
-        | "security.hardware"
         | "security.owasp" => Some(CapabilityMetadata {
             status: "functional",
             requirements: "adb + device access",
