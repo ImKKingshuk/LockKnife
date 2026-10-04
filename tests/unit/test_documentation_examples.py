@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import pathlib
 import shlex
+from html.parser import HTMLParser
 from unittest.mock import Mock
 from urllib.parse import unquote, urlsplit
 
 import click
 import pytest
+from defusedxml import ElementTree
 from markdown_it import MarkdownIt
 
 from lockknife.core.cli_types import ReadableFileType
@@ -14,6 +16,15 @@ from lockknife_headless_cli.main import cli
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 DOCUMENTS = (ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md")))
+
+
+class _HTMLLinks(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.targets = []
+
+    def handle_starttag(self, tag, attrs):
+        self.targets.extend(value for key, value in attrs if key in {"href", "src"} and value)
 
 
 def _command_examples() -> list[tuple[pathlib.Path, list[str]]]:
@@ -95,12 +106,36 @@ def test_user_guides_exclude_maintainer_instructions(path):
 
 @pytest.mark.parametrize("path", DOCUMENTS, ids=lambda p: p.name)
 def test_documentation_local_links_resolve(path):
+    targets = []
     for token in MarkdownIt().parse(path.read_text()):
+        if token.type in {"html_block", "html_inline"}:
+            parser = _HTMLLinks()
+            parser.feed(token.content)
+            targets.extend(parser.targets)
         for child in token.children or ():
+            if child.type == "html_inline":
+                parser = _HTMLLinks()
+                parser.feed(child.content)
+                targets.extend(parser.targets)
             target = child.attrGet("href") or child.attrGet("src")
-            if not target:
-                continue
-            parsed = urlsplit(target)
-            if parsed.scheme or parsed.netloc or not parsed.path:
-                continue
-            assert (path.parent / unquote(parsed.path)).exists(), f"{path.name}: {target}"
+            if target:
+                targets.append(target)
+    for target in targets:
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc or not parsed.path:
+            continue
+        assert (path.parent / unquote(parsed.path)).exists(), f"{path.name}: {target}"
+
+
+def test_readme_banner_is_self_contained_static_svg():
+    root = ElementTree.fromstring((ROOT / "docs/assets/lockknife-banner.svg").read_text())
+    namespace = "{http://www.w3.org/2000/svg}"
+    assert root.tag == f"{namespace}svg"
+    assert root.find(f"{namespace}title") is not None
+    assert root.find(f"{namespace}desc") is not None
+    allowed_tags = {"svg", "title", "desc", "rect", "path", "g", "text", "tspan", "circle"}
+    for element in root.iter():
+        assert element.tag.removeprefix(namespace) in allowed_tags
+        for attribute in element.attrib:
+            assert not attribute.lower().startswith("on")
+            assert attribute not in {"href", "{http://www.w3.org/1999/xlink}href"}

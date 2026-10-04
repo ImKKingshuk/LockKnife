@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="340" viewBox="0 0 1280 340" role="img" aria-labelledby="title description">
+  <title id="title">LockKnife: Android security research and digital forensics</title>
+  <desc id="description">LockKnife wordmark beside a diagram connecting APK, SQLite, and packet capture evidence to a case and a report.</desc>
+  <rect width="1280" height="340" rx="8" fill="#161b22"/>
+  <path d="M0 8A8 8 0 0 1 8 0H1272A8 8 0 0 1 1280 8" fill="none" stroke="#3fb950" stroke-width="3"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="64" y="71" font-size="15" fill="#8b949e">ANDROID SECURITY / DIGITAL FORENSICS</text>
+    <text x="60" y="164" font-size="80" font-weight="700" fill="#f0f6fc">LockKnife<tspan fill="#3fb950">.</tspan></text>
+    <text x="64" y="211" font-size="22" fill="#c9d1d9">Your evidence. Your investigation. One workspace.</text>
+    <path d="M64 246H116" stroke="#3fb950" stroke-width="3"/>
+    <text x="64" y="280" font-size="15" fill="#8b949e">ACQUIRE</text>
+    <circle cx="151" cy="275" r="2" fill="#d29922"/>
+    <text x="171" y="280" font-size="15" fill="#8b949e">ANALYZE</text>
+    <circle cx="261" cy="275" r="2" fill="#d29922"/>
+    <text x="281" y="280" font-size="15" fill="#8b949e">VERIFY</text>
+    <circle cx="361" cy="275" r="2" fill="#d29922"/>
+    <text x="381" y="280" font-size="15" fill="#8b949e">REPORT</text>
+    <path d="M672 64V276" stroke="#30363d"/>
+    <g fill="none" stroke="#484f58" stroke-width="2">
+      <path d="M804 100H854Q866 100 866 112V170H919"/>
+      <path d="M804 170H919"/>
+      <path d="M804 240H854Q866 240 866 228V170"/>
+      <path d="M998 170H1094" stroke="#3fb950"/>
+      <path d="m1086 164 8 6-8 6" stroke="#3fb950"/>
+    </g>
+    <g fill="#21262d" stroke="#484f58">
+      <rect x="723" y="80" width="81" height="40" rx="4"/>
+      <rect x="723" y="150" width="81" height="40" rx="4"/>
+      <rect x="723" y="220" width="81" height="40" rx="4"/>
+    </g>
+    <g font-family="Courier New, monospace" font-size="17" fill="#c9d1d9" text-anchor="middle">
+      <text x="763" y="106">.apk</text>
+      <text x="763" y="176">.sqlite</text>
+      <text x="763" y="246">.pcap</text>
+    </g>
+    <rect x="919" y="131" width="79" height="78" rx="4" fill="#1b2d23" stroke="#3fb950"/>
+    <g stroke="#3fb950" stroke-width="2" fill="none">
+      <path d="M943 151H956L961 156H974V182H943Z"/>
+      <path d="M950 163H967M950 170H967"/>
+    </g>
+    <text x="958" y="198" text-anchor="middle" font-size="12" fill="#7ee787">CASE</text>
+    <g stroke="#d29922" stroke-width="2" fill="none">
+      <path d="M1114 139H1145L1158 152V202H1114Z"/>
+      <path d="M1145 139V152H1158M1124 165H1148M1124 176H1148M1124 187H1140"/>
+    </g>
+    <text x="763" y="296" text-anchor="middle" font-size="12" fill="#8b949e">EVIDENCE</text>
+    <text x="958" y="296" text-anchor="middle" font-size="12" fill="#8b949e">CONTEXT</text>
+    <text x="1136" y="296" text-anchor="middle" font-size="12" fill="#8b949e">FINDINGS</text>
+  </g>
+</svg>
