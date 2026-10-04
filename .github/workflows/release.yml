@@ -18,7 +18,7 @@ env:
 
 jobs:
   rust-tests:
-    name: Rust tests
+    name: Release validation
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -33,8 +33,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: stable
+          components: rustfmt, clippy
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
-      - run: uv sync --extra dev
+      - run: uv sync --extra dev --extra full --frozen
       - run: uv run python scripts/check_repository_hygiene.py
       - name: Verify package version matches the release tag
         run: uv run python lockknife/core/version.py check "$RELEASE_TAG"
@@ -49,10 +50,26 @@ jobs:
           mkdir -p "$GOBIN"
           go install github.com/zricethezav/gitleaks/v8@v8.30.1
           echo "$GOBIN" >> "$GITHUB_PATH"
+      - name: Check out the workflow's reviewed secret-scan exceptions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.workflow_sha }}
+          path: .release-verification
+          sparse-checkout: .gitleaksignore
+          sparse-checkout-cone-mode: false
       - name: Scan the complete Git history for secrets
-        run: gitleaks git --redact --exit-code=2 --report-format=sarif --report-path=gitleaks-results.sarif --verbose
+        run: gitleaks git --redact --exit-code=2 --log-opts=--all --gitleaks-ignore-path=.release-verification/.gitleaksignore --report-format=sarif --report-path=gitleaks-results.sarif --verbose
       - run: uv run maturin develop
       - run: uv run cargo test --workspace
+      - run: uv run cargo fmt --all --check
+      - run: uv run cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run ty check
+      - run: uv run pytest --cov=lockknife --cov=lockknife_headless_cli --cov-report=term-missing --cov-fail-under=56
+      - run: uv run bandit -c bandit.yaml -r lockknife lockknife_headless_cli --severity-level medium
+      - run: uv run pip-audit
 
   build-wheels:
     name: Build wheels — ${{ matrix.target }} (${{ matrix.os }})
@@ -104,61 +121,27 @@ jobs:
           manylinux: ${{ matrix.manylinux }}
           args: -m lockknife-core/Cargo.toml --release --out dist
 
-      - name: Smoke test built wheel
+      - name: Check out the workflow's artifact verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.workflow_sha }}
+          path: .release-verification
+          sparse-checkout: scripts/verify_distribution.py
+          sparse-checkout-cone-mode: false
+
+      - name: Verify built wheel
         shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import os
-          import subprocess
-          import sys
-          import tempfile
-          import zipfile
-
-          wheels = sorted(Path("dist").glob("*.whl"))
-          if not wheels:
-              raise SystemExit("No wheel artifacts found in dist/")
-
-          extracted_dirs: list[Path] = []
-          for wheel in wheels:
-              extract_dir = Path(tempfile.mkdtemp(prefix=f"{wheel.stem}-"))
-              with zipfile.ZipFile(wheel) as archive:
-                  archive.extractall(extract_dir)
-
-              entry_points = next(extract_dir.glob("*.dist-info/entry_points.txt"), None)
-              if entry_points is None:
-                  raise SystemExit(f"{wheel.name} is missing entry_points.txt")
-
-              entry_text = entry_points.read_text(encoding="utf-8")
-              if "lockknife=lockknife_headless_cli.main:cli" not in entry_text:
-                  raise SystemExit(f"{wheel.name} is missing the lockknife console script entrypoint")
-
-              if not (extract_dir / "lockknife_headless_cli" / "main.py").exists():
-                  raise SystemExit(f"{wheel.name} is missing lockknife_headless_cli/main.py")
-
-              extracted_dirs.append(extract_dir)
-
-          subprocess.run(
-              [
-                  "uv",
-                  "pip",
-                  "install",
-                  "--system",
-                  "click>=8.5.0",
-                  "rich>=15.0.0",
-                  "jinja2>=3.1",
-                  "defusedxml>=0.7",
-                  "pydantic>=2.13.5",
-                  "pydantic-settings>=2.15.0",
-                  "structlog>=26.1.0",
-              ],
-              check=True,
-          )
-
-          env = os.environ.copy()
-          env["PYTHONPATH"] = str(extracted_dirs[0]) + os.pathsep + env.get("PYTHONPATH", "")
-          subprocess.run([sys.executable, "-m", "lockknife", "--version"], check=True, env=env)
-          PY
+          for artifact in dist/*.whl; do
+            if [ "$TARGET" = "aarch64-unknown-linux-gnu" ]; then
+              python .release-verification/scripts/verify_distribution.py "$artifact" --metadata-only --expected-version "$RELEASE_TAG"
+            else
+              python .release-verification/scripts/verify_distribution.py "$artifact" --expected-version "$RELEASE_TAG"
+            fi
+          done
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -167,6 +150,7 @@ jobs:
 
   build-sdist:
     name: Build source distribution
+    needs: [rust-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -190,23 +174,21 @@ jobs:
           command: sdist
           args: -m lockknife-core/Cargo.toml --out dist
 
-      - name: Smoke test built sdist
+      - name: Check out the workflow's artifact verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.workflow_sha }}
+          path: .release-verification
+          sparse-checkout: scripts/verify_distribution.py
+          sparse-checkout-cone-mode: false
+
+      - name: Verify built source distribution
         shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import shutil
-          import subprocess
-
-          sdist = next(Path("dist").glob("*.tar.gz"))
-          subprocess.run(["uv", "pip", "install", "--system", str(sdist)], check=True)
-
-          exe = shutil.which("lockknife")
-          if not exe:
-              raise SystemExit("lockknife not found on PATH after sdist install")
-
-          subprocess.run([exe, "--version"], check=True)
-          PY
+          for artifact in dist/*.tar.gz; do
+            python .release-verification/scripts/verify_distribution.py "$artifact" --expected-version "$RELEASE_TAG"
+          done
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

@@ -25,7 +25,7 @@ jobs:
       - name: Install cargo-deny
         run: cargo install cargo-deny
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
-      - run: uv sync --extra dev
+      - run: uv sync --extra dev --extra full --frozen
       - run: uv run python scripts/check_repository_hygiene.py
       - name: Scan the complete Git history for secrets
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
@@ -70,24 +70,13 @@ jobs:
         with:
           command: build
           args: -m lockknife-core/Cargo.toml --release --out dist
-      - name: Smoke test built wheel
+      - name: Verify built wheel
         shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import shutil
-          import subprocess
+          for artifact in dist/*.whl; do
+            python scripts/verify_distribution.py "$artifact"
+          done
 
-          wheel = next(Path("dist").glob("*.whl"))
-          subprocess.run(["uv", "pip", "install", "--system", str(wheel)], check=True)
-
-          exe = shutil.which("lockknife")
-          if not exe:
-              raise SystemExit("lockknife not found on PATH after wheel install")
-
-          subprocess.run([exe, "--version"], check=True)
-          subprocess.run([exe, "--cli", "--help"], check=True)
-          PY
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: check-wheels-${{ matrix.os }}
@@ -113,24 +102,13 @@ jobs:
         with:
           command: sdist
           args: -m lockknife-core/Cargo.toml --out dist
-      - name: Smoke test built sdist
+      - name: Verify built source distribution
         shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import shutil
-          import subprocess
+          for artifact in dist/*.tar.gz; do
+            python scripts/verify_distribution.py "$artifact"
+          done
 
-          sdist = next(Path("dist").glob("*.tar.gz"))
-          subprocess.run(["uv", "pip", "install", "--system", str(sdist)], check=True)
-
-          exe = shutil.which("lockknife")
-          if not exe:
-              raise SystemExit("lockknife not found on PATH after sdist install")
-
-          subprocess.run([exe, "--version"], check=True)
-          subprocess.run([exe, "--cli", "--help"], check=True)
-          PY
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: check-sdist
