@@ -16,6 +16,23 @@ from lockknife.modules.extraction.messaging import (
 )
 
 
+def test_whatsapp_missing_chat_relation_does_not_invent_recipient(tmp_path: pathlib.Path):
+    db = tmp_path / "messages.db"
+    con = sqlite3.connect(db)
+    try:
+        con.execute("CREATE TABLE message (chat_row_id, text_data, timestamp, from_me)")
+        con.execute("CREATE TABLE jid (_id, raw_string)")
+        con.execute("INSERT INTO message VALUES (10, 'hello', 1, 0)")
+        con.execute("INSERT INTO jid VALUES (10, 'unrelated@s.whatsapp.net')")
+        con.commit()
+    finally:
+        con.close()
+    messages = _parse_whatsapp_msgstore(db, limit=5)
+    assert len(messages) == 1
+    assert messages[0].jid == "10"
+    assert messages[0].sender_name is None
+
+
 class _MockMessagingDevices:
     def __init__(
         self,
@@ -30,7 +47,9 @@ class _MockMessagingDevices:
     def has_root(self, _serial: str) -> bool:
         return self.has_root_flag
 
-    def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 60.0) -> None:
+    def pull(
+        self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 60.0
+    ) -> None:
         self.pulled.append((serial, remote_path))
         if remote_path in self.remote_files:
             local_path.parent.mkdir(parents=True, exist_ok=True)
@@ -42,6 +61,7 @@ class _MockMessagingDevices:
         self.shell_calls.append(command)
         if "cp '" in command and "/sdcard/lockknife-tmp-" in command:
             import re
+
             m = re.search(r"cp '([^']+)' '([^']+)'", command)
             if m:
                 src, dst = m.group(1), m.group(2)
@@ -71,7 +91,9 @@ def test_parse_modern_whatsapp_message_table(tmp_path: pathlib.Path) -> None:
 
         con.execute("INSERT INTO jid VALUES (1, '15551234567@s.whatsapp.net')")
         con.execute("INSERT INTO chat VALUES (10, 1, 'Alice Smith')")
-        con.execute("INSERT INTO message VALUES (100, 10, 'Hello from modern WhatsApp', 1700000000000, 0)")
+        con.execute(
+            "INSERT INTO message VALUES (100, 10, 'Hello from modern WhatsApp', 1700000000000, 0)"
+        )
         con.execute("INSERT INTO message VALUES (101, 10, 'Outbound response', 1700000001000, 1)")
         con.commit()
     finally:
@@ -112,7 +134,9 @@ def test_extract_whatsapp_business_discovery(tmp_path: pathlib.Path) -> None:
     con = sqlite3.connect(str(db))
     try:
         con.execute("CREATE TABLE messages (key_remote_jid TEXT, data TEXT, timestamp INTEGER)")
-        con.execute("INSERT INTO messages VALUES ('corp@s.whatsapp.net', 'Business Inquiry', 1710000000000)")
+        con.execute(
+            "INSERT INTO messages VALUES ('corp@s.whatsapp.net', 'Business Inquiry', 1710000000000)"
+        )
         con.commit()
     finally:
         con.close()
@@ -141,7 +165,10 @@ def test_signal_sqlcipher_passphrase_recovery(tmp_path: pathlib.Path) -> None:
 
     artifacts = extract_signal_artifacts(dev, "TEST_SERIAL")  # type: ignore[arg-type]
     assert artifacts.encrypted is True
-    assert artifacts.encryption_key == "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+    assert (
+        artifacts.encryption_key
+        == "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+    )
     assert "Passphrase successfully recovered" in str(artifacts.note)
 
 
@@ -157,10 +184,12 @@ def test_signal_encrypted_db_surfaces_recovered_passphrase(tmp_path: pathlib.Pat
     db_remote = "/data/user/0/org.thoughtcrime.securesms/databases/signal.db"
     pref_remote = "/data/user/0/org.thoughtcrime.securesms/shared_prefs/org.thoughtcrime.securesms_preferences.xml"
 
-    dev = _MockMessagingDevices(remote_files={
-        db_remote: encrypted_blob,
-        pref_remote: pref_xml,
-    })
+    dev = _MockMessagingDevices(
+        remote_files={
+            db_remote: encrypted_blob,
+            pref_remote: pref_xml,
+        }
+    )
 
     with pytest.raises(DeviceError) as exc_info:
         extract_signal_messages(dev, "TEST_SERIAL", limit=10)  # type: ignore[arg-type]
@@ -173,9 +202,13 @@ def test_telegram_enriched_user_and_chat_metadata(tmp_path: pathlib.Path) -> Non
     db = tmp_path / "cache4.db"
     con = sqlite3.connect(str(db))
     try:
-        con.execute("CREATE TABLE users (id INTEGER, first_name TEXT, last_name TEXT, username TEXT)")
+        con.execute(
+            "CREATE TABLE users (id INTEGER, first_name TEXT, last_name TEXT, username TEXT)"
+        )
         con.execute("CREATE TABLE chats (id INTEGER, title TEXT)")
-        con.execute("CREATE TABLE messages_v2 (uid INTEGER, mid INTEGER, date INTEGER, out INTEGER, data BLOB)")
+        con.execute(
+            "CREATE TABLE messages_v2 (uid INTEGER, mid INTEGER, date INTEGER, out INTEGER, data BLOB)"
+        )
 
         con.execute("INSERT INTO users VALUES (777, 'Pavel', 'Durov', 'durov')")
         con.execute("INSERT INTO chats VALUES (888, 'SecOps Channel')")

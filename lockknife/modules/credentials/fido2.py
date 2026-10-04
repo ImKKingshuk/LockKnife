@@ -119,7 +119,7 @@ def parse_passkey_database(path: pathlib.Path) -> list[PasskeyRecord]:
             if not rp_col or not cred_id_col:
                 continue
 
-            query = f'SELECT * FROM "{tbl}"'
+            query = f'SELECT * FROM "{tbl}"'  # nosec B608: tbl is from a fixed schema allowlist.
             for r in cur.execute(query + " LIMIT 100000"):
                 rp_val = str(r[rp_col] or "").strip()
                 raw_id = r[cred_id_col]

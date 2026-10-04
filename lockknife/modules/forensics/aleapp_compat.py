@@ -37,7 +37,6 @@ def import_aleapp_artifacts(input_dir: pathlib.Path) -> dict[str, Any]:
         tsv_artifacts = _import_tsv_artifacts(input_dir)
         artifacts.extend(tsv_artifacts)
         source_formats["tsv"] += len(tsv_artifacts)
-    if not artifacts:
         csv_artifacts = _import_csv_artifacts(input_dir)
         artifacts.extend(csv_artifacts)
         source_formats["csv"] += len(csv_artifacts)
@@ -235,7 +234,6 @@ def _import_csv_artifacts(input_dir: pathlib.Path) -> list[dict[str, Any]]:
             }
         )
     return out
-
 
 
 def _normalize_tsv_row(row: dict[str, Any], *, artifact_name: str) -> dict[str, Any]:

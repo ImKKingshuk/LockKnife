@@ -103,19 +103,6 @@ WHERE m.text_data IS NOT NULL AND length(m.text_data) > 0
 ORDER BY m.timestamp DESC
 LIMIT ?
 """.strip(),
-                # Simpler join with jid only
-                """
-SELECT COALESCE(j.raw_string, m.chat_row_id),
-       m.text_data,
-       m.timestamp,
-       m.from_me,
-       NULL
-FROM message m
-LEFT JOIN jid j ON j._id = m.chat_row_id
-WHERE m.text_data IS NOT NULL AND length(m.text_data) > 0
-ORDER BY m.timestamp DESC
-LIMIT ?
-""".strip(),
                 # Direct message table query
                 """
 SELECT m.chat_row_id,
@@ -241,9 +228,9 @@ def _parse_telegram_cache(db_path: pathlib.Path, limit: int) -> list[TelegramMes
             return []
 
         q_list = [
-            f"SELECT uid, mid, date, out, data FROM {table} ORDER BY date DESC LIMIT ?",
-            f"SELECT uid, mid, date, out, NULL as data FROM {table} ORDER BY date DESC LIMIT ?",
-            f"SELECT uid, mid, date, NULL as out, NULL as data FROM {table} ORDER BY date DESC LIMIT ?",
+            f"SELECT uid, mid, date, out, data FROM {table} ORDER BY date DESC LIMIT ?",  # nosec B608: fixed table allowlist.
+            f"SELECT uid, mid, date, out, NULL as data FROM {table} ORDER BY date DESC LIMIT ?",  # nosec B608: fixed table allowlist.
+            f"SELECT uid, mid, date, NULL as out, NULL as data FROM {table} ORDER BY date DESC LIMIT ?",  # nosec B608: fixed table allowlist.
         ]
         rows = None
         for q in q_list:

@@ -1,9 +1,9 @@
 import json
 import pathlib
 import sqlite3
+from contextlib import closing
 
 import pytest
-
 from click.testing import CliRunner
 
 from lockknife.core.case import (
@@ -165,7 +165,7 @@ def test_case_job_live_dispatch(tmp_path, mode, out_format):
     case_dir = tmp_path / "case"
     create_case_workspace(case_dir=case_dir, case_id="LIVE", examiner="Analyst", title="Live")
     source = tmp_path / "evidence.db"
-    with sqlite3.connect(source) as con:
+    with closing(sqlite3.connect(source)) as con, con:
         con.execute("CREATE TABLE evidence (value TEXT)")
         con.execute("INSERT INTO evidence VALUES ('sample')")
     job = start_case_job(

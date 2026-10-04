@@ -3,6 +3,7 @@ from __future__ import annotations
 import pathlib
 import shlex
 import sqlite3
+from contextlib import closing
 
 from lockknife.modules.extraction._browser_extract_chrome import (
     _candidate_paths,
@@ -143,7 +144,7 @@ def test_content_query_uses_android_projection_and_sort_syntax():
 
 def test_contacts_normalized_mimetype_schema(tmp_path):
     db = tmp_path / "contacts.db"
-    with sqlite3.connect(db) as con:
+    with closing(sqlite3.connect(db)) as con, con:
         con.executescript("""
             CREATE TABLE contacts (_id INTEGER, display_name TEXT);
             CREATE TABLE raw_contacts (_id INTEGER, contact_id INTEGER);

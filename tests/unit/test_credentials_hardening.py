@@ -188,7 +188,7 @@ def test_gesture_synthetic_password_diagnostic(tmp_path: pathlib.Path) -> None:
         pull_gesture_key(dev, "TEST_SERIAL", tmp_path)  # type: ignore[arg-type]
 
     assert "Synthetic Password (spblob)" in str(exc_info.value)
-    assert "hardware TEE" in str(exc_info.value)
+    assert "not supported by legacy offline pattern recovery" in str(exc_info.value)
 
 
 def test_detect_synthetic_password_detection() -> None:
