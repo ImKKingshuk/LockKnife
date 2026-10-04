@@ -43,10 +43,18 @@ def test_recover_deleted_records_recovers_structured_deleted_rows(tmp_path: path
     db_path = tmp_path / "target_investigation.db"
     con = sqlite3.connect(str(db_path))
     con.execute("PRAGMA auto_vacuum = NONE")
-    con.execute("CREATE TABLE evidence (id INTEGER PRIMARY KEY, suspect TEXT, email TEXT, notes TEXT)")
-    con.execute("INSERT INTO evidence VALUES (1, 'Alice Smith', 'alice@secure-intel.org', 'Lead investigator')")
-    con.execute("INSERT INTO evidence VALUES (2, 'Bob Jones', 'bob@classified-drop.net', 'Target suspect')")
-    con.execute("INSERT INTO evidence VALUES (3, 'Charlie Brown', 'charlie@neutral-hub.io', 'Witness')")
+    con.execute(
+        "CREATE TABLE evidence (id INTEGER PRIMARY KEY, suspect TEXT, email TEXT, notes TEXT)"
+    )
+    con.execute(
+        "INSERT INTO evidence VALUES (1, 'Alice Smith', 'alice@secure-intel.org', 'Lead investigator')"
+    )
+    con.execute(
+        "INSERT INTO evidence VALUES (2, 'Bob Jones', 'bob@classified-drop.net', 'Target suspect')"
+    )
+    con.execute(
+        "INSERT INTO evidence VALUES (3, 'Charlie Brown', 'charlie@neutral-hub.io', 'Witness')"
+    )
     con.commit()
 
     # Delete Bob Jones to place record in freeblock / deleted cells

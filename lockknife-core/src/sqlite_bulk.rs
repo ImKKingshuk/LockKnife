@@ -2,8 +2,10 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rusqlite::{Connection, OpenFlags};
 use serde_json::json;
+use std::io::Read;
 
 const MAX_LIMIT: u32 = 100_000;
+const MAX_DATABASE_BYTES: u64 = 512 * 1024 * 1024;
 
 fn open_readonly(path: &str) -> Result<Connection, rusqlite::Error> {
     Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
@@ -158,7 +160,8 @@ fn decode_serial_value(st: u64, slice: &[u8]) -> Option<serde_json::Value> {
             if slice.len() != 3 {
                 return None;
             }
-            let val = ((slice[0] as i8 as i32) << 16) | ((slice[1] as i32) << 8) | (slice[2] as i32);
+            let val =
+                ((slice[0] as i8 as i32) << 16) | ((slice[1] as i32) << 8) | (slice[2] as i32);
             Some(json!(val as i64))
         }
         4 => {
@@ -207,7 +210,7 @@ fn parse_sqlite_record(data: &[u8], offset: usize) -> Option<(Vec<serde_json::Va
     }
     let (header_size_u64, mut cursor) = read_varint(data, offset)?;
     let header_size = header_size_u64 as usize;
-    if header_size < 2 || header_size > 2048 {
+    if !(2..=2048).contains(&header_size) {
         return None;
     }
     let header_end = offset.checked_add(header_size)?;
@@ -248,17 +251,19 @@ fn parse_sqlite_record(data: &[u8], offset: usize) -> Option<(Vec<serde_json::Va
         let val = decode_serial_value(st, val_slice)?;
         match &val {
             serde_json::Value::String(s) => {
-                if s.chars().any(|c| c.is_control() && c != '\n' && c != '\r' && c != '\t') {
+                if s.chars()
+                    .any(|c| c.is_control() && c != '\n' && c != '\r' && c != '\t')
+                {
                     return None;
                 }
                 if s.trim().len() >= 2 {
                     has_meaningful_content = true;
                 }
             }
-            serde_json::Value::Number(n) => {
-                if n.as_i64().map_or(false, |v| v != 0) || n.as_f64().map_or(false, |v| v != 0.0) {
-                    has_meaningful_content = true;
-                }
+            serde_json::Value::Number(n)
+                if n.as_i64().is_some_and(|v| v != 0) || n.as_f64().is_some_and(|v| v != 0.0) =>
+            {
+                has_meaningful_content = true;
             }
             serde_json::Value::Bool(_) => {
                 has_meaningful_content = true;
@@ -283,13 +288,42 @@ fn try_carve_record_at(data: &[u8], offset: usize) -> Option<(Vec<serde_json::Va
     if let Some((payload_size, after_ps)) = read_varint(data, offset) {
         if payload_size > 0 && payload_size <= 65536 {
             if let Some((_rowid, after_rowid)) = read_varint(data, after_ps) {
-                if let Some((cols, rec_len)) = parse_sqlite_record(data, after_rowid) {
-                    return Some((cols, (after_rowid - offset) + rec_len));
+                let end = after_rowid.checked_add(usize::try_from(payload_size).ok()?)?;
+                if end <= data.len() {
+                    if let Some((cols, rec_len)) = parse_sqlite_record(&data[..end], after_rowid) {
+                        if rec_len != payload_size as usize {
+                            return None;
+                        }
+                        return Some((cols, (after_rowid - offset) + rec_len));
+                    }
                 }
             }
         }
     }
     None
+}
+
+fn active_cell_end(data: &[u8], offset: usize, usable: usize) -> Option<usize> {
+    let (payload, after_size) = read_varint(data, offset)?;
+    let (_, after_rowid) = read_varint(data, after_size)?;
+    let payload = usize::try_from(payload).ok()?;
+    let max_local = usable - 35;
+    let (local, overflow) = if payload <= max_local {
+        (payload, 0)
+    } else {
+        let min_local = ((usable - 12) * 32 / 255) - 23;
+        let candidate = min_local + (payload - min_local) % (usable - 4);
+        (
+            if candidate <= max_local {
+                candidate
+            } else {
+                min_local
+            },
+            4,
+        )
+    };
+    let end = after_rowid.checked_add(local)?.checked_add(overflow)?;
+    (end <= usable).then_some(end)
 }
 
 pub fn carve_sqlite_bytes(raw: &[u8], max_records: usize) -> Vec<CarvedRecord> {
@@ -299,6 +333,14 @@ pub fn carve_sqlite_bytes(raw: &[u8], max_records: usize) -> Vec<CarvedRecord> {
     let ps = u16::from_be_bytes([raw[16], raw[17]]) as usize;
     let page_size = if ps == 1 { 65536 } else { ps };
     if page_size < 512 || (page_size & (page_size - 1)) != 0 {
+        return Vec::new();
+    }
+    // Text decoding currently supports UTF-8 databases only.
+    if u32::from_be_bytes(raw[56..60].try_into().unwrap()) != 1 {
+        return Vec::new();
+    }
+    let usable = page_size - usize::from(raw[20]);
+    if usable < 480 {
         return Vec::new();
     }
 
@@ -320,20 +362,24 @@ pub fn carve_sqlite_bytes(raw: &[u8], max_records: usize) -> Vec<CarvedRecord> {
         freelist_pages.insert(trunk);
         let trunk_offset = (trunk - 1) * page_size;
         if trunk_offset + 8 <= raw.len() {
-            let next_trunk =
-                u32::from_be_bytes(raw[trunk_offset..trunk_offset + 4].try_into().unwrap_or([0; 4]))
-                    as usize;
-            let leaf_count =
-                u32::from_be_bytes(raw[trunk_offset + 4..trunk_offset + 8].try_into().unwrap_or([0; 4]))
-                    as usize;
+            let next_trunk = u32::from_be_bytes(
+                raw[trunk_offset..trunk_offset + 4]
+                    .try_into()
+                    .unwrap_or([0; 4]),
+            ) as usize;
+            let leaf_count = u32::from_be_bytes(
+                raw[trunk_offset + 4..trunk_offset + 8]
+                    .try_into()
+                    .unwrap_or([0; 4]),
+            ) as usize;
             let max_leaves = (page_size - 8) / 4;
             let actual_leaves = leaf_count.min(max_leaves);
             for i in 0..actual_leaves {
                 let ptr_offset = trunk_offset + 8 + i * 4;
                 if ptr_offset + 4 <= raw.len() {
-                    let leaf =
-                        u32::from_be_bytes(raw[ptr_offset..ptr_offset + 4].try_into().unwrap_or([0; 4]))
-                            as usize;
+                    let leaf = u32::from_be_bytes(
+                        raw[ptr_offset..ptr_offset + 4].try_into().unwrap_or([0; 4]),
+                    ) as usize;
                     if leaf > 0 && leaf <= total_pages {
                         freelist_pages.insert(leaf);
                     }
@@ -346,7 +392,7 @@ pub fn carve_sqlite_bytes(raw: &[u8], max_records: usize) -> Vec<CarvedRecord> {
     }
 
     let mut out: Vec<CarvedRecord> = Vec::new();
-    let mut seen_sigs: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut seen_positions: std::collections::HashSet<usize> = std::collections::HashSet::new();
 
     for page_num in 1..=total_pages {
         if out.len() >= max_records {
@@ -357,15 +403,14 @@ pub fn carve_sqlite_bytes(raw: &[u8], max_records: usize) -> Vec<CarvedRecord> {
         if page_end > raw.len() {
             break;
         }
-        let page_data = &raw[page_offset..page_end];
+        let page_data = &raw[page_offset..page_offset + usable];
         let is_freelist = freelist_pages.contains(&page_num);
 
         if is_freelist {
             let mut off = 0;
-            while off + 4 <= page_size && out.len() < max_records {
+            while off + 4 <= usable && out.len() < max_records {
                 if let Some((cols, len)) = try_carve_record_at(page_data, off) {
-                    let sig = serde_json::to_string(&cols).unwrap_or_default();
-                    if seen_sigs.insert(sig) {
+                    if seen_positions.insert(page_offset + off) {
                         out.push(CarvedRecord {
                             page_number: page_num as u32,
                             offset: page_offset + off,
@@ -382,7 +427,7 @@ pub fn carve_sqlite_bytes(raw: &[u8], max_records: usize) -> Vec<CarvedRecord> {
         }
 
         let hdr_offset = if page_num == 1 { 100 } else { 0 };
-        if hdr_offset + 8 > page_size {
+        if hdr_offset + 8 > usable {
             continue;
         }
 
@@ -399,37 +444,54 @@ pub fn carve_sqlite_bytes(raw: &[u8], max_records: usize) -> Vec<CarvedRecord> {
             }
 
             let cell_pointers_end = hdr_offset + 8 + 2 * cell_count;
-            let mut is_active_cell = vec![false; page_size];
+            if cell_pointers_end > cell_content_offset || cell_content_offset > usable {
+                continue;
+            }
+            let mut is_active_cell = vec![false; usable];
+            let mut valid_cells = true;
 
             for i in 0..cell_count {
                 let ptr_off = hdr_offset + 8 + 2 * i;
-                if ptr_off + 2 <= page_size {
-                    let ptr = u16::from_be_bytes([page_data[ptr_off], page_data[ptr_off + 1]]) as usize;
-                    if ptr < page_size {
-                        if let Some((_cols, clen)) = try_carve_record_at(page_data, ptr) {
-                            for b in ptr..(ptr + clen).min(page_size) {
-                                is_active_cell[b] = true;
-                            }
+                if ptr_off + 2 <= usable {
+                    let ptr =
+                        u16::from_be_bytes([page_data[ptr_off], page_data[ptr_off + 1]]) as usize;
+                    if ptr >= cell_content_offset && ptr < usable {
+                        if let Some(end) = active_cell_end(page_data, ptr, usable) {
+                            is_active_cell[ptr..end].fill(true);
                         } else {
-                            is_active_cell[ptr] = true;
+                            valid_cells = false;
                         }
+                    } else {
+                        valid_cells = false;
                     }
                 }
+            }
+            if !valid_cells {
+                continue;
             }
 
             // 1. Traverse freeblock chain
             let mut fb = freeblock_offset;
             let mut visited_fb = std::collections::HashSet::new();
-            while fb > 0 && fb + 4 <= page_size && visited_fb.insert(fb) && out.len() < max_records {
+            while fb >= cell_content_offset
+                && fb + 4 <= usable
+                && visited_fb.insert(fb)
+                && out.len() < max_records
+            {
                 let next_fb = u16::from_be_bytes([page_data[fb], page_data[fb + 1]]) as usize;
                 let fb_len = u16::from_be_bytes([page_data[fb + 2], page_data[fb + 3]]) as usize;
-                let scan_limit = (fb + fb_len).min(page_size);
+                if fb_len < 4 || fb + fb_len > usable {
+                    break;
+                }
+                let scan_limit = fb + fb_len;
+                if is_active_cell[fb..scan_limit].iter().any(|active| *active) {
+                    break;
+                }
 
                 let mut cur = fb + 4;
                 while cur + 2 <= scan_limit && out.len() < max_records {
-                    if let Some((cols, len)) = try_carve_record_at(page_data, cur) {
-                        let sig = serde_json::to_string(&cols).unwrap_or_default();
-                        if seen_sigs.insert(sig) {
+                    if let Some((cols, len)) = try_carve_record_at(&page_data[..scan_limit], cur) {
+                        if seen_positions.insert(page_offset + cur) {
                             out.push(CarvedRecord {
                                 page_number: page_num as u32,
                                 offset: page_offset + cur,
@@ -446,13 +508,12 @@ pub fn carve_sqlite_bytes(raw: &[u8], max_records: usize) -> Vec<CarvedRecord> {
             }
 
             // 2. Scan unallocated space between cell pointers and cell content
-            let unalloc_end = cell_content_offset.min(page_size);
+            let unalloc_end = cell_content_offset.min(usable);
             if cell_pointers_end < unalloc_end {
                 let mut cur = cell_pointers_end;
                 while cur + 2 <= unalloc_end && out.len() < max_records {
-                    if let Some((cols, len)) = try_carve_record_at(page_data, cur) {
-                        let sig = serde_json::to_string(&cols).unwrap_or_default();
-                        if seen_sigs.insert(sig) {
+                    if let Some((cols, len)) = try_carve_record_at(&page_data[..unalloc_end], cur) {
+                        if seen_positions.insert(page_offset + cur) {
                             out.push(CarvedRecord {
                                 page_number: page_num as u32,
                                 offset: page_offset + cur,
@@ -468,12 +529,20 @@ pub fn carve_sqlite_bytes(raw: &[u8], max_records: usize) -> Vec<CarvedRecord> {
             }
 
             // 3. Scan inactive gaps inside cell content area (deleted cells)
-            let mut cur = cell_content_offset.min(page_size);
-            while cur + 2 <= page_size && out.len() < max_records {
+            let mut next_active = vec![usable; usable];
+            let mut boundary = usable;
+            for index in (0..usable).rev() {
+                if is_active_cell[index] {
+                    boundary = index;
+                }
+                next_active[index] = boundary;
+            }
+            let mut cur = cell_content_offset.min(usable);
+            while cur + 2 <= usable && out.len() < max_records {
                 if !is_active_cell[cur] {
-                    if let Some((cols, len)) = try_carve_record_at(page_data, cur) {
-                        let sig = serde_json::to_string(&cols).unwrap_or_default();
-                        if seen_sigs.insert(sig) {
+                    let gap_end = next_active[cur];
+                    if let Some((cols, len)) = try_carve_record_at(&page_data[..gap_end], cur) {
+                        if seen_positions.insert(page_offset + cur) {
                             out.push(CarvedRecord {
                                 page_number: page_num as u32,
                                 offset: page_offset + cur,
@@ -494,18 +563,23 @@ pub fn carve_sqlite_bytes(raw: &[u8], max_records: usize) -> Vec<CarvedRecord> {
 }
 
 #[pyfunction]
-pub fn sqlite_carve_records(
-    py: Python<'_>,
-    db_path: &str,
-    max_records: u32,
-) -> PyResult<String> {
-    if max_records == 0 {
-        return Err(PyValueError::new_err("max_records must be > 0"));
+pub fn sqlite_carve_records(py: Python<'_>, db_path: &str, max_records: u32) -> PyResult<String> {
+    if max_records == 0 || max_records > MAX_LIMIT {
+        return Err(PyValueError::new_err(
+            "max_records must be between 1 and 100000",
+        ));
     }
     let db_path = db_path.to_string();
     py.detach(move || {
-        let raw = std::fs::read(&db_path)
+        let file = std::fs::File::open(&db_path)
             .map_err(|e| PyValueError::new_err(format!("Failed to read database file: {e}")))?;
+        let mut raw = Vec::new();
+        file.take(MAX_DATABASE_BYTES + 1)
+            .read_to_end(&mut raw)
+            .map_err(|e| PyValueError::new_err(format!("Failed to read database file: {e}")))?;
+        if raw.len() as u64 > MAX_DATABASE_BYTES {
+            return Err(PyValueError::new_err("Database exceeds carving size limit"));
+        }
         let records = carve_sqlite_bytes(&raw, max_records as usize);
         serde_json::to_string(&records)
             .map_err(|e| PyValueError::new_err(format!("Serialization error: {e}")))
@@ -514,7 +588,7 @@ pub fn sqlite_carve_records(
 
 #[cfg(test)]
 mod tests {
-    use super::sqlite_table_to_json;
+    use super::{carve_sqlite_bytes, parse_sqlite_record, sqlite_table_to_json};
     use rusqlite::Connection;
     use std::fs;
     use std::path::PathBuf;
@@ -540,6 +614,32 @@ mod tests {
     }
 
     static INIT: Once = Once::new();
+
+    #[test]
+    fn live_records_are_not_reported_as_deleted() {
+        let path = temp_db_path();
+        let con = Connection::open(&path).unwrap();
+        con.execute_batch(
+            "PRAGMA page_size=512; CREATE TABLE evidence (body TEXT, count INTEGER, missing TEXT);",
+        )
+        .unwrap();
+        let marker = "live-evidence-marker".repeat(50);
+        con.execute("INSERT INTO evidence VALUES (?1, 0, NULL)", [&marker])
+            .unwrap();
+        drop(con);
+        let bytes = fs::read(&path).unwrap();
+        assert!(carve_sqlite_bytes(&bytes, 100).is_empty());
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn malformed_records_and_pages_fail_closed() {
+        assert!(parse_sqlite_record(&[2, 23, b'a'], 0).is_none());
+        assert!(parse_sqlite_record(&[2, 0xff, 0xff], 0).is_none());
+        for length in [0, 1, 99, 100, 512] {
+            assert!(carve_sqlite_bytes(&vec![0xff; length], 10).is_empty());
+        }
+    }
 
     fn init_python() {
         INIT.call_once(|| {
@@ -660,8 +760,16 @@ mod tests {
         )
         .unwrap();
         // Delete records so they enter freeblocks / unallocated space
-        conn.execute("DELETE FROM users WHERE username = 'forensic_target_bob'", []).unwrap();
-        conn.execute("DELETE FROM users WHERE username = 'forensic_target_alice'", []).unwrap();
+        conn.execute(
+            "DELETE FROM users WHERE username = 'forensic_target_bob'",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "DELETE FROM users WHERE username = 'forensic_target_alice'",
+            [],
+        )
+        .unwrap();
 
         let json_str = pyo3::Python::attach(|py| {
             sqlite_carve_records(py, path.to_str().unwrap(), 100).unwrap()

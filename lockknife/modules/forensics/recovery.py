@@ -12,13 +12,31 @@ except Exception:
 _RE_URL = re.compile(r"https?://[^\s\"'<>]+")
 _RE_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _RE_PHONE = re.compile(r"\+?\d[\d -]{7,}\d")
+_MAX_RECOVERY_BYTES = 512 * 1024 * 1024
+
+
+def _read_recovery_bytes(path: pathlib.Path) -> bytes:
+    with path.open("rb") as handle:
+        raw = handle.read(_MAX_RECOVERY_BYTES + 1)
+    if len(raw) > _MAX_RECOVERY_BYTES:
+        raise ValueError("Evidence file exceeds recovery size limit")
+    return raw
 
 
 def recover_deleted_records(db_path: pathlib.Path, *, max_fragments: int = 500) -> dict[str, Any]:
-    raw = db_path.read_bytes()
+    if not 1 <= max_fragments <= 100000:
+        raise ValueError("max_fragments must be between 1 and 100000")
+    if db_path.stat().st_size > _MAX_RECOVERY_BYTES:
+        raise ValueError("Database exceeds recovery size limit")
+    raw = _read_recovery_bytes(db_path)
     page_size = _sqlite_page_size(raw)
     if page_size <= 0:
-        return {"path": str(db_path), "error": "Not a SQLite database", "records": [], "fragments": []}
+        return {
+            "path": str(db_path),
+            "error": "Not a SQLite database",
+            "records": [],
+            "fragments": [],
+        }
 
     # 1. Carve structured B-Tree records using native Rust engine if available
     records: list[dict[str, Any]] = []
@@ -33,7 +51,7 @@ def recover_deleted_records(db_path: pathlib.Path, *, max_fragments: int = 500) 
     sources = _recovery_sources(db_path, raw, page_size=page_size)
     fragments: list[dict[str, Any]] = []
 
-    # Add high-confidence fragments extracted directly from carved structured records
+    # Structured candidates retain physical provenance, not proof of deletion.
     for rec in records:
         for col_val in rec.get("columns", []):
             if isinstance(col_val, str) and len(col_val.strip()) >= 2:
@@ -44,7 +62,8 @@ def recover_deleted_records(db_path: pathlib.Path, *, max_fragments: int = 500) 
                         "page_number": rec.get("page_number"),
                         "source_kind": f"carved-{rec.get('source', 'record')}",
                         "origin": str(db_path),
-                        "confidence": "high",
+                        "confidence": "medium",
+                        "interpretation": "heuristic candidate; deletion and schema are not proven",
                     }
                 )
 
@@ -129,13 +148,13 @@ def _recovery_sources(db_path: pathlib.Path, raw: bytes, *, page_size: int) -> l
                 "source_kind": "rollback-journal",
                 "origin": str(journal_path),
                 "offset": 0,
-                "blob": journal_path.read_bytes(),
+                "blob": _read_recovery_bytes(journal_path),
             }
         )
     wal_path = db_path.with_name(db_path.name + "-wal")
     if wal_path.exists():
         sources.extend(
-            _wal_frames(wal_path.read_bytes(), page_size=page_size, origin=str(wal_path))
+            _wal_frames(_read_recovery_bytes(wal_path), page_size=page_size, origin=str(wal_path))
         )
     return sources
 
@@ -213,7 +232,8 @@ def _sqlite_page_size(db: bytes) -> int:
     if len(db) < 100 or not db.startswith(b"SQLite format 3\x00"):
         return 0
     ps = int.from_bytes(db[16:18], "big")
-    return 65536 if ps == 1 else ps
+    ps = 65536 if ps == 1 else ps
+    return ps if 512 <= ps <= 65536 and ps & (ps - 1) == 0 else 0
 
 
 def _freelist_pages(raw: bytes, *, page_size: int) -> list[int]:
