@@ -44,10 +44,15 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             requirements: "adb + device access",
             notes: "Broad coverage exists today, but some outputs remain device- and app-specific.",
         }),
-        "forensics.snapshot" | "forensics.recover" => Some(CapabilityMetadata {
-            status: "best-effort",
+        "forensics.recover" => Some(CapabilityMetadata {
+            status: "production-ready",
+            requirements: "Rust extension or base install",
+            notes: "High-speed native SQLite B-Tree deleted record carving and freeblock reconstruction with string fragment analysis.",
+        }),
+        "forensics.snapshot" => Some(CapabilityMetadata {
+            status: "functional",
             requirements: "adb + device/root for deeper coverage",
-            notes: "These paths are long-running and more sensitive to privileges, scale, and device behavior.",
+            notes: "Creates encrypted or plain device archive snapshots with integrity metadata.",
         }),
         "forensics.sqlite" | "forensics.timeline" | "forensics.parse" | "forensics.correlate" => {
             Some(CapabilityMetadata {
@@ -74,10 +79,14 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
         | "case.lineage"
         | "case.export"
         | "case.enrich"
-        | "case.register" => Some(CapabilityMetadata {
-            status: "functional",
+        | "case.register"
+        | "case.jobs"
+        | "case.job"
+        | "case.resume_job"
+        | "case.retry_job" => Some(CapabilityMetadata {
+            status: "production-ready",
             requirements: "base install",
-            notes: "Case workspace and artifact-manifest flows are live, though resumable execution still needs another pass.",
+            notes: "Case workspace, artifact manifest, and resumable/retryable job execution flows are fully operational end-to-end.",
         }),
         "network.capture" => Some(CapabilityMetadata {
             status: "best-effort",

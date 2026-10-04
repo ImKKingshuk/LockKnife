@@ -36,6 +36,7 @@ fn lockknife_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(gesture::recover_android_gesture, m)?)?;
     m.add_function(wrap_pyfunction!(pattern::scan_patterns_json, m)?)?;
     m.add_function(wrap_pyfunction!(sqlite_bulk::sqlite_table_to_json, m)?)?;
+    m.add_function(wrap_pyfunction!(sqlite_bulk::sqlite_carve_records, m)?)?;
     m.add_function(wrap_pyfunction!(correlation::correlate_artifacts_json, m)?)?;
     m.add_function(wrap_pyfunction!(network::parse_ipv4_header_json, m)?)?;
     m.add_function(wrap_pyfunction!(pcap::analyze_pcap_native, m)?)?;

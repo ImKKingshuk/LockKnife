@@ -1,9 +1,13 @@
-from __future__ import annotations
-
+import json
 import pathlib
 import re
 from collections import Counter
 from typing import Any
+
+try:
+    from lockknife.lockknife_core import sqlite_carve_records as _native_sqlite_carve_records
+except Exception:
+    _native_sqlite_carve_records = None
 
 _RE_URL = re.compile(r"https?://[^\s\"'<>]+")
 _RE_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
@@ -14,18 +18,47 @@ def recover_deleted_records(db_path: pathlib.Path, *, max_fragments: int = 500) 
     raw = db_path.read_bytes()
     page_size = _sqlite_page_size(raw)
     if page_size <= 0:
-        return {"path": str(db_path), "error": "Not a SQLite database", "fragments": []}
+        return {"path": str(db_path), "error": "Not a SQLite database", "records": [], "fragments": []}
+
+    # 1. Carve structured B-Tree records using native Rust engine if available
+    records: list[dict[str, Any]] = []
+    if _native_sqlite_carve_records is not None:
+        try:
+            carved_json = _native_sqlite_carve_records(str(db_path), max_fragments)
+            records = json.loads(carved_json)
+        except Exception:
+            records = []
+
+    # 2. Extract string/pattern fragments from raw sources, freelists, and carved columns
     sources = _recovery_sources(db_path, raw, page_size=page_size)
     fragments: list[dict[str, Any]] = []
+
+    # Add high-confidence fragments extracted directly from carved structured records
+    for rec in records:
+        for col_val in rec.get("columns", []):
+            if isinstance(col_val, str) and len(col_val.strip()) >= 2:
+                fragments.append(
+                    {
+                        "text": col_val,
+                        "offset": rec.get("offset", 0),
+                        "page_number": rec.get("page_number"),
+                        "source_kind": f"carved-{rec.get('source', 'record')}",
+                        "origin": str(db_path),
+                        "confidence": "high",
+                    }
+                )
+
     for source in sources:
         fragments.extend(_fragments_from_blob(source, limit=max_fragments))
         if len(fragments) >= max_fragments:
             break
+
     unique = _dedupe_fragments(fragments)[:max_fragments]
     source_counts = Counter(str(fragment.get("source_kind") or "unknown") for fragment in unique)
     return {
         "path": str(db_path),
         "summary": {
+            "record_count": len(records),
             "fragment_count": len(unique),
             "page_size": page_size,
             "high_confidence_count": sum(
@@ -54,6 +87,7 @@ def recover_deleted_records(db_path: pathlib.Path, *, max_fragments: int = 500) 
         "sources": [
             {key: value for key, value in source.items() if key != "blob"} for source in sources
         ],
+        "records": records,
         "fragments": unique,
     }
 

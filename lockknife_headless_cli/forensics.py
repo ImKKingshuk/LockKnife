@@ -411,6 +411,7 @@ def recover_cmd(
             input_paths=input_paths,
             parent_artifact_ids=_parent_artifact_ids(case_dir, input_paths),
             metadata={
+                "record_count": len(payload.get("records", [])),
                 "fragment_count": len(payload.get("fragments", [])),
                 "high_confidence_count": payload.get("summary", {}).get("high_confidence_count", 0),
             },

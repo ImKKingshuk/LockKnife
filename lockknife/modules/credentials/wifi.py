@@ -47,6 +47,37 @@ def _parse_wifi_config_store_xml(path: pathlib.Path) -> list[WifiCredential]:
     ]
 
 
+def _try_pull_file_with_root(
+    devices: DeviceManager, serial: str, remote: str, local: pathlib.Path, *, timeout_s: float = 60.0
+) -> bool:
+    try:
+        devices.pull(serial, remote, local, timeout_s=timeout_s)
+        if local.exists() and local.stat().st_size > 0:
+            return True
+    except Exception:
+        pass
+
+    staging_remote = f"/sdcard/lockknife-staging-{local.name}"
+    quoted_remote = "'" + remote.replace("'", "'\"'\"'") + "'"
+    quoted_staging = "'" + staging_remote.replace("'", "'\"'\"'") + "'"
+    try:
+        devices.shell(
+            serial,
+            f'su -c "cp {quoted_remote} {quoted_staging} 2>/dev/null || cat {quoted_remote} > {quoted_staging} 2>/dev/null"',
+            timeout_s=timeout_s,
+        )
+        devices.pull(serial, staging_remote, local, timeout_s=timeout_s)
+    except Exception:
+        log.debug("wifi_root_staging_failed", exc_info=True, serial=serial, remote=remote)
+        return False
+    finally:
+        try:
+            devices.shell(serial, f'su -c "rm -f {quoted_staging} 2>/dev/null"', timeout_s=10.0)
+        except Exception:
+            pass
+    return local.exists() and local.stat().st_size > 0
+
+
 def export_wifi_credentials(
     devices: DeviceManager, serial: str, output_dir: pathlib.Path
 ) -> WifiExtraction:
@@ -54,18 +85,17 @@ def export_wifi_credentials(
         raise DeviceError("Root required to access WiFi configs")
     output_dir.mkdir(parents=True, exist_ok=True)
     candidates = [
+        "/data/misc/apexdata/com.android.wifi/WifiConfigStore.xml",
+        "/data/misc_ce/0/apexdata/com.android.wifi/WifiConfigStore.xml",
+        "/data/misc_de/0/apexdata/com.android.wifi/WifiConfigStore.xml",
         "/data/misc/wifi/WifiConfigStore.xml",
         "/data/misc/wifi/wpa_supplicant.conf",
         "/data/wifi/bcm_supp.conf",
+        "/data/misc/wifi/softap.conf",
     ]
     for remote in candidates:
         local = output_dir / pathlib.Path(remote).name
-        try:
-            devices.pull(serial, remote, local, timeout_s=60.0)
-        except Exception:
-            log.debug("wifi_pull_failed", exc_info=True, serial=serial, remote_path=remote)
-            continue
-        if not local.exists() or local.stat().st_size == 0:
+        if not _try_pull_file_with_root(devices, serial, remote, local, timeout_s=60.0):
             continue
         try:
             rows = (
@@ -76,14 +106,15 @@ def export_wifi_credentials(
         except Exception:
             log.debug("wifi_parse_failed", exc_info=True, serial=serial, local_path=str(local))
             continue
-        return WifiExtraction(
-            serial=serial,
-            source_remote_path=remote,
-            source_local_path=local,
-            credentials=rows,
-            candidate_paths=candidates,
-        )
-    raise DeviceError("No supported WiFi config file found")
+        if rows:
+            return WifiExtraction(
+                serial=serial,
+                source_remote_path=remote,
+                source_local_path=local,
+                credentials=rows,
+                candidate_paths=candidates,
+            )
+    raise DeviceError("No supported WiFi config file found or accessible")
 
 
 def extract_wifi_passwords(devices: DeviceManager, serial: str) -> list[WifiCredential]:

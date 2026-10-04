@@ -5,6 +5,9 @@ KEYSTORE_CANDIDATE_PATHS = [
     "/data/misc/keystore/user_0",
     "/data/misc/keystore/user_10",
     "/data/misc/keystore2",
+    "/data/misc_ce/0/keystore",
+    "/data/misc_de/0/keystore",
+    "/data/misc_de/0/apexdata/com.android.security.keystore2",
 ]
 
 
