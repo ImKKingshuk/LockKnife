@@ -9,6 +9,7 @@ from lockknife.core.device import DeviceManager
 from lockknife.core.exceptions import DeviceError, LockKnifeError
 from lockknife.core.logging import get_logger
 from lockknife.core.security import secure_temp_dir
+from lockknife.modules.extraction._extraction_common import try_root_staging_pull
 
 
 @dataclasses.dataclass(frozen=True)
@@ -63,38 +64,14 @@ def _sh_quote(s: str) -> str:
 
 
 def _try_root_pull_file(
-    devices: DeviceManager, serial: str, remote: str, local: pathlib.Path, *, timeout_s: float
+    devices: DeviceManager,
+    serial: str,
+    remote: str,
+    local: pathlib.Path,
+    *,
+    timeout_s: float = 60.0,
 ) -> bool:
-    try:
-        devices.pull(serial, remote, local, timeout_s=timeout_s)
-        return local.exists() and local.stat().st_size > 0
-    except _DEVICE_IO_ERRORS:
-        log.warning("messaging_pull_failed", exc_info=True, serial=serial, remote=remote)
-
-    tmp_remote = f"/sdcard/lockknife-tmp-{local.name}"
-    try:
-        devices.shell(
-            serial,
-            f'su -c "cp {_sh_quote(remote)} {_sh_quote(tmp_remote)} 2>/dev/null || cat {_sh_quote(remote)} > {_sh_quote(tmp_remote)} 2>/dev/null"',
-            timeout_s=timeout_s,
-        )
-        devices.pull(serial, tmp_remote, local, timeout_s=timeout_s)
-    except _DEVICE_IO_ERRORS:
-        log.warning("messaging_root_pull_failed", exc_info=True, serial=serial, remote=remote)
-        return False
-    finally:
-        try:
-            devices.shell(
-                serial, f'su -c "rm -f {_sh_quote(tmp_remote)} 2>/dev/null"', timeout_s=10.0
-            )
-        except _DEVICE_IO_ERRORS:
-            log.warning(
-                "messaging_root_pull_cleanup_failed",
-                exc_info=True,
-                serial=serial,
-                remote=tmp_remote,
-            )
-    return local.exists() and local.stat().st_size > 0
+    return try_root_staging_pull(devices, serial, remote, local, timeout_s=timeout_s)
 
 
 def _table_columns(con: sqlite3.Connection, table: str) -> set[str]:
@@ -219,7 +196,9 @@ LIMIT ?
                 )
             return legacy_out
 
-        raise sqlite3.Error("Neither modern 'message' nor legacy 'messages' table found in msgstore.db")
+        raise sqlite3.Error(
+            "Neither modern 'message' nor legacy 'messages' table found in msgstore.db"
+        )
     finally:
         con.close()
 
@@ -234,7 +213,9 @@ def _parse_telegram_cache(db_path: pathlib.Path, limit: int) -> list[TelegramMes
         user_map: dict[int, str] = {}
         if "users" in tables:
             try:
-                for uid, fn, ln, uname in con.execute("SELECT id, first_name, last_name, username FROM users").fetchall():
+                for uid, fn, ln, uname in con.execute(
+                    "SELECT id, first_name, last_name, username FROM users"
+                ).fetchall():
                     parts = [p for p in (fn, ln) if p]
                     name_str = " ".join(parts) if parts else (uname or str(uid))
                     user_map[int(uid)] = name_str
@@ -466,7 +447,9 @@ def extract_telegram_artifacts(devices: DeviceManager, serial: str) -> Messaging
     )
 
 
-def _extract_signal_passphrase(devices: DeviceManager, serial: str, temp_dir: pathlib.Path) -> str | None:
+def _extract_signal_passphrase(
+    devices: DeviceManager, serial: str, temp_dir: pathlib.Path
+) -> str | None:
     pref_candidates = [
         "/data/user/0/org.thoughtcrime.securesms/shared_prefs/org.thoughtcrime.securesms_preferences.xml",
         "/data/user_de/0/org.thoughtcrime.securesms/shared_prefs/org.thoughtcrime.securesms_preferences.xml",
@@ -478,7 +461,11 @@ def _extract_signal_passphrase(devices: DeviceManager, serial: str, temp_dir: pa
             try:
                 content = local.read_text(encoding="utf-8", errors="ignore")
                 import re
-                m = re.search(r'<string name="pref_database_passphrase">([a-fA-F0-9]{32,64})</string>', content)
+
+                m = re.search(
+                    r'<string name="pref_database_passphrase">([a-fA-F0-9]{32,64})</string>',
+                    content,
+                )
                 if m:
                     return m.group(1)
             except Exception:

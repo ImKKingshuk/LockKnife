@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import dataclasses
 import pathlib
 import sqlite3
@@ -9,6 +10,7 @@ from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
 from lockknife.core.security import secure_temp_dir
 from lockknife.modules.credentials._passkey_exports import safe_passkey_filename, sh_quote
+from lockknife.modules.extraction._extraction_common import try_root_staging_pull
 
 log = get_logger()
 
@@ -48,23 +50,18 @@ def parse_passkey_database(path: pathlib.Path) -> list[PasskeyRecord]:
     if not path.is_file():
         return []
     records: list[PasskeyRecord] = []
-    uri = f"file:{path.resolve().as_posix()}?mode=ro"
+    uri = path.resolve().as_uri() + "?mode=ro"
     try:
         conn = sqlite3.connect(uri, uri=True)
-    except Exception:
-        try:
-            conn = sqlite3.connect(str(path))
-        except Exception:
-            return []
+    except sqlite3.Error:
+        return []
 
     try:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         tables = [
             row["name"]
-            for row in cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()
+            for row in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         ]
 
         for tbl in (
@@ -123,13 +120,20 @@ def parse_passkey_database(path: pathlib.Path) -> list[PasskeyRecord]:
                 continue
 
             query = f'SELECT * FROM "{tbl}"'
-            for r in cur.execute(query).fetchall():
+            for r in cur.execute(query + " LIMIT 100000"):
                 rp_val = str(r[rp_col] or "").strip()
-                cred_val = str(r[cred_id_col] or "").strip()
+                raw_id = r[cred_id_col]
+                cred_val = (
+                    base64.urlsafe_b64encode(raw_id).decode("ascii").rstrip("=")
+                    if isinstance(raw_id, bytes)
+                    else str(raw_id or "").strip()
+                )
                 if not rp_val or not cred_val:
                     continue
                 user_val = str(r[user_col]) if user_col and r[user_col] is not None else None
-                disp_val = str(r[display_col]) if display_col and r[display_col] is not None else None
+                disp_val = (
+                    str(r[display_col]) if display_col and r[display_col] is not None else None
+                )
                 c_epoch = None
                 if created_col and r[created_col] is not None:
                     try:
@@ -165,6 +169,8 @@ def parse_passkey_database(path: pathlib.Path) -> list[PasskeyRecord]:
 
 def find_passkey_artifacts(devices: DeviceManager, serial: str, *, limit: int = 200) -> list[str]:
     """Locate FIDO2 and passkey artifact databases on device, checking targeted candidate paths first."""
+    if limit <= 0:
+        raise ValueError("limit must be > 0")
     if not devices.has_root(serial):
         raise DeviceError("Root required to locate passkey artifacts in /data")
 
@@ -204,30 +210,17 @@ def pull_passkey_artifacts(
     output_dir: pathlib.Path,
     limit: int = 200,
 ) -> list[PasskeyArtifact]:
-    """Pull passkey database artifacts to a local directory via root staging."""
+    """Acquire passkey databases without shared-storage staging."""
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = find_passkey_artifacts(devices, serial, limit=limit)
     out: list[PasskeyArtifact] = []
     with secure_temp_dir(prefix="lockknife-passkeys-") as d:
         for rp in paths:
             name = safe_passkey_filename(rp)
-            tmp_remote = f"/sdcard/lockknife-{name}"
             local_tmp = d / name
             try:
-                devices.shell(
-                    serial,
-                    f'su -c "cp {sh_quote(rp)} {sh_quote(tmp_remote)} 2>/dev/null"',
-                    timeout_s=30.0,
-                )
-                devices.pull(serial, tmp_remote, local_tmp, timeout_s=120.0)
-                try:
-                    devices.shell(
-                        serial, f'su -c "rm -f {sh_quote(tmp_remote)} 2>/dev/null"', timeout_s=10.0
-                    )
-                except Exception:
-                    log.warning(
-                        "passkey_cleanup_failed", exc_info=True, serial=serial, remote=tmp_remote
-                    )
+                if not try_root_staging_pull(devices, serial, rp, local_tmp, timeout_s=120.0):
+                    raise DeviceError("Passkey artifact could not be acquired")
                 final = output_dir / local_tmp.name
                 final.write_bytes(local_tmp.read_bytes())
                 out.append(

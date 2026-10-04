@@ -22,7 +22,12 @@ class _MockDevicesWithFallback:
     privileged paths (/data/system, /data/misc), requiring su root staging.
     """
 
-    def __init__(self, remote_files: dict[str, bytes], has_root_flag: bool = True, spblob_present: bool = False) -> None:
+    def __init__(
+        self,
+        remote_files: dict[str, bytes],
+        has_root_flag: bool = True,
+        spblob_present: bool = False,
+    ) -> None:
         self.remote_files = remote_files
         self.has_root_flag = has_root_flag
         self.spblob_present = spblob_present
@@ -33,11 +38,15 @@ class _MockDevicesWithFallback:
     def has_root(self, serial: str) -> bool:
         return self.has_root_flag
 
-    def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 60.0) -> None:
+    def pull(
+        self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 60.0
+    ) -> None:
         self.pulled.append((serial, remote_path))
         # If pulling directly from /data, simulate permission denied
         if remote_path.startswith("/data/"):
-            raise PermissionError(f"adb: error: failed to copy '{remote_path}' to '{local_path}': Permission denied")
+            raise PermissionError(
+                f"adb: error: failed to copy '{remote_path}' to '{local_path}': Permission denied"
+            )
 
         # Pulling from staging path /sdcard/...
         if remote_path in self._staged_files:
@@ -55,25 +64,12 @@ class _MockDevicesWithFallback:
                 return "0000000000000000.spblob\nspblob_metadata\n"
             return ""
 
-        if "cp " in command and "/sdcard/lockknife-staging-" in command:
-            # Parse source and dest from command
-            # Command format: su -c "cp '/data/...' '/sdcard/...' 2>/dev/null || cat ..."
+        if "base64 " in command:
+            import base64
+
             for remote_path, content in self.remote_files.items():
                 if remote_path in command:
-                    # Find staging target
-                    import re
-                    m = re.search(r"(/sdcard/lockknife-staging-[^\s'\"]+)", command)
-                    if m:
-                        staging_path = m.group(1)
-                        self._staged_files[staging_path] = content
-                        return ""
-            return ""
-
-        if "rm -f /sdcard/lockknife-staging-" in command:
-            import re
-            m = re.search(r"(/sdcard/lockknife-staging-[^\s'\"]+)", command)
-            if m and m.group(1) in self._staged_files:
-                del self._staged_files[m.group(1)]
+                    return base64.b64encode(content).decode("ascii")
             return ""
 
         return ""
@@ -154,10 +150,12 @@ def test_pin_pull_gatekeeper_multiuser_with_staging(tmp_path: pathlib.Path) -> N
     remote_db = "/data/system/users/0/locksettings.db"
     remote_key = "/data/system/users/0/gatekeeper.password.key"
 
-    dev = _MockDevicesWithFallback(remote_files={
-        remote_db: db_bytes,
-        remote_key: key_bytes,
-    })
+    dev = _MockDevicesWithFallback(
+        remote_files={
+            remote_db: db_bytes,
+            remote_key: key_bytes,
+        }
+    )
 
     out_db = pull_locksettings_db(dev, "TEST_SERIAL", tmp_path / "pin_db")  # type: ignore[arg-type]
     assert out_db.exists()
@@ -172,9 +170,11 @@ def test_gesture_pull_gatekeeper_multiuser_with_staging(tmp_path: pathlib.Path) 
     key_bytes = b"dummy-gatekeeper-pattern-key"
     remote_key = "/data/system/users/0/gatekeeper.pattern.key"
 
-    dev = _MockDevicesWithFallback(remote_files={
-        remote_key: key_bytes,
-    })
+    dev = _MockDevicesWithFallback(
+        remote_files={
+            remote_key: key_bytes,
+        }
+    )
 
     out_key = pull_gesture_key(dev, "TEST_SERIAL", tmp_path / "gesture_key")  # type: ignore[arg-type]
     assert out_key.exists()

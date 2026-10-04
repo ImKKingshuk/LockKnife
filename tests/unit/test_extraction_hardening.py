@@ -45,7 +45,9 @@ class _MockExtractionDevices:
     def has_root(self, serial: str) -> bool:
         return self.has_root_flag
 
-    def pull(self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 60.0) -> None:
+    def pull(
+        self, serial: str, remote_path: str, local_path: pathlib.Path, timeout_s: float = 60.0
+    ) -> None:
         self.pulled.append((serial, remote_path))
 
         # Check if direct pull to /data should simulate permission denied
@@ -73,23 +75,12 @@ class _MockExtractionDevices:
                 return output
 
         # Root staging cp command
-        if "cp " in command and "/sdcard/lockknife-staging-" in command:
+        if "base64 " in command:
+            import base64
+
             for remote_path, content in self.remote_files.items():
                 if remote_path in command:
-                    import re
-                    m = re.search(r"(/sdcard/lockknife-staging-[^\s'\"]+)", command)
-                    if m:
-                        staging_path = m.group(1)
-                        self._staged_files[staging_path] = content
-                        return ""
-            return ""
-
-        # Cleanup
-        if "rm -f /sdcard/lockknife-staging-" in command:
-            import re
-            m = re.search(r"(/sdcard/lockknife-staging-[^\s'\"]+)", command)
-            if m and m.group(1) in self._staged_files:
-                del self._staged_files[m.group(1)]
+                    return base64.b64encode(content).decode("ascii")
             return ""
 
         return ""
@@ -126,6 +117,16 @@ def test_try_root_staging_pull(tmp_path: pathlib.Path) -> None:
     success = try_root_staging_pull(dev, "TEST_SERIAL", remote, local)  # type: ignore[arg-type]
     assert success is True
     assert local.read_bytes() == content
+    assert not any("/sdcard/lockknife" in command for command in dev.shell_calls)
+
+
+def test_failed_pull_does_not_reuse_stale_file(tmp_path):
+    dev = _MockExtractionDevices(simulate_direct_permission_denied=True)
+    local = tmp_path / "evidence.db"
+    local.write_bytes(b"existing evidence")
+    assert try_root_staging_pull(dev, "serial", "/data/missing.db", local) is False
+    assert local.read_bytes() == b"existing evidence"
+    assert not list(tmp_path.glob(".lockknife-pull-*"))
 
 
 def test_parse_mmssms_db_with_mms_parts(tmp_path: pathlib.Path) -> None:
@@ -181,13 +182,21 @@ def test_contacts_extraction_enriched_fields(tmp_path: pathlib.Path) -> None:
     try:
         con.execute("CREATE TABLE contacts (_id INTEGER, display_name TEXT)")
         con.execute("CREATE TABLE raw_contacts (_id INTEGER, contact_id INTEGER)")
-        con.execute("CREATE TABLE data (_id INTEGER, raw_contact_id INTEGER, mimetype TEXT, data1 TEXT)")
+        con.execute(
+            "CREATE TABLE data (_id INTEGER, raw_contact_id INTEGER, mimetype TEXT, data1 TEXT)"
+        )
 
         con.execute("INSERT INTO contacts VALUES (1, 'Dr. Sarah Connor')")
         con.execute("INSERT INTO raw_contacts VALUES (10, 1)")
-        con.execute("INSERT INTO data VALUES (101, 10, 'vnd.android.cursor.item/phone_v2', '+15551234')")
-        con.execute("INSERT INTO data VALUES (102, 10, 'vnd.android.cursor.item/email_v2', 'sarah@cyberdyne.org')")
-        con.execute("INSERT INTO data VALUES (103, 10, 'vnd.android.cursor.item/organization', 'Resistance Corp')")
+        con.execute(
+            "INSERT INTO data VALUES (101, 10, 'vnd.android.cursor.item/phone_v2', '+15551234')"
+        )
+        con.execute(
+            "INSERT INTO data VALUES (102, 10, 'vnd.android.cursor.item/email_v2', 'sarah@cyberdyne.org')"
+        )
+        con.execute(
+            "INSERT INTO data VALUES (103, 10, 'vnd.android.cursor.item/organization', 'Resistance Corp')"
+        )
         con.commit()
     finally:
         con.close()
@@ -220,8 +229,12 @@ def test_call_logs_parsing_and_content_provider_fallback(tmp_path: pathlib.Path)
     db = tmp_path / "calllog.db"
     con = sqlite3.connect(str(db))
     try:
-        con.execute("CREATE TABLE calls (number TEXT, date INTEGER, duration INTEGER, type INTEGER, name TEXT)")
-        con.execute("INSERT INTO calls VALUES ('+14155552671', 1710000000000, 142, 1, 'Dispatch Center')")
+        con.execute(
+            "CREATE TABLE calls (number TEXT, date INTEGER, duration INTEGER, type INTEGER, name TEXT)"
+        )
+        con.execute(
+            "INSERT INTO calls VALUES ('+14155552671', 1710000000000, 142, 1, 'Dispatch Center')"
+        )
         con.commit()
     finally:
         con.close()
@@ -233,7 +246,9 @@ def test_call_logs_parsing_and_content_provider_fallback(tmp_path: pathlib.Path)
     assert logs[0].cached_name == "Dispatch Center"
 
     # 2. Test ContentProvider fallback
-    provider_output = "Row: 0 number=+14155559999, date=1710000050000, duration=45, type=2, name=HQ Desk\n"
+    provider_output = (
+        "Row: 0 number=+14155559999, date=1710000050000, duration=45, type=2, name=HQ Desk\n"
+    )
     dev = _MockExtractionDevices(
         remote_files={},
         content_provider_output={"content://call_log/calls": provider_output},
@@ -247,8 +262,14 @@ def test_call_logs_parsing_and_content_provider_fallback(tmp_path: pathlib.Path)
 
 def test_chromium_candidate_paths_and_samsung_browser() -> None:
     chrome_paths = _candidate_paths("chrome", "Network/Cookies")
-    assert any("/data/user/0/com.android.chrome/app_chrome/Default/Network/Cookies" in p for p in chrome_paths)
-    assert any("/data/data/com.android.chrome/app_chrome/Default/Network/Cookies" in p for p in chrome_paths)
+    assert any(
+        "/data/user/0/com.android.chrome/app_chrome/Default/Network/Cookies" in p
+        for p in chrome_paths
+    )
+    assert any(
+        "/data/data/com.android.chrome/app_chrome/Default/Network/Cookies" in p
+        for p in chrome_paths
+    )
 
     samsung_paths = _candidate_paths("samsung", "History")
     assert any("com.sec.android.app.sbrowser" in p for p in samsung_paths)

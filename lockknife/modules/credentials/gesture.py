@@ -10,6 +10,7 @@ from lockknife.modules.credentials._gesture_patterns import (
     gesture_point_count,
     recover_pattern_from_keyfile,
 )
+from lockknife.modules.extraction._extraction_common import try_root_staging_pull
 
 
 class GestureKeyNotFound(DeviceError):
@@ -27,33 +28,14 @@ class GestureRecovery:
 
 
 def _try_pull_file_with_root(
-    devices: DeviceManager, serial: str, remote: str, local: pathlib.Path, *, timeout_s: float = 60.0
+    devices: DeviceManager,
+    serial: str,
+    remote: str,
+    local: pathlib.Path,
+    *,
+    timeout_s: float = 60.0,
 ) -> bool:
-    try:
-        devices.pull(serial, remote, local, timeout_s=timeout_s)
-        if local.exists() and local.stat().st_size > 0:
-            return True
-    except Exception:
-        pass
-
-    staging_remote = f"/sdcard/lockknife-staging-{local.name}"
-    quoted_remote = "'" + remote.replace("'", "'\"'\"'") + "'"
-    quoted_staging = "'" + staging_remote.replace("'", "'\"'\"'") + "'"
-    try:
-        devices.shell(
-            serial,
-            f'su -c "cp {quoted_remote} {quoted_staging} 2>/dev/null || cat {quoted_remote} > {quoted_staging} 2>/dev/null"',
-            timeout_s=timeout_s,
-        )
-        devices.pull(serial, staging_remote, local, timeout_s=timeout_s)
-    except Exception:
-        return False
-    finally:
-        try:
-            devices.shell(serial, f'su -c "rm -f {quoted_staging} 2>/dev/null"', timeout_s=10.0)
-        except Exception:
-            pass
-    return local.exists() and local.stat().st_size > 0
+    return try_root_staging_pull(devices, serial, remote, local, timeout_s=timeout_s)
 
 
 def _detect_synthetic_password(devices: DeviceManager, serial: str) -> bool:

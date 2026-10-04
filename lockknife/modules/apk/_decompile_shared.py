@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from importlib import import_module
 from typing import Any
 
 from lockknife.core.exceptions import LockKnifeError
@@ -46,7 +47,7 @@ class ApkError(LockKnifeError):
 
 def _require_androguard(raise_on_missing: bool = True) -> Any:
     try:
-        from androguard.core.apk import APK
+        APK = import_module("androguard.core.apk").APK
     except ImportError as e:
         try:
             from androguard.core.bytecodes.apk import APK

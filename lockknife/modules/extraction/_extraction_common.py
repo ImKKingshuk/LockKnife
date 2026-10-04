@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import base64
+import binascii
+import os
 import pathlib
 import re
+import tempfile
 from typing import Any
 
 from lockknife.core.device import DeviceManager
@@ -31,36 +35,46 @@ def try_root_staging_pull(
     *,
     timeout_s: float = 90.0,
 ) -> bool:
-    """Pull a privileged file from an Android device, falling back to root
+    """Acquire a file without copying privileged evidence to shared device storage.
 
-    staging in /sdcard when unprivileged adbd lacks read permission to /data.
+    Each attempt uses a fresh private host file. Root fallback reads bounded
+    base64 over ADB shell; it never stages credentials in /sdcard.
     """
+    local.parent.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(prefix=".lockknife-pull-", dir=local.parent)
+    os.close(fd)
+    attempt = pathlib.Path(name)
     try:
-        devices.pull(serial, remote, local, timeout_s=timeout_s)
-        if local.exists() and local.stat().st_size > 0:
-            return True
-    except DEVICE_IO_ERRORS:
-        log.debug("direct_pull_failed_fallback_staging", exc_info=True, serial=serial, remote=remote)
-
-    staging_remote = f"/sdcard/lockknife-staging-{local.name}"
-    quoted_remote = sh_quote(remote)
-    quoted_staging = sh_quote(staging_remote)
-    try:
-        devices.shell(
-            serial,
-            f'su -c "cp {quoted_remote} {quoted_staging} 2>/dev/null || cat {quoted_remote} > {quoted_staging} 2>/dev/null"',
-            timeout_s=timeout_s,
-        )
-        devices.pull(serial, staging_remote, local, timeout_s=timeout_s)
-    except DEVICE_IO_ERRORS:
-        log.warning("root_staging_pull_failed", exc_info=True, serial=serial, remote=remote)
+        try:
+            devices.pull(serial, remote, attempt, timeout_s=timeout_s)
+            pulled = attempt.is_file() and attempt.stat().st_size > 0
+        except DEVICE_IO_ERRORS:
+            pulled = False
+        if not pulled:
+            if not devices.has_root(serial):
+                return False
+            quoted = sh_quote(remote)
+            max_bytes = 64 * 1024 * 1024
+            command = (
+                f"test -f {quoted} && size=$(stat -c %s {quoted}) && "
+                f'test "$size" -gt 0 && test "$size" -le {max_bytes} && '
+                f"base64 {quoted}"
+            )
+            encoded = devices.shell(serial, "su -c " + sh_quote(command), timeout_s=timeout_s)
+            if len(encoded) > max_bytes * 2:
+                return False
+            content = base64.b64decode("".join(encoded.split()), validate=True)
+            if not content or len(content) > max_bytes:
+                return False
+            attempt.write_bytes(content)
+        os.chmod(attempt, 0o600)
+        attempt.replace(local)
+        return True
+    except (*DEVICE_IO_ERRORS, binascii.Error):
+        log.warning("root_read_failed", exc_info=True, serial=serial, remote=remote)
         return False
     finally:
-        try:
-            devices.shell(serial, f'su -c "rm -f {quoted_staging} 2>/dev/null"', timeout_s=10.0)
-        except DEVICE_IO_ERRORS:
-            log.warning("root_staging_cleanup_failed", exc_info=True, serial=serial, remote=staging_remote)
-    return local.exists() and local.stat().st_size > 0
+        attempt.unlink(missing_ok=True)
 
 
 def parse_content_query_rows(raw: str) -> list[dict[str, str]]:
