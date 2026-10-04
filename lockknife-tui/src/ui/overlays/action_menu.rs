@@ -22,7 +22,7 @@ pub(in crate::ui) fn render_action_menu(
     frame.render_widget(Clear, area);
     let module = app.modules.get(state.module_index);
     let title = module
-        .map(|m| m.label.clone())
+        .map(|m| format!("Actions: {}", m.label))
         .unwrap_or_else(|| "Actions".to_string());
     let block = Block::default()
         .borders(Borders::ALL)

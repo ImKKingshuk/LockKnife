@@ -85,7 +85,7 @@ pub(in crate::ui) fn render_prompt(
     state: &PromptState,
     styles: &ThemeStyles,
 ) {
-    let area = adaptive_centered_rect(70, 60, frame.area());
+    let area = adaptive_centered_rect(75, 80, frame.area());
     frame.render_widget(Clear, area);
     let block = Block::default()
         .borders(Borders::ALL)
@@ -96,7 +96,23 @@ pub(in crate::ui) fn render_prompt(
             Some("Esc"),
         ))
         .style(styles.border);
-    let mut lines = prompt_intro_lines(state);
+
+    let inner_height = area.height.saturating_sub(2) as usize;
+    let field_lines_count = if state.fields.is_empty() {
+        1
+    } else {
+        state.fields.len()
+    };
+    let hint_lines = prompt_hint_lines(state, area);
+    let required_bottom_lines = field_lines_count + hint_lines.len();
+
+    let intro = prompt_intro_lines(state);
+    let allowed_intro = inner_height.saturating_sub(required_bottom_lines);
+    let mut lines = Vec::new();
+    if allowed_intro > 0 && !intro.is_empty() {
+        lines.extend(intro.into_iter().take(allowed_intro));
+    }
+
     for (i, f) in state.fields.iter().enumerate() {
         let marker = if i == state.index { "›" } else { " " };
         let val = if matches!(f.kind, crate::app::FieldKind::Bool) {
@@ -113,7 +129,7 @@ pub(in crate::ui) fn render_prompt(
     if state.fields.is_empty() {
         lines.push(Line::from("No parameters — press Enter to continue."));
     }
-    lines.extend(prompt_hint_lines(state, area));
+    lines.extend(hint_lines);
     let paragraph = Paragraph::new(Text::from(lines))
         .block(block)
         .wrap(Wrap { trim: true });
