@@ -23,9 +23,6 @@ from tests.unit.test_tui_callback import (
 )
 
 
-@pytest.mark.skip(
-    "Test requires many missing functions in tui_callback module - needs comprehensive function addition"
-)
 def test_tui_callback_action_matrix(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

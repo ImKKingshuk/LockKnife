@@ -9,7 +9,6 @@ from click.testing import CliRunner
 from tests.unit.test_case_management import _SmsRow
 
 
-@pytest.mark.skip("Test mocks non-existent extract module functions - needs function addition")
 def test_extract_case_dir_writes_default_evidence_and_registers(
     monkeypatch, tmp_path: pathlib.Path
 ) -> None:
@@ -119,9 +118,6 @@ def test_forensics_timeline_case_dir_links_registered_inputs(tmp_path: pathlib.P
     assert timeline.parent_artifact_ids == [sms_artifact.artifact_id, calls_artifact.artifact_id]
 
 
-@pytest.mark.skip(
-    "Test failing due to FileNotFoundError in case directory structure - needs investigation"
-)
 def test_case_summary_command_outputs_text_and_json(tmp_path: pathlib.Path) -> None:
     from lockknife.core.case import create_case_workspace, register_case_artifact
     from lockknife_headless_cli.case import case_group
@@ -193,7 +189,6 @@ def test_case_summary_command_outputs_text_and_json(tmp_path: pathlib.Path) -> N
     assert "Filters: categories=forensics-timeline" in filtered_result.output
 
 
-@pytest.mark.skip("Test failing due to AssertionError in case graph command - needs investigation")
 def test_case_graph_command_outputs_text_and_json(tmp_path: pathlib.Path) -> None:
     from lockknife.core.case import (
         case_lineage_graph,
@@ -269,7 +264,6 @@ def test_case_graph_command_outputs_text_and_json(tmp_path: pathlib.Path) -> Non
     assert f"- {child_artifact.artifact_id} (derived) derived/child.json" in filtered_result.output
 
 
-@pytest.mark.skip("Test failing due to AssertionError in case export command - needs investigation")
 def test_case_export_command_creates_bundle_with_optional_artifacts(tmp_path: pathlib.Path) -> None:
     from lockknife.core.case import create_case_workspace, register_case_artifact
     from lockknife_headless_cli.case import case_group
@@ -388,9 +382,6 @@ def test_case_export_help_includes_command(tmp_path: pathlib.Path) -> None:
     assert "exclude-category" in export_help.output
 
 
-@pytest.mark.skip(
-    "Test failing due to AssertionError in case artifact query command - needs investigation"
-)
 def test_case_artifact_query_commands(tmp_path: pathlib.Path) -> None:
     from lockknife.core.case import create_case_workspace, register_case_artifact
     from lockknife_headless_cli.case import case_group
@@ -489,9 +480,6 @@ def test_case_artifact_query_commands(tmp_path: pathlib.Path) -> None:
     assert "lineage" in help_result.output
 
 
-@pytest.mark.skip(
-    "Test failing due to AssertionError in case register command - needs investigation"
-)
 def test_case_register_command_conflict_modes(tmp_path: pathlib.Path) -> None:
     from lockknife.core.case import create_case_workspace, load_case_manifest
     from lockknife_headless_cli.case import case_group

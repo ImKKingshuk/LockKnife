@@ -42,6 +42,7 @@ from lockknife.core.case import (
 )
 from lockknife.core.feature_matrix import iter_features
 from lockknife.core.health import doctor_status, health_status
+from lockknife.core.logging import get_logger
 from lockknife.core.plugin_loader import plugin_inventory
 from lockknife.core.serialize import write_csv, write_json
 from lockknife.modules._case_enrichment_orchestrator import run_case_enrichment
@@ -58,7 +59,7 @@ from lockknife.modules._case_enrichment_payloads import (
     virustotal_payload,
 )
 from lockknife.modules.ai.anomaly import anomaly_scores
-from lockknife.modules.ai.password_predictor import PasswordPredictor
+from lockknife.modules.ai.password_predictor import PasswordPredictor, load_personal_data
 from lockknife.modules.apk._risk_summary import build_apk_risk_summary
 from lockknife.modules.apk.decompile import (
     decompile_apk_report,
@@ -145,6 +146,7 @@ from lockknife.modules.reporting.chain_of_custody import (
     EvidenceItem,
     build_chain_of_custody_payload,
     generate_chain_of_custody,
+    sign_report_file,
 )
 from lockknife.modules.reporting.context import build_report_context
 from lockknife.modules.reporting.csv_export import export_csv
@@ -246,6 +248,9 @@ _HANDLERS = (
     _handle_misc,
     _handle_exploit,
 )
+
+
+log = get_logger()
 
 
 def build_action_registry() -> ActionRegistry:

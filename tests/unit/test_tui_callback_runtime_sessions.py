@@ -7,14 +7,10 @@ import pytest
 from tests.unit.test_tui_callback import DummyApp, DummyFridaManager, build_tui_callback
 
 
-@pytest.mark.skip(
-    "Test requires many missing functions in tui_callback module - needs comprehensive function addition"
-)
 def test_tui_callback_runtime_session_actions_route_outputs_into_case_dir(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     import lockknife.modules.runtime._session_manager_shared as runtime_shared
-    import lockknife.modules.runtime.session_manager as runtime_sessions
     import lockknife_headless_cli.tui_callback as cb
     from lockknife.core.case import create_case_workspace
 
@@ -29,7 +25,6 @@ def test_tui_callback_runtime_session_actions_route_outputs_into_case_dir(
         return types.SimpleNamespace(artifact_id=f"artifact-{len(registered):04d}")
 
     monkeypatch.setattr(cb, "register_case_artifact", _register)
-    monkeypatch.setattr(runtime_sessions, "register_case_artifact", _register)
     monkeypatch.setattr(runtime_shared, "register_case_artifact", _register)
 
     callback = build_tui_callback(DummyApp())
@@ -116,9 +111,6 @@ def test_tui_callback_runtime_session_actions_route_outputs_into_case_dir(
     )
 
 
-@pytest.mark.skip(
-    "Test requires many missing functions in tui_callback module - needs comprehensive function addition"
-)
 def test_tui_callback_runtime_session_messages_use_session_terminology(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -168,9 +160,6 @@ def test_tui_callback_runtime_session_messages_use_session_terminology(
     )["message"].startswith("Managed built-in runtime session saved to ")
 
 
-@pytest.mark.skip(
-    "Test requires many missing functions in tui_callback module - needs comprehensive function addition"
-)
 def test_tui_callback_runtime_session_management_actions_work(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -269,9 +258,6 @@ def test_tui_callback_runtime_session_management_actions_work(
     assert stop_payload["runtime_dashboard"]["mode"] == "session-detail"
 
 
-@pytest.mark.skip(
-    "Test requires many missing functions in tui_callback module - needs comprehensive function addition"
-)
 def test_runtime_session_detach_is_recorded(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -306,9 +292,6 @@ def test_runtime_session_detach_is_recorded(
     assert payload["session"]["event_summary"]["recent"][-1]["event_type"] == "detached"
 
 
-@pytest.mark.skip(
-    "Test requires many missing functions in tui_callback module - needs comprehensive function addition"
-)
 def test_tui_callback_runtime_preflight_supports_session_kind_guidance(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
