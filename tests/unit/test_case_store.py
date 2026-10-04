@@ -47,7 +47,8 @@ def test_failed_manifest_migration_is_retryable(tmp_path: pathlib.Path) -> None:
     assert [event.event_type for event in store.event_chain()] == ["case.migrated"]
 
 
-def test_concurrent_manifest_migration_runs_once(tmp_path: pathlib.Path) -> None:
+@pytest.mark.parametrize("iteration", range(8))
+def test_concurrent_manifest_migration_runs_once(tmp_path: pathlib.Path, iteration: int) -> None:
     case_dir = _new_case(tmp_path)
     (case_dir / "case_store.sqlite3").unlink()
     with ThreadPoolExecutor(max_workers=8) as pool:

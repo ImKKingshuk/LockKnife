@@ -10,6 +10,7 @@ import pathlib
 import re
 import sqlite3
 import tempfile
+import time
 from collections.abc import Iterator, Mapping
 from contextlib import closing, contextmanager
 from typing import Any
@@ -118,10 +119,23 @@ class CaseStore:
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path, timeout=5.0)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.execute("PRAGMA busy_timeout=5000")
-        return conn
+        try:
+            conn.execute("PRAGMA busy_timeout=5000")
+            # Changing journal mode can return BUSY immediately during first-open races.
+            deadline = time.monotonic() + 5.0
+            while True:
+                try:
+                    conn.execute("PRAGMA journal_mode=WAL")
+                    break
+                except sqlite3.OperationalError as exc:
+                    if "locked" not in str(exc).lower() or time.monotonic() >= deadline:
+                        raise
+                    time.sleep(0.01)
+            conn.execute("PRAGMA foreign_keys=ON")
+            return conn
+        except BaseException:
+            conn.close()
+            raise
 
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Connection]:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
 import tempfile
@@ -20,6 +21,7 @@ from lockknife.core._case_jobs import _job_resumable_status, _job_summary_payloa
 from lockknife.core._case_models import CaseArtifact
 from lockknife.core._case_runtime import _runtime_session_summary_payload
 from lockknife.core._case_store import STORE_FILENAME, CaseStore
+from lockknife.core.path_safety import validate_archive_member
 from lockknife.modules.reporting.chain_of_custody import (
     EvidenceItem,
     build_chain_of_custody_payload,
@@ -378,7 +380,13 @@ def _add_path_to_zip(
     case_dir: pathlib.Path,
     written_arc_names: set[str],
     included_paths: set[str],
+    excluded_paths: tuple[pathlib.Path, ...] = (),
 ) -> None:
+    resolved = source_path.resolve()
+    if source_path.is_symlink() or any(
+        resolved == path or path in resolved.parents for path in excluded_paths
+    ):
+        return
     if not source_path.exists():
         return
     if source_path.is_dir():
@@ -391,11 +399,16 @@ def _add_path_to_zip(
                     case_dir=case_dir,
                     written_arc_names=written_arc_names,
                     included_paths=included_paths,
+                    excluded_paths=excluded_paths,
                 )
         return
 
     normalized = _normalize_case_path(case_dir, source_path)
+    if pathlib.Path(normalized).is_absolute():
+        digest = hashlib.sha256(normalized.encode()).hexdigest()[:16]
+        normalized = f"external/{digest}/{source_path.name}"
     arcname = f"{bundle_root}/{normalized}"
+    validate_archive_member(arcname)
     if arcname in written_arc_names:
         included_paths.add(normalized)
         return
@@ -416,6 +429,8 @@ def export_case_bundle(
 ) -> dict[str, Any]:
     manifest = load_case_manifest(case_dir)
     bundle_root = manifest.case_id
+    if len(validate_archive_member(bundle_root).parts) != 1:
+        raise ValueError("Case ID must be a single safe archive component")
     selected_artifacts = _select_case_artifacts(
         manifest,
         categories=categories,
@@ -451,12 +466,17 @@ def export_case_bundle(
     missing_registered_artifacts: list[dict[str, str]] = []
 
     with (
-        tempfile.TemporaryDirectory(prefix="lockknife-export-") as temporary,
-        zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive,
+        tempfile.TemporaryDirectory(
+            prefix=".lockknife-export-", dir=output_path.parent
+        ) as temporary,
+        zipfile.ZipFile(
+            pathlib.Path(temporary) / "bundle.zip", "w", compression=zipfile.ZIP_DEFLATED
+        ) as archive,
     ):
         store = CaseStore.open(case_dir)
         database = store.backup(pathlib.Path(temporary) / STORE_FILENAME)
         archive.write(database, arcname=f"{bundle_root}/{STORE_FILENAME}")
+        written_arc_names.add(f"{bundle_root}/{STORE_FILENAME}")
         included_paths.add(STORE_FILENAME)
         database_sha256, _ = _sha256_file(database)
         for required in (_manifest_path(case_dir), case_dir / "logs", case_dir / "reports"):
@@ -467,6 +487,7 @@ def export_case_bundle(
                 case_dir=case_dir,
                 written_arc_names=written_arc_names,
                 included_paths=included_paths,
+                excluded_paths=(output_path.resolve(), pathlib.Path(temporary).resolve()),
             )
 
         if include_registered_artifacts:
@@ -474,7 +495,11 @@ def export_case_bundle(
                 artifact_path = pathlib.Path(artifact.path)
                 if not artifact_path.is_absolute():
                     artifact_path = case_dir / artifact.path
-                if artifact_path.resolve() == output_path.resolve() or not artifact_path.exists():
+                if (
+                    artifact_path.resolve() == output_path.resolve()
+                    or artifact_path.is_symlink()
+                    or not artifact_path.exists()
+                ):
                     missing_registered_artifacts.append(
                         {"artifact_id": artifact.artifact_id, "path": artifact.path}
                     )
@@ -486,6 +511,7 @@ def export_case_bundle(
                     case_dir=case_dir,
                     written_arc_names=written_arc_names,
                     included_paths=included_paths,
+                    excluded_paths=(output_path.resolve(), pathlib.Path(temporary).resolve()),
                 )
                 included_artifact_ids.append(artifact.artifact_id)
 
@@ -532,4 +558,6 @@ def export_case_bundle(
         )
         archive.writestr(f"{bundle_root}/bundle/chain_of_custody.txt", chain_of_custody)
 
+        archive.close()
+        (pathlib.Path(temporary) / "bundle.zip").replace(output_path)
     return export_payload
