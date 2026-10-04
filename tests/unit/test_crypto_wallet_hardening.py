@@ -22,6 +22,27 @@ from lockknife_headless_cli.crypto_wallet import crypto_wallet
 from lockknife_headless_cli.extract import extract
 
 
+def test_tui_wallet_offline_and_device_dispatch(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from lockknife_headless_cli.tui_callback import build_tui_callback
+
+    source = tmp_path / "wallet.bin"
+    source.write_text("0x" + "a" * 40)
+    callback = build_tui_callback(SimpleNamespace(devices=MagicMock(spec=DeviceManager)))
+    result = callback("crypto.wallets", {"path": str(source), "lookup": False})
+    assert result["ok"] is True
+    assert "0x" + "a" * 40 in result["data_json"]
+    calls = []
+    monkeypatch.setattr(
+        "lockknife.modules.crypto_wallet.wallet.extract_device_wallets",
+        lambda devices, serial, **kwargs: calls.append(serial) or [],
+    )
+    result = callback("crypto.scan_device", {"serial": "DEVICE", "limit": 3})
+    assert result["ok"] is True
+    assert calls == ["DEVICE"]
+
+
 def test_bip39_wordlist_and_checksum_validation() -> None:
     assert is_bip39_word("abandon") is True
     assert is_bip39_word("zoo") is True
@@ -129,9 +150,7 @@ def test_device_wallet_extraction(monkeypatch, tmp_path: pathlib.Path) -> None:
         )
         return True
 
-    monkeypatch.setattr(
-        "lockknife.modules.crypto_wallet.wallet.try_root_staging_pull", fake_pull
-    )
+    monkeypatch.setattr("lockknife.modules.crypto_wallet.wallet.try_root_staging_pull", fake_pull)
 
     wallets = extract_device_wallets(dev, "device-123", limit_files_per_app=5)
     assert len(wallets) == 1
@@ -204,4 +223,3 @@ def test_cli_scan_device_and_extract_wallets_aliases(tmp_path: pathlib.Path) -> 
     )
     assert res_extract.exit_code == 0
     assert json.loads(out_extract.read_text(encoding="utf-8")) == []
-

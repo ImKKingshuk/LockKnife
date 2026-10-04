@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
 import pathlib
 import re
@@ -110,6 +111,8 @@ def _is_plausible_solana(s: str) -> bool:
 def extract_wallet_addresses_from_text(
     text: str, source: str = "raw", limit: int = 5000
 ) -> list[WalletAddress]:
+    if limit <= 0:
+        raise ValueError("limit must be > 0")
     out: dict[str, WalletAddress] = {}
 
     # Ethereum / EVM
@@ -163,9 +166,7 @@ def extract_wallet_addresses_from_sqlite(
     return extract_wallet_addresses_from_text(text, source=str(path), limit=limit)
 
 
-def extract_wallet_addresses(
-    path: pathlib.Path, limit: int = 5000
-) -> list[WalletAddress]:
+def extract_wallet_addresses(path: pathlib.Path, limit: int = 5000) -> list[WalletAddress]:
     """Alias for carving wallet addresses from any given file."""
     return extract_wallet_addresses_from_sqlite(path, limit=limit)
 
@@ -174,6 +175,8 @@ def extract_mnemonics(
     data: bytes | str, source: str = "raw", limit: int = 100
 ) -> list[MnemonicPhrase]:
     """Extract BIP-39 mnemonic seed phrases (12, 15, 18, 21, 24 words) from text or binary data."""
+    if limit <= 0:
+        raise ValueError("limit must be > 0")
     if isinstance(data, bytes):
         text = data.decode("utf-8", errors="ignore")
     else:
@@ -246,14 +249,10 @@ def extract_mnemonics(
             if not matched:
                 i += 1
 
-
     return phrases
 
 
-
-def extract_web3_keystores(
-    data: bytes | str, source: str = "raw"
-) -> list[WalletVault]:
+def extract_web3_keystores(data: bytes | str, source: str = "raw") -> list[WalletVault]:
     """Detect and parse Web3 JSON keystores (e.g. Ethereum V3) and encrypted wallet state blobs."""
     if isinstance(data, bytes):
         text = data.decode("utf-8", errors="ignore")
@@ -310,6 +309,8 @@ def extract_device_wallets(
 
     and carve addresses, mnemonics, and keystores.
     """
+    if limit_files_per_app <= 0:
+        raise ValueError("limit_files_per_app must be > 0")
     has_root = devices.has_root(serial)
     results: list[DeviceWalletArtifacts] = []
 
@@ -359,9 +360,10 @@ def extract_device_wallets(
             app_vaults: list[WalletVault] = []
             pulled_files: list[str] = []
 
-            for remote_file in found_remote_files:
+            for remote_file in found_remote_files[:limit_files_per_app]:
                 fname = pathlib.PurePosixPath(remote_file).name
-                local_file = temp_dir / f"{pkg}_{fname}"
+                digest = hashlib.sha256(remote_file.encode()).hexdigest()[:16]
+                local_file = temp_dir / f"{pkg}_{digest}_{fname}"
                 pulled = try_root_staging_pull(devices, serial, remote_file, local_file)
                 if not pulled or not local_file.exists() or local_file.stat().st_size == 0:
                     continue
@@ -438,9 +440,7 @@ def enrich_wallet_addresses(addrs: list[WalletAddress]) -> list[dict[str, Any]]:
     return out
 
 
-def list_wallet_transactions(
-    address: str, kind: str, *, limit: int = 50
-) -> list[dict[str, Any]]:
+def list_wallet_transactions(address: str, kind: str, *, limit: int = 50) -> list[dict[str, Any]]:
     a = address.strip()
     k = kind.lower().strip()
     if k not in {"btc", "eth"}:

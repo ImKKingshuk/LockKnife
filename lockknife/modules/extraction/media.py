@@ -9,6 +9,7 @@ from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
 from lockknife.core.security import secure_temp_dir
 from lockknife.modules.extraction._extraction_common import (
+    content_query_command,
     parse_content_query_rows,
     try_root_staging_pull,
 )
@@ -140,12 +141,12 @@ def _parse_exif_gps(jpeg_bytes: bytes) -> tuple[float | None, float | None]:
 def _query_mediastore_content(
     devices: DeviceManager, serial: str, uri: str, limit: int
 ) -> list[MediaFile]:
-    cmd = (
-        f"content query --uri {uri} "
-        f"--projection _id,_data,_size,datetaken,latitude,longitude,mime_type"
+    cmd = content_query_command(
+        uri,
+        ("_id", "_data", "_size", "datetaken", "mime_type"),
+        sort="datetaken DESC",
+        root=devices.has_root(serial),
     )
-    if devices.has_root(serial):
-        cmd = f'su -c "{cmd}"'
     try:
         raw = devices.shell(serial, cmd, timeout_s=30.0)
     except (DeviceError, TimeoutError, OSError) as e:

@@ -29,7 +29,7 @@ fn shared_catalog_has_unique_actions_and_fields_without_parse_loss() {
             assert!(action.fields.iter().all(|field| keys.insert(&field.key)));
         }
     }
-    assert_eq!(ids.len(), 120);
+    assert_eq!(ids.len(), 121);
 }
 
 #[test]

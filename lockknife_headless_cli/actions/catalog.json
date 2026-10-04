@@ -3698,6 +3698,39 @@
           "id": "crypto.transactions",
           "label": "Wallet transactions",
           "requires_device": false
+        },
+        {
+          "id": "crypto.scan_device",
+          "label": "Scan Device Wallets",
+          "requires_device": true,
+          "confirm": true,
+          "fields": [
+            {
+              "key": "serial",
+              "label": "Device serial",
+              "kind": "text",
+              "required": false
+            },
+            {
+              "key": "limit",
+              "label": "Files per wallet app",
+              "kind": "number",
+              "default": "20",
+              "required": false
+            },
+            {
+              "key": "output",
+              "label": "Output file",
+              "kind": "path",
+              "required": false
+            },
+            {
+              "key": "case_dir",
+              "label": "Case directory",
+              "kind": "path",
+              "required": false
+            }
+          ]
         }
       ],
       "id": "crypto",
@@ -4071,7 +4104,16 @@
           "label": "Fingerprint Target",
           "requires_device": false,
           "confirm": true,
-          "fields": [{"key": "target", "label": "Target", "kind": "text", "default": "", "required": true, "choices": []}]
+          "fields": [
+            {
+              "key": "target",
+              "label": "Target",
+              "kind": "text",
+              "default": "",
+              "required": true,
+              "choices": []
+            }
+          ]
         },
         {
           "id": "exploit.zeroclick.cve_sync",
@@ -4085,7 +4127,16 @@
           "label": "Query CVE Intelligence",
           "requires_device": false,
           "confirm": false,
-          "fields": [{"key": "cve_id", "label": "CVE ID", "kind": "text", "default": "", "required": true, "choices": []}]
+          "fields": [
+            {
+              "key": "cve_id",
+              "label": "CVE ID",
+              "kind": "text",
+              "default": "",
+              "required": true,
+              "choices": []
+            }
+          ]
         }
       ],
       "id": "exploit",

@@ -9,6 +9,7 @@ from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
 from lockknife.core.security import secure_temp_dir
 from lockknife.modules.extraction._extraction_common import (
+    content_query_command,
     parse_content_query_rows,
     try_root_staging_pull,
 )
@@ -31,17 +32,24 @@ def _parse_contacts2_db(db_path: pathlib.Path, limit: int) -> list[Contact]:
     con = sqlite3.connect(str(db_path))
     try:
         cur = con.cursor()
+        columns = {row[1] for row in con.execute("PRAGMA table_info(data)")}
+        normalized_mimetypes = "mimetype_id" in columns and "mimetype" not in columns
+        mime = "mt.mimetype" if normalized_mimetypes else "d.mimetype"
+        mime_join = (
+            "LEFT JOIN mimetypes mt ON mt._id = d.mimetype_id" if normalized_mimetypes else ""
+        )
         # 1. Attempt enriched query joining phone, email, and organization
         try:
             cur.execute(
-                """
+                f"""
 SELECT c._id, c.display_name,
-       MAX(CASE WHEN d.mimetype = 'vnd.android.cursor.item/phone_v2' THEN d.data1 END) AS phone,
-       MAX(CASE WHEN d.mimetype = 'vnd.android.cursor.item/email_v2' THEN d.data1 END) AS email,
-       MAX(CASE WHEN d.mimetype = 'vnd.android.cursor.item/organization' THEN d.data1 END) AS org
+       MAX(CASE WHEN {mime} = 'vnd.android.cursor.item/phone_v2' THEN d.data1 END) AS phone,
+       MAX(CASE WHEN {mime} = 'vnd.android.cursor.item/email_v2' THEN d.data1 END) AS email,
+       MAX(CASE WHEN {mime} = 'vnd.android.cursor.item/organization' THEN d.data1 END) AS org
 FROM contacts c
 JOIN raw_contacts rc ON rc.contact_id = c._id
 JOIN data d ON d.raw_contact_id = rc._id
+{mime_join}
 WHERE c.display_name IS NOT NULL
 GROUP BY c._id, c.display_name
 ORDER BY c.display_name
@@ -67,12 +75,13 @@ LIMIT ?
         # 2. Fallback to phone-only join
         try:
             cur.execute(
-                """
+                f"""
 SELECT c._id, c.display_name, d.data1
 FROM contacts c
 JOIN raw_contacts rc ON rc.contact_id = c._id
 JOIN data d ON d.raw_contact_id = rc._id
-WHERE d.mimetype = 'vnd.android.cursor.item/phone_v2'
+{mime_join}
+WHERE {mime} = 'vnd.android.cursor.item/phone_v2'
   AND d.data1 IS NOT NULL
 ORDER BY c.display_name
 LIMIT ?
@@ -103,18 +112,25 @@ def _query_contacts_content_provider(
     try:
         raw = devices.shell(
             serial,
-            f'su -c "content query --uri content://contacts/phones --projection contact_id,display_name,number | head -n {limit * 4}"',
+            content_query_command(
+                "content://com.android.contacts/data/phones",
+                ("contact_id", "display_name", "data1"),
+            ),
             timeout_s=30.0,
         )
         parsed = parse_content_query_rows(raw)
         out: list[Contact] = []
         for row in parsed[:limit]:
-            cid = int(row["contact_id"]) if row.get("contact_id") and row["contact_id"].isdigit() else None
+            cid = (
+                int(row["contact_id"])
+                if row.get("contact_id") and row["contact_id"].isdigit()
+                else None
+            )
             out.append(
                 Contact(
                     contact_id=cid,
                     display_name=row.get("display_name") or None,
-                    number=row.get("number") or None,
+                    number=row.get("data1") or row.get("number") or None,
                 )
             )
         return out

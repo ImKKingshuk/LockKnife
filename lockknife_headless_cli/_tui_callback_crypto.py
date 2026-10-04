@@ -148,9 +148,11 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
     analyze_apk = cb.analyze_apk
     vulnerability_report = cb.vulnerability_report
 
-    if action == "crypto.wallets":
-        serial = _opt(params, "serial")
-        raw_path = _opt(params, "path")
+    if action in ("crypto.wallets", "crypto.scan_device"):
+        serial = _opt(params.get("serial")) or _opt(getattr(app, "selected_device_serial", None))
+        raw_path = _opt(params.get("path"))
+        if action == "crypto.scan_device" and not serial:
+            raise ValueError("Device serial is required")
         if serial and not raw_path:
             limit = int(params.get("limit") or 20)
             case_dir = _path_param(params.get("case_dir"))
@@ -207,7 +209,6 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             )
             return _ok(payload, f"Wallets extracted: {len(payload)} to {output}")
         return _ok(payload, f"Wallets extracted: {len(payload)}")
-
 
     if action == "crypto.transactions":
         address = _require(params, "address")

@@ -23,11 +23,11 @@ def _looks_like_sqlite(path: pathlib.Path) -> bool:
 
 def _sqlite_records(path: pathlib.Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    uri = f"file:{path.resolve().as_posix()}?mode=ro"
+    uri = path.resolve().as_uri() + "?mode=ro"
     try:
         conn = sqlite3.connect(uri, uri=True)
-    except Exception:
-        conn = sqlite3.connect(str(path))
+    except sqlite3.Error:
+        return []
 
     try:
         conn.row_factory = sqlite3.Row

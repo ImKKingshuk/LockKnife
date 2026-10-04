@@ -9,6 +9,7 @@ from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
 from lockknife.core.security import secure_temp_dir
 from lockknife.modules.extraction._extraction_common import (
+    content_query_command,
     parse_content_query_rows,
     try_root_staging_pull,
 )
@@ -62,7 +63,9 @@ LEFT JOIN addr ON addr.msg_id = pdu._id AND addr.type = 137
 WHERE part.text IS NOT NULL AND length(part.text) > 0
 ORDER BY pdu.date DESC LIMIT ?
 """.strip()
-            for addr_val, text_val, mms_date, box_type in con.execute(mms_query, (limit,)).fetchall():
+            for addr_val, text_val, mms_date, box_type in con.execute(
+                mms_query, (limit,)
+            ).fetchall():
                 out.append(
                     SmsMessage(
                         address=addr_val,
@@ -87,7 +90,9 @@ def _query_sms_content_provider(
 ) -> list[SmsMessage]:
     """Query SMS messages directly via Android ContentProvider shell command."""
     try:
-        cmd = f'su -c "content query --uri content://sms --projection address,body,date,type --sort \\"date DESC\\" | head -n {limit * 4}"'
+        cmd = content_query_command(
+            "content://sms", ("address", "body", "date", "type"), sort="date DESC"
+        )
         raw = devices.shell(serial, cmd, timeout_s=30.0)
         parsed = parse_content_query_rows(raw)
         out: list[SmsMessage] = []
@@ -97,7 +102,9 @@ def _query_sms_content_provider(
                     address=row.get("address") or None,
                     body=row.get("body") or None,
                     date_ms=int(row["date"]) if row.get("date") and row["date"].isdigit() else None,
-                    msg_type=int(row["type"]) if row.get("type") and row["type"].isdigit() else None,
+                    msg_type=int(row["type"])
+                    if row.get("type") and row["type"].isdigit()
+                    else None,
                 )
             )
         return out

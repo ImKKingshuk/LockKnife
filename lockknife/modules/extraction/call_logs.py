@@ -9,6 +9,7 @@ from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
 from lockknife.core.security import secure_temp_dir
 from lockknife.modules.extraction._extraction_common import (
+    content_query_command,
     parse_content_query_rows,
     try_root_staging_pull,
 )
@@ -58,13 +59,19 @@ def _query_call_log_content_provider(
     devices: DeviceManager, serial: str, limit: int
 ) -> list[CallLogEntry]:
     try:
-        cmd = f'su -c "content query --uri content://call_log/calls --projection number,date,duration,type,name --sort \\"date DESC\\" | head -n {limit * 4}"'
+        cmd = content_query_command(
+            "content://call_log/calls",
+            ("number", "date", "duration", "type", "name"),
+            sort="date DESC",
+        )
         raw = devices.shell(serial, cmd, timeout_s=30.0)
         parsed = parse_content_query_rows(raw)
         out: list[CallLogEntry] = []
         for row in parsed[:limit]:
             date_val = int(row["date"]) if row.get("date") and row["date"].isdigit() else None
-            dur_val = int(row["duration"]) if row.get("duration") and row["duration"].isdigit() else None
+            dur_val = (
+                int(row["duration"]) if row.get("duration") and row["duration"].isdigit() else None
+            )
             type_val = int(row["type"]) if row.get("type") and row["type"].isdigit() else None
             out.append(
                 CallLogEntry(

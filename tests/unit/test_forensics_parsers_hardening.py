@@ -121,7 +121,7 @@ def test_mediastore_content_provider_fallback() -> None:
     def fake_shell(serial: str, cmd: str, timeout_s: float = 30.0) -> str:
         if "ls -1t" in cmd:
             return ""
-        if "content query --uri content://media/external/images/media" in cmd:
+        if "content://media/external/images/media" in cmd:
             return (
                 "Row: 0 _data=/sdcard/DCIM/Camera/IMG_2026.jpg, _size=204800, "
                 "latitude=37.7749, longitude=-122.4194, mime_type=image/jpeg\n"

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import pathlib
+import shlex
 import sqlite3
 
 from lockknife.modules.extraction._browser_extract_chrome import (
     _candidate_paths,
 )
 from lockknife.modules.extraction._extraction_common import (
+    content_query_command,
     parse_content_query_rows,
     try_root_staging_pull,
 )
@@ -129,6 +131,32 @@ def test_failed_pull_does_not_reuse_stale_file(tmp_path):
     assert not list(tmp_path.glob(".lockknife-pull-*"))
 
 
+def test_content_query_uses_android_projection_and_sort_syntax():
+    outer = shlex.split(
+        content_query_command("content://sms", ("address", "body", "date"), sort="date DESC")
+    )
+    assert outer[:2] == ["su", "-c"]
+    args = shlex.split(outer[2])
+    assert args[args.index("--projection") + 1] == "address:body:date"
+    assert args[args.index("--sort") + 1] == "date DESC"
+
+
+def test_contacts_normalized_mimetype_schema(tmp_path):
+    db = tmp_path / "contacts.db"
+    with sqlite3.connect(db) as con:
+        con.executescript("""
+            CREATE TABLE contacts (_id INTEGER, display_name TEXT);
+            CREATE TABLE raw_contacts (_id INTEGER, contact_id INTEGER);
+            CREATE TABLE mimetypes (_id INTEGER, mimetype TEXT);
+            CREATE TABLE data (raw_contact_id INTEGER, mimetype_id INTEGER, data1 TEXT);
+            INSERT INTO contacts VALUES (1, 'Example');
+            INSERT INTO raw_contacts VALUES (2, 1);
+            INSERT INTO mimetypes VALUES (3, 'vnd.android.cursor.item/phone_v2');
+            INSERT INTO data VALUES (2, 3, '+15550100');
+        """)
+    assert _parse_contacts2_db(db, 10)[0].number == "+15550100"
+
+
 def test_parse_mmssms_db_with_mms_parts(tmp_path: pathlib.Path) -> None:
     db = tmp_path / "mmssms.db"
     con = sqlite3.connect(str(db))
@@ -214,7 +242,7 @@ def test_contacts_extraction_content_provider_fallback() -> None:
     provider_output = "Row: 0 contact_id=42, display_name=John Doe, number=+15559876\n"
     dev = _MockExtractionDevices(
         remote_files={},
-        content_provider_output={"content://contacts/phones": provider_output},
+        content_provider_output={"content://com.android.contacts/data/phones": provider_output},
     )
 
     contacts = extract_contacts(dev, "TEST_SERIAL", limit=5)  # type: ignore[arg-type]

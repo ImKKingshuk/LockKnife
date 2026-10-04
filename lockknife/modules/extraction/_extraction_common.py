@@ -27,6 +27,15 @@ def sh_quote(s: str) -> str:
     return "'" + s.replace("'", "'\"'\"'") + "'"
 
 
+def content_query_command(
+    uri: str, projection: tuple[str, ...], *, sort: str | None = None, root: bool = True
+) -> str:
+    command = f"content query --uri {sh_quote(uri)} --projection {sh_quote(':'.join(projection))}"
+    if sort:
+        command += " --sort " + sh_quote(sort)
+    return "su -c " + sh_quote(command) if root else command
+
+
 def try_root_staging_pull(
     devices: DeviceManager,
     serial: str,
