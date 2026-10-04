@@ -41,6 +41,8 @@ class LockKnifeCommand(click.Command):
         log.info("cli_start", command=ctx.command_path, params=params)
         try:
             out = super().invoke(ctx)
+        except (click.exceptions.Exit, click.Abort):
+            raise
         except click.ClickException:
             log.error(
                 "cli_error",
