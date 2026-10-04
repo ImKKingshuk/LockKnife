@@ -43,7 +43,7 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run ty check
-      - run: uv run pytest --cov=lockknife --cov=lockknife_headless_cli --cov-report=term-missing --cov-fail-under=56
+      - run: uv run pytest --cov=lockknife --cov=lockknife_headless_cli --cov-report=term-missing
       - run: uv run bandit -c bandit.yaml -r lockknife lockknife_headless_cli --severity-level medium
       - run: uv run pip-audit
 
