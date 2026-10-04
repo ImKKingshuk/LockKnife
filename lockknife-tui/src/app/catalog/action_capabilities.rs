@@ -24,9 +24,9 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
         }),
         "credentials.pin" | "credentials.gesture" | "credentials.wifi" | "credentials.keystore" => {
             Some(CapabilityMetadata {
-                status: "best-effort",
+                status: "production-ready",
                 requirements: "adb + device access",
-                notes: "Results depend on Android version, OEM paths, privilege level, and target state.",
+                notes: "Modern APEX / multi-user paths, root staging fallback, and synthetic password diagnostics.",
             })
         }
         "extraction.messaging" => Some(CapabilityMetadata {
@@ -37,8 +37,12 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
         "extraction.sms"
         | "extraction.contacts"
         | "extraction.call_logs"
-        | "extraction.browser"
-        | "extraction.media"
+        | "extraction.browser" => Some(CapabilityMetadata {
+            status: "production-ready",
+            requirements: "adb + root/device access",
+            notes: "Production-ready extraction with multi-user CE/DE paths, root staging, and ContentProvider fallback.",
+        }),
+        "extraction.media"
         | "extraction.location" => Some(CapabilityMetadata {
             status: "functional",
             requirements: "adb + device access",

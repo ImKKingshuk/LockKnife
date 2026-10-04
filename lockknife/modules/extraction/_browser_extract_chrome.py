@@ -22,10 +22,11 @@ from lockknife.modules.extraction._browser_parse_chrome import (
 )
 
 _CHROMIUM_BROWSER_PACKAGES = {
-    "chrome": ["com.android.chrome", "com.chrome.beta"],
+    "chrome": ["com.android.chrome", "com.chrome.beta", "com.chrome.canary", "com.chrome.dev"],
     "edge": ["com.microsoft.emmx"],
     "brave": ["com.brave.browser"],
     "opera": ["com.opera.browser", "com.opera.mini.native"],
+    "samsung": ["com.sec.android.app.sbrowser", "com.sec.android.app.sbrowser.beta"],
 }
 
 
@@ -33,10 +34,15 @@ def _candidate_paths(browser: str, relative_path: str) -> list[str]:
     package_names = _CHROMIUM_BROWSER_PACKAGES.get(browser, _CHROMIUM_BROWSER_PACKAGES["chrome"])
     out: list[str] = []
     for package_name in package_names:
+        out.append(f"/data/user/0/{package_name}/app_chromium/Default/{relative_path}")
+        out.append(f"/data/user/0/{package_name}/app_chrome/Default/{relative_path}")
+        out.append(f"/data/user/0/{package_name}/app_sbrowser/Default/{relative_path}")
         out.append(f"/data/data/{package_name}/app_chromium/Default/{relative_path}")
         out.append(f"/data/data/{package_name}/app_chrome/Default/{relative_path}")
+        out.append(f"/data/data/{package_name}/app_sbrowser/Default/{relative_path}")
         out.append(f"/data/user_de/0/{package_name}/app_chromium/Default/{relative_path}")
         out.append(f"/data/user_de/0/{package_name}/app_chrome/Default/{relative_path}")
+        out.append(f"/data/user_de/0/{package_name}/app_sbrowser/Default/{relative_path}")
     return out
 
 
@@ -120,7 +126,7 @@ def extract_chrome_cookies(
     if not devices.has_root(serial):
         raise DeviceError(f"Root required to access {browser.title()} cookies")
 
-    candidates = _candidate_paths(browser, "Cookies")
+    candidates = _candidate_paths(browser, "Network/Cookies") + _candidate_paths(browser, "Cookies")
     with secure_temp_dir(prefix="lockknife-browser-") as d:
         for remote in candidates:
             local = d / "Cookies"
