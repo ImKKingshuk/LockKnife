@@ -8,6 +8,10 @@ from lockknife.core.device import DeviceManager
 from lockknife.core.exceptions import DeviceError
 from lockknife.core.logging import get_logger
 from lockknife.core.security import secure_temp_dir
+from lockknife.modules.extraction._extraction_common import (
+    parse_content_query_rows,
+    try_root_staging_pull,
+)
 
 log = get_logger()
 
@@ -133,6 +137,52 @@ def _parse_exif_gps(jpeg_bytes: bytes) -> tuple[float | None, float | None]:
     return None, None
 
 
+def _query_mediastore_content(
+    devices: DeviceManager, serial: str, uri: str, limit: int
+) -> list[MediaFile]:
+    cmd = (
+        f"content query --uri {uri} "
+        f"--projection _id,_data,_size,datetaken,latitude,longitude,mime_type"
+    )
+    if devices.has_root(serial):
+        cmd = f'su -c "{cmd}"'
+    try:
+        raw = devices.shell(serial, cmd, timeout_s=30.0)
+    except (DeviceError, TimeoutError, OSError) as e:
+        log.debug("mediastore_query_failed", exc_info=True, serial=serial, uri=uri, error=str(e))
+        return []
+
+    rows = parse_content_query_rows(raw)
+    out: list[MediaFile] = []
+    for r in rows[:limit]:
+        path = r.get("_data")
+        if not path:
+            continue
+        try:
+            size = int(r.get("_size") or 0)
+        except (ValueError, TypeError):
+            size = 0
+
+        lat: float | None = None
+        lon: float | None = None
+        try:
+            if r.get("latitude"):
+                lat = float(r["latitude"])
+            if r.get("longitude"):
+                lon = float(r["longitude"])
+        except (ValueError, TypeError):
+            pass
+
+        kind = None
+        if "." in path:
+            kind = path.rsplit(".", 1)[-1].lower()
+        elif r.get("mime_type"):
+            kind = r["mime_type"].split("/")[-1].lower()
+
+        out.append(MediaFile(path=path, size=size, kind=kind, gps_lat=lat, gps_lon=lon))
+    return out
+
+
 def extract_media_with_exif(
     devices: DeviceManager, serial: str, limit: int = 50
 ) -> list[MediaFile]:
@@ -140,51 +190,65 @@ def extract_media_with_exif(
         raise ValueError("limit must be > 0")
     has_root = devices.has_root(serial)
 
-    with secure_temp_dir(prefix="lockknife-media-") as d:
-        candidates = [
-            "/sdcard/DCIM/Camera",
-            "/sdcard/DCIM",
-            "/sdcard/Pictures",
-            "/sdcard/Movies",
-            "/sdcard/Download",
-        ]
-        files: list[str] = []
-        for base in candidates:
-            cmd = f"ls -1t {_escape_path_for_sh(base)} 2>/dev/null | head -n {int(limit)}"
-            if has_root:
-                cmd = f'su -c "{cmd}"'
-            try:
-                listing = devices.shell(serial, cmd, timeout_s=30.0)
-            except (DeviceError, TimeoutError, OSError) as e:
-                log.debug("media_ls_failed", exc_info=True, serial=serial, base=base, error=str(e))
-                continue
-            for ln in listing.splitlines():
-                name = ln.strip()
-                if not name or name.endswith("/"):
-                    continue
-                files.append(f"{base.rstrip('/')}/{name}")
+    candidates = [
+        "/sdcard/DCIM/Camera",
+        "/sdcard/DCIM/100ANDRO",
+        "/sdcard/DCIM",
+        "/sdcard/Pictures/Screenshots",
+        "/sdcard/Pictures",
+        "/sdcard/Movies",
+        "/sdcard/Download",
+        "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images",
+        "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Video",
+        "/sdcard/WhatsApp/Media/WhatsApp Images",
+        "/sdcard/WhatsApp/Media/WhatsApp Video",
+        "/sdcard/Telegram/Telegram Images",
+        "/sdcard/Telegram/Telegram Video",
+        "/sdcard/Android/data/org.telegram.messenger/files/Telegram/Telegram Images",
+        "/storage/emulated/0/DCIM/Camera",
+        "/storage/emulated/0/Pictures",
+    ]
 
-        seen = set()
-        uniq = []
-        for p in files:
-            if p in seen:
+    files: list[str] = []
+    for base in candidates:
+        cmd = f"ls -1t {_escape_path_for_sh(base)} 2>/dev/null | head -n {int(limit)}"
+        if has_root:
+            cmd = f'su -c "{cmd}"'
+        try:
+            listing = devices.shell(serial, cmd, timeout_s=25.0)
+        except (DeviceError, TimeoutError, OSError) as e:
+            log.debug("media_ls_failed", exc_info=True, serial=serial, base=base, error=str(e))
+            continue
+        for ln in listing.splitlines():
+            name = ln.strip()
+            if not name or name.endswith("/"):
                 continue
-            seen.add(p)
-            uniq.append(p)
-        files = uniq[:limit]
-        out: list[MediaFile] = []
+            files.append(f"{base.rstrip('/')}/{name}")
+
+    seen = set()
+    uniq = []
+    for p in files:
+        if p in seen:
+            continue
+        seen.add(p)
+        uniq.append(p)
+    files = uniq[:limit]
+
+    out: list[MediaFile] = []
+    with secure_temp_dir(prefix="lockknife-media-") as d:
         for remote in files:
             name = pathlib.PurePosixPath(remote).name
             local = d / name
+            pulled = False
             try:
-                devices.pull(serial, remote, local, timeout_s=90.0)
-            except (DeviceError, TimeoutError, OSError) as e:
-                log.debug(
-                    "media_pull_failed", exc_info=True, serial=serial, remote=remote, error=str(e)
-                )
+                devices.pull(serial, remote, local, timeout_s=60.0)
+                pulled = local.exists() and local.stat().st_size > 0
+            except (DeviceError, TimeoutError, OSError):
+                pulled = try_root_staging_pull(devices, serial, remote, local, timeout_s=60.0)
+
+            if not pulled or not local.exists():
                 continue
-            if not local.exists():
-                continue
+
             size = int(local.stat().st_size)
             gps_lat = None
             gps_lon = None
@@ -194,7 +258,34 @@ def extract_media_with_exif(
             out.append(
                 MediaFile(path=remote, size=size, kind=kind, gps_lat=gps_lat, gps_lon=gps_lon)
             )
-        return out
+
+    # MediaStore ContentProvider query fallback if filesystem pull surfaced fewer files
+    if len(out) < limit:
+        remaining = limit - len(out)
+        seen_paths = {m.path for m in out}
+        ms_images = _query_mediastore_content(
+            devices, serial, "content://media/external/images/media", remaining
+        )
+        for mf in ms_images:
+            if mf.path not in seen_paths:
+                out.append(mf)
+                seen_paths.add(mf.path)
+                if len(out) >= limit:
+                    break
+
+        if len(out) < limit:
+            remaining = limit - len(out)
+            ms_videos = _query_mediastore_content(
+                devices, serial, "content://media/external/video/media", remaining
+            )
+            for mf in ms_videos:
+                if mf.path not in seen_paths:
+                    out.append(mf)
+                    seen_paths.add(mf.path)
+                    if len(out) >= limit:
+                        break
+
+    return out[:limit]
 
 
 def _escape_path_for_sh(p: str) -> str:

@@ -37,13 +37,13 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
         "extraction.sms"
         | "extraction.contacts"
         | "extraction.call_logs"
-        | "extraction.browser" => Some(CapabilityMetadata {
+        | "extraction.browser"
+        | "extraction.media" => Some(CapabilityMetadata {
             status: "production-ready",
             requirements: "adb + root/device access",
             notes: "Production-ready extraction with multi-user CE/DE paths, root staging, and ContentProvider fallback.",
         }),
-        "extraction.media"
-        | "extraction.location" => Some(CapabilityMetadata {
+        "extraction.location" => Some(CapabilityMetadata {
             status: "functional",
             requirements: "adb + device access",
             notes: "Broad coverage exists today, but some outputs remain device- and app-specific.",
@@ -175,9 +175,9 @@ pub(super) fn action_capability_metadata(action_id: &str) -> Option<CapabilityMe
             notes: "These workflows are assistive triage helpers rather than authoritative conclusions.",
         }),
         "crypto.wallets" | "crypto.transactions" => Some(CapabilityMetadata {
-            status: "functional",
-            requirements: "local wallet DB or address input",
-            notes: "Current support is practical, but not as deep as specialized crypto-investigation suites.",
+            status: "production-ready",
+            requirements: "local wallet DB, device serial, or address input",
+            notes: "Multi-chain carving (ETH, BTC bech32/legacy, SOL, TRX), BIP-39 mnemonic seed recovery, Web3 keystores, and on-device mobile wallet discovery.",
         }),
         "credentials.offline_pin" => Some(CapabilityMetadata {
             status: "production-ready",

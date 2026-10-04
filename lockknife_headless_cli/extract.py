@@ -9,6 +9,10 @@ from lockknife.core.logging import get_logger
 from lockknife_headless_cli._extract_all import register as _register_all
 from lockknife_headless_cli._extract_basic import register as _register_basic
 from lockknife_headless_cli._extract_browser import register as _register_browser
+from lockknife_headless_cli._extract_helpers import (
+    _register_output,
+    _resolve_case_output,
+)
 from lockknife_headless_cli._extract_messaging import register as _register_messaging
 from lockknife_headless_cli._extract_misc import register as _register_misc
 

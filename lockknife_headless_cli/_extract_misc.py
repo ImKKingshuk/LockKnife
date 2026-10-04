@@ -91,3 +91,38 @@ def register(extract: Any, cli: Any) -> None:
                 cli.console.print(str(output))
             return
         cli.console.print_json(json.dumps(payload))
+
+    @extract.command("wallets")
+    @click.option("-s", "--serial", required=True)
+    @click.option("--limit", type=int, default=20, help="Max files per wallet app to pull/carve.")
+    @click.option("--output", type=click.Path(dir_okay=False, path_type=pathlib.Path))
+    @click.option(
+        "--case-dir", type=click.Path(file_okay=False, exists=True, path_type=pathlib.Path)
+    )
+    @click.pass_obj
+    def extract_wallets_cmd(
+        app: Any,
+        serial: str,
+        limit: int,
+        output: pathlib.Path | None,
+        case_dir: pathlib.Path | None,
+    ) -> None:
+        from lockknife.modules.crypto_wallet.wallet import extract_device_wallets
+
+        wallets = extract_device_wallets(app.devices, serial, limit_files_per_app=limit)
+        items = [dataclasses.asdict(w) for w in wallets]
+        output, derived = cli._resolve_case_output(output, case_dir, filename="wallets.json")
+        if output:
+            write_json(output, items)
+            cli._register_output(
+                case_dir=case_dir,
+                output=output,
+                category="extract-wallets",
+                source_command="extract wallets",
+                device_serial=serial,
+                metadata={"wallet_count": len(items), "limit": limit},
+            )
+            if derived:
+                cli.console.print(str(output))
+            return
+        cli.console.print_json(json.dumps(items))

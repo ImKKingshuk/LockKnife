@@ -54,7 +54,16 @@ REGISTRY: tuple[ArtifactParserSpec, ...] = (
         "android-accounts",
         "Android Accounts",
         "accounts",
-        ("accounts.json", "accounts.xml", "*accounts*.json", "*accounts*.xml"),
+        (
+            "accounts.json",
+            "accounts.xml",
+            "*accounts*.json",
+            "*accounts*.xml",
+            "accounts_ce.db",
+            "accounts_de.db",
+            "accounts.db",
+            "*accounts*.db",
+        ),
         parse_accounts_artifacts,
     ),
     ArtifactParserSpec(

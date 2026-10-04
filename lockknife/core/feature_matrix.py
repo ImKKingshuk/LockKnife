@@ -272,13 +272,14 @@ FEATURE_MATRIX: tuple[FeatureEntry, ...] = (
     ),
     FeatureEntry(
         "crypto-wallet",
-        "Wallet artifact parsing",
-        "lockknife crypto-wallet wallet",
-        "functional",
-        "local wallet DB",
-        "Current support is practical but narrower than specialized wallet suites.",
+        "Wallet artifact parsing & device vault discovery",
+        "lockknife crypto-wallet wallet|scan-device",
+        "production-ready",
+        "local wallet DB / adb device",
+        "Multi-chain address carving (ETH, BTC bech32/legacy, SOL, TRX), BIP-39 mnemonic seed recovery, Web3 keystores, and on-device mobile wallet vault discovery.",
     ),
 )
+
 
 
 def iter_features() -> tuple[FeatureEntry, ...]:

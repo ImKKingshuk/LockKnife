@@ -149,6 +149,34 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
     vulnerability_report = cb.vulnerability_report
 
     if action == "crypto.wallets":
+        serial = _opt(params, "serial")
+        raw_path = _opt(params, "path")
+        if serial and not raw_path:
+            limit = int(params.get("limit") or 20)
+            case_dir = _path_param(params.get("case_dir"))
+            output, _derived = _resolve_case_output(
+                _path_param(params.get("output")),
+                case_dir,
+                area="derived",
+                filename=f"crypto_wallets_{_safe_name(serial)}.json",
+            )
+            from lockknife.modules.crypto_wallet.wallet import extract_device_wallets
+
+            wallets = extract_device_wallets(app.devices, serial, limit_files_per_app=limit)
+            payload = [dataclasses.asdict(w) for w in wallets]
+            if output is not None:
+                write_json(output, payload)
+                _register_case_output(
+                    case_dir,
+                    path=output,
+                    category="crypto-wallet",
+                    source_command="crypto-wallet scan-device",
+                    device_serial=serial,
+                    metadata={"serial": serial, "wallet_count": len(payload), "limit": limit},
+                )
+                return _ok(payload, f"Device wallets extracted: {len(payload)} to {output}")
+            return _ok(payload, f"Device wallets extracted: {len(payload)}")
+
         path = pathlib.Path(_require(params, "path"))
         limit = int(params.get("limit") or 5000)
         do_lookup = _bool_param(params.get("lookup")) or params.get("lookup") is None
@@ -179,6 +207,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             )
             return _ok(payload, f"Wallets extracted: {len(payload)} to {output}")
         return _ok(payload, f"Wallets extracted: {len(payload)}")
+
 
     if action == "crypto.transactions":
         address = _require(params, "address")

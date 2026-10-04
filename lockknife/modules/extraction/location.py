@@ -51,11 +51,23 @@ class LocationArtifacts:
 
 
 def extract_location_snapshot(devices: DeviceManager, serial: str) -> LocationSnapshot:
-    if not devices.has_root(serial):
-        raise DeviceError("Root required to query location services")
-    raw = devices.shell(
-        serial, 'su -c "dumpsys location 2>/dev/null | head -n 200"', timeout_s=20.0
+    has_root = devices.has_root(serial)
+    cmd = (
+        'su -c "dumpsys location 2>/dev/null | head -n 200"'
+        if has_root
+        else "dumpsys location 2>/dev/null | head -n 200"
     )
+    raw = ""
+    try:
+        raw = devices.shell(serial, cmd, timeout_s=20.0)
+    except DeviceError:
+        if not has_root:
+            raise DeviceError("Root required to query location services") from None
+        raise
+
+    if not raw.strip() and not has_root:
+        raise DeviceError("Root required to query location services")
+
     lat = None
     lon = None
     provider = None
@@ -187,14 +199,31 @@ def _parse_cell_towers(raw: str, limit: int = 20) -> list[CellTower]:
 
 
 def extract_location_artifacts(devices: DeviceManager, serial: str) -> LocationArtifacts:
-    if not devices.has_root(serial):
-        raise DeviceError("Root required to query location services")
-
-    location_raw = devices.shell(serial, 'su -c "dumpsys location 2>/dev/null"', timeout_s=40.0)
-    wifi_raw = devices.shell(serial, 'su -c "dumpsys wifi 2>/dev/null"', timeout_s=40.0)
-    telephony_raw = devices.shell(
-        serial, 'su -c "dumpsys telephony.registry 2>/dev/null"', timeout_s=40.0
+    has_root = devices.has_root(serial)
+    loc_cmd = 'su -c "dumpsys location 2>/dev/null"' if has_root else "dumpsys location 2>/dev/null"
+    wifi_cmd = 'su -c "dumpsys wifi 2>/dev/null"' if has_root else "dumpsys wifi 2>/dev/null"
+    tel_cmd = (
+        'su -c "dumpsys telephony.registry 2>/dev/null"'
+        if has_root
+        else "dumpsys telephony.registry 2>/dev/null"
     )
+
+    try:
+        location_raw = devices.shell(serial, loc_cmd, timeout_s=40.0)
+        wifi_raw = devices.shell(serial, wifi_cmd, timeout_s=40.0)
+        telephony_raw = devices.shell(serial, tel_cmd, timeout_s=40.0)
+    except DeviceError:
+        if not has_root:
+            raise DeviceError("Root required to query location services") from None
+        raise
+
+    if (
+        not location_raw.strip()
+        and not wifi_raw.strip()
+        and not telephony_raw.strip()
+        and not has_root
+    ):
+        raise DeviceError("Root required to query location services")
 
     snap = extract_location_snapshot(devices, serial)
     wifi = _parse_wifi_scan(wifi_raw)
