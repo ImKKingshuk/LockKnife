@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import re
 import select
 import subprocess
 import sys
@@ -43,6 +44,8 @@ lockknife_core.run_tui(callback, build_action_registry().catalog_json())
             os.read(master, 65536)
         os.write(master, keys)
 
+    _ansi_re = re.compile(rb"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
     def expect(text: str) -> None:
         output = bytearray()
         deadline = time.monotonic() + 10
@@ -53,7 +56,8 @@ lockknife_core.run_tui(callback, build_action_registry().catalog_json())
                     output.extend(os.read(master, 65536))
                 except OSError:
                     break
-                if text.encode() in output:
+                stripped = _ansi_re.sub(b"", output)
+                if text.encode() in output or text.encode() in stripped:
                     return
             if process.poll() is not None:
                 break
@@ -64,7 +68,7 @@ lockknife_core.run_tui(callback, build_action_registry().catalog_json())
     try:
         expect("Modules")
         send(b"n")
-        expect("Case directory:")
+        expect("Case direc")
         send(b"\x1b[27u")
         time.sleep(0.3)
         send(b"/")

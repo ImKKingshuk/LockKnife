@@ -16,6 +16,7 @@ from lockknife.core.logging import configure_logging, get_logger, trace_context
 from lockknife.core.output import console
 from lockknife.core.plugin import import_submodules
 from lockknife.modules.base import load_registered_modules
+from lockknife_headless_cli.agent import agent_group
 from lockknife_headless_cli.ai import ai
 from lockknife_headless_cli.analyze import analyze
 from lockknife_headless_cli.apk import apk
@@ -32,6 +33,7 @@ from lockknife_headless_cli.health import doctor_cmd, health_cmd
 from lockknife_headless_cli.intel import intel
 from lockknife_headless_cli.interactive import interactive
 from lockknife_headless_cli.network import network
+from lockknife_headless_cli.pipeline import pipeline_group
 from lockknife_headless_cli.plugins import plugins_group
 from lockknife_headless_cli.report import report
 from lockknife_headless_cli.runtime import runtime
@@ -180,6 +182,8 @@ cli.add_command(security)
 cli.add_command(intel)
 cli.add_command(ai)
 cli.add_command(network)
+cli.add_command(agent_group)
+cli.add_command(pipeline_group)
 cli.add_command(crypto_wallet)
 cli.add_command(interactive)
 cli.add_command(completion)

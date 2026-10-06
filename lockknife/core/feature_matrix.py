@@ -32,6 +32,22 @@ FEATURE_MATRIX: tuple[FeatureEntry, ...] = (
     ),
     FeatureEntry(
         "core",
+        "Autonomous investigation pipelines",
+        "lockknife pipeline run|plan|list|resume",
+        "production-ready",
+        "base install",
+        "DAG-based autonomous investigation pipelines, adaptive fallback ladders, and 5 built-in playbooks.",
+    ),
+    FeatureEntry(
+        "core",
+        "Autonomous agent kernel",
+        "lockknife agent goal|chat|daemon|memory",
+        "production-ready",
+        "base install",
+        "Fully autonomous reasoning & execution loop, researcher autonomy policy, tool calling, 3-tier memory with AutoCompact, and proactive heartbeat daemon.",
+    ),
+    FeatureEntry(
+        "core",
         "Default TUI",
         "lockknife",
         "functional",
