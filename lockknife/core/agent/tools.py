@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import logging
 import os
@@ -9,6 +10,7 @@ from collections.abc import Callable
 from typing import Any
 
 from lockknife.core.adb import AdbClient
+from lockknife.core.agent.exec_session import ExecSessionManager
 from lockknife.core.agent.models import ToolInvocation, ToolObservation
 
 logger = logging.getLogger("lockknife.agent.tools")
@@ -25,12 +27,14 @@ class AgentToolRegistry:
         action_callback: Callable[[str, dict[str, Any]], dict[str, Any]] | None = None,
         subagent_manager: Any | None = None,
         memory_store: Any | None = None,
+        exec_session_manager: ExecSessionManager | None = None,
     ) -> None:
         self.case_dir = pathlib.Path(case_dir).resolve()
         self.target_serial = target_serial
         self._action_callback = action_callback
         self.subagent_manager = subagent_manager
         self.memory_store = memory_store
+        self.exec_sessions = exec_session_manager or ExecSessionManager()
         self._adb_client: AdbClient | None = None
         self._tool_specs_cache: list[dict[str, Any]] | None = None
 
@@ -162,6 +166,69 @@ class AgentToolRegistry:
                         },
                     },
                     "required": ["objective"],
+                },
+            },
+        })
+
+        specs.append({
+            "type": "function",
+            "function": {
+                "name": "exec_session_start",
+                "description": "Start a persistent, stateful interactive background process (e.g. interactive shell, logcat stream, tcpdump).",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "command": {"type": "string", "description": "The command line string to run."},
+                        "session_id": {"type": "string", "description": "Optional custom session ID."},
+                    },
+                    "required": ["command"],
+                },
+            },
+        })
+
+        specs.append({
+            "type": "function",
+            "function": {
+                "name": "exec_session_write",
+                "description": "Send stdin input text to an active interactive background session.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": {"type": "string", "description": "Target session ID."},
+                        "input_text": {"type": "string", "description": "Input text to write to process stdin."},
+                    },
+                    "required": ["session_id", "input_text"],
+                },
+            },
+        })
+
+        specs.append({
+            "type": "function",
+            "function": {
+                "name": "exec_session_poll",
+                "description": "Poll and drain buffered output lines from an active background session.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": {"type": "string", "description": "Target session ID."},
+                        "wait_s": {"type": "number", "description": "Seconds to wait for new output (default: 0.5)."},
+                    },
+                    "required": ["session_id"],
+                },
+            },
+        })
+
+        specs.append({
+            "type": "function",
+            "function": {
+                "name": "exec_session_close",
+                "description": "Terminate an active background session cleanly.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": {"type": "string", "description": "Target session ID to close."},
+                    },
+                    "required": ["session_id"],
                 },
             },
         })
@@ -335,6 +402,57 @@ class AgentToolRegistry:
                     artifacts_created=sub_res.artifacts_created,
                 )
 
+            if tool_id == "exec_session_start":
+                cmd = str(args.get("command") or "").strip()
+                sid = str(args.get("session_id") or "").strip() or None
+                res = self.exec_sessions.start_session(command=cmd, session_id=sid)
+                return ToolObservation(
+                    call_id=invocation.call_id,
+                    tool_id=tool_id,
+                    success=bool(res.get("ok", False)),
+                    output=res,
+                    error=res.get("error"),
+                    duration_s=time.perf_counter() - start_time,
+                )
+
+            if tool_id == "exec_session_write":
+                sid = str(args.get("session_id") or "").strip()
+                txt = str(args.get("input_text") or "")
+                res = self.exec_sessions.write_session(session_id=sid, input_text=txt)
+                return ToolObservation(
+                    call_id=invocation.call_id,
+                    tool_id=tool_id,
+                    success=bool(res.get("ok", False)),
+                    output=res,
+                    error=res.get("error"),
+                    duration_s=time.perf_counter() - start_time,
+                )
+
+            if tool_id == "exec_session_poll":
+                sid = str(args.get("session_id") or "").strip()
+                wait_s = float(args.get("wait_s", 0.5))
+                res = self.exec_sessions.poll_session(session_id=sid, wait_s=wait_s)
+                return ToolObservation(
+                    call_id=invocation.call_id,
+                    tool_id=tool_id,
+                    success=bool(res.get("ok", False)),
+                    output=res,
+                    error=res.get("error"),
+                    duration_s=time.perf_counter() - start_time,
+                )
+
+            if tool_id == "exec_session_close":
+                sid = str(args.get("session_id") or "").strip()
+                res = self.exec_sessions.close_session(session_id=sid)
+                return ToolObservation(
+                    call_id=invocation.call_id,
+                    tool_id=tool_id,
+                    success=bool(res.get("ok", False)),
+                    output=res,
+                    error=res.get("error"),
+                    duration_s=time.perf_counter() - start_time,
+                )
+
             # 2. LockKnife Dynamic Action Callback
             cb = self._get_action_callback()
             params = dict(args)
@@ -365,3 +483,20 @@ class AgentToolRegistry:
                 error=f"Execution error: {exc}",
                 duration_s=time.perf_counter() - start_time,
             )
+
+    def execute_batch(
+        self,
+        invocations: list[ToolInvocation],
+        max_concurrency: int = 4,
+    ) -> list[ToolObservation]:
+        """Execute a batch of tool calls concurrently while preserving invocation order."""
+        if not invocations:
+            return []
+        if len(invocations) == 1 or max_concurrency <= 1:
+            return [self.execute(inv) for inv in invocations]
+
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(len(invocations), max_concurrency)
+        ) as pool:
+            futures = [pool.submit(self.execute, inv) for inv in invocations]
+            return [f.result() for f in futures]

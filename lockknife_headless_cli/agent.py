@@ -43,6 +43,7 @@ def agent_group() -> None:
 @click.option("--api-key", type=str, default=None, help="LLM API key.")
 @click.option("--mock", is_flag=True, default=False, help="Use deterministic mock provider for testing.")
 @click.option("--unrestricted/--restricted", default=True, show_default=True, help="Researcher autonomy mode (bypasses confirmation gates).")
+@click.option("--concurrency", type=int, default=4, show_default=True, help="Concurrency limit for parallel tool execution.")
 @click.option("--format", "out_format", type=click.Choice(["text", "json", "markdown"], case_sensitive=False), default="text", help="Output format.")
 def agent_goal_cmd(
     objective: str,
@@ -54,6 +55,7 @@ def agent_goal_cmd(
     api_key: str | None,
     mock: bool,
     unrestricted: bool,
+    concurrency: int,
     out_format: str,
 ) -> None:
     goal = AgentGoal(
@@ -105,6 +107,7 @@ def agent_goal_cmd(
         target_device=target_device,
         provider=provider,
         policy=policy,
+        max_concurrency=concurrency,
         on_turn_start=on_turn_start,
         on_tool_execute=on_tool_execute,
         on_tool_result=on_tool_result,
@@ -206,6 +209,47 @@ def agent_chat_cmd(
         if user_input.lower() == "/facts":
             facts = runtime.memory.get_facts()
             console.print_json(json.dumps(facts))
+            continue
+
+        if user_input.lower() == "/plan":
+            table = Table(title="Autonomous Investigation Milestone Plan")
+            table.add_column("ID", style="cyan")
+            table.add_column("Milestone", style="bold white")
+            table.add_column("Status", style="green")
+            table.add_column("Description")
+            for m in runtime.plan.milestones:
+                table.add_row(m.milestone_id, m.title, m.status.value.upper(), m.description)
+            console.print(table)
+            continue
+
+        if user_input.lower().startswith("/steer "):
+            guidance = user_input[7:].strip()
+            runtime.steer(guidance)
+            console.print(f"[bold green]✓ Mid-flight guidance queued:[/bold green] {guidance}")
+            continue
+
+        if user_input.lower() == "/sessions":
+            sessions = runtime.tools.exec_sessions.list_sessions()
+            if not sessions:
+                console.print("[yellow]No active background exec sessions.[/yellow]")
+            else:
+                table = Table(title="Active Stateful Exec Sessions")
+                table.add_column("Session ID", style="cyan")
+                table.add_column("Command", style="white")
+                table.add_column("Running", style="green")
+                table.add_column("Elapsed (s)", style="yellow")
+                for s in sessions:
+                    table.add_row(s["session_id"], s["command"], str(s["is_running"]), str(s["elapsed_s"]))
+                console.print(table)
+            continue
+
+        if user_input.lower().startswith("/kill "):
+            sid = user_input[6:].strip()
+            res = runtime.tools.exec_sessions.close_session(sid)
+            if res.get("ok"):
+                console.print(f"[bold green]✓ Closed session {sid}[/bold green]")
+            else:
+                console.print(f"[bold red]Failed to close session: {res.get('error')}[/bold red]")
             continue
 
         if user_input.lower() == "/tools":

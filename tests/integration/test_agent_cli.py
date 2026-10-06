@@ -70,3 +70,39 @@ def test_cli_agent_memory_cmd(tmp_path: pathlib.Path):
     assert mem_res.exit_code == 0
     assert "Agent Memory State" in mem_res.output
     assert "Episodic Turns Recorded: 2" in mem_res.output
+
+
+def test_cli_agent_goal_concurrency(tmp_path: pathlib.Path):
+    case_dir = tmp_path / "agent_case_conc"
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--cli",
+            "agent",
+            "goal",
+            "Fast concurrent inspection",
+            "--case-dir",
+            str(case_dir),
+            "--concurrency",
+            "2",
+            "--mock",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "COMPLETED" in result.output
+
+
+def test_cli_agent_chat_slash_commands(tmp_path: pathlib.Path):
+    case_dir = tmp_path / "agent_case_chat"
+    runner = CliRunner()
+    inputs = "/plan\n/facts\n/sessions\n/steer prioritize contacts db\n/exit\n"
+    result = runner.invoke(
+        cli,
+        ["--cli", "agent", "chat", "--case-dir", str(case_dir), "--mock"],
+        input=inputs,
+    )
+    assert result.exit_code == 0
+    assert "Autonomous Investigation Milestone Plan" in result.output
+    assert "Mid-flight guidance queued: prioritize contacts db" in result.output
+    assert "Exiting agent REPL." in result.output

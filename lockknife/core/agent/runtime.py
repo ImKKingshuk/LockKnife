@@ -13,6 +13,7 @@ from lockknife.core.agent.models import (
     ToolObservation,
     TurnRecord,
 )
+from lockknife.core.agent.planner import GoalPlan
 from lockknife.core.agent.policy import ResearcherPolicy
 from lockknife.core.agent.provider import (
     DeterministicMockProvider,
@@ -20,6 +21,7 @@ from lockknife.core.agent.provider import (
     OpenAICompatibleProvider,
     ProviderConfig,
 )
+from lockknife.core.agent.steering import SteeringQueue
 from lockknife.core.agent.subagent import SubagentManager
 from lockknife.core.agent.tools import AgentToolRegistry
 from lockknife.core.agent.turn import TurnEngine
@@ -38,6 +40,9 @@ class AutonomousRuntime:
         target_device: str | None = None,
         provider: LLMProvider | None = None,
         policy: ResearcherPolicy | None = None,
+        plan: GoalPlan | None = None,
+        steering: SteeringQueue | None = None,
+        max_concurrency: int = 4,
         action_callback: Callable[[str, dict[str, Any]], dict[str, Any]] | None = None,
         on_turn_start: Callable[[int], None] | None = None,
         on_turn_decision: Callable[[TurnRecord], None] | None = None,
@@ -49,6 +54,10 @@ class AutonomousRuntime:
         self.case_dir = self.policy.ensure_case_workspace(case_dir)
         self.goal.case_dir = self.case_dir
         self.target_device = target_device or self.goal.target_device
+
+        self.plan = plan or GoalPlan(goal)
+        self.steering = steering or SteeringQueue()
+        self.max_concurrency = max(1, max_concurrency)
 
         self.provider = provider or OpenAICompatibleProvider()
         self.memory = MemoryStore(case_dir=self.case_dir)
@@ -64,6 +73,7 @@ class AutonomousRuntime:
                 provider=self.provider,
                 policy=self.policy,
                 action_callback=action_callback,
+                max_concurrency=self.max_concurrency,
             )
 
         self.subagent_manager = SubagentManager(
@@ -86,6 +96,9 @@ class AutonomousRuntime:
             tools=self.tools,
             memory=self.memory,
             policy=self.policy,
+            plan=self.plan,
+            steering=self.steering,
+            max_concurrency=self.max_concurrency,
             on_turn_start=on_turn_start,
             on_turn_decision=on_turn_decision,
             on_tool_execute=on_tool_execute,
@@ -95,6 +108,10 @@ class AutonomousRuntime:
     def run(self) -> AgentRunResult:
         """Execute the goal to completion or terminal budget."""
         return self.turn_engine.run_loop()
+
+    def steer(self, guidance: str) -> None:
+        """Inject mid-flight guidance into the running agent's steering queue."""
+        self.steering.push(guidance)
 
     def chat_step(self, user_input: str) -> str:
         """Interactive REPL single-step response generator."""
