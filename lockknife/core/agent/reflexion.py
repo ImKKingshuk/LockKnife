@@ -51,7 +51,7 @@ class ReflexionEngine:
 
         active_milestone = self.plan.get_active_milestone() if self.plan else None
 
-        for call, obs in zip(calls, observations):
+        for _call, obs in zip(calls, observations):
             tool_id = obs.tool_id
             output_str = str(obs.output or "")
             err_str = str(obs.error or "")

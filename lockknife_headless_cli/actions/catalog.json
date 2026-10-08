@@ -4141,6 +4141,277 @@
       ],
       "id": "exploit",
       "label": "Exploitation"
+    },
+    {
+      "id": "agent",
+      "label": "Autonomous Agent",
+      "actions": [
+        {
+          "id": "agent.goal",
+          "label": "Execute Agent Mission",
+          "requires_device": false,
+          "confirm": false,
+          "fields": [
+            {
+              "key": "objective",
+              "label": "Mission Objective",
+              "kind": "text",
+              "default": "Triage connected device and assess security posture",
+              "choices": []
+            },
+            {
+              "key": "case_dir",
+              "label": "Case Directory",
+              "kind": "text",
+              "default": "./cases/CASE-AGENT",
+              "choices": []
+            },
+            {
+              "key": "serial",
+              "label": "Device Serial",
+              "kind": "text",
+              "default": "",
+              "choices": []
+            },
+            {
+              "key": "budget",
+              "label": "Turn Budget",
+              "kind": "number",
+              "default": 25,
+              "choices": []
+            },
+            {
+              "key": "model",
+              "label": "Model Name",
+              "kind": "text",
+              "default": "",
+              "choices": []
+            },
+            {
+              "key": "mock",
+              "label": "Use Mock Provider",
+              "kind": "bool",
+              "default": false,
+              "choices": []
+            },
+            {
+              "key": "unrestricted",
+              "label": "Unrestricted Autonomy",
+              "kind": "bool",
+              "default": true,
+              "choices": []
+            }
+          ]
+        },
+        {
+          "id": "agent.chat",
+          "label": "Agent Chat Interaction",
+          "requires_device": false,
+          "confirm": false,
+          "fields": [
+            {
+              "key": "prompt",
+              "label": "User Prompt",
+              "kind": "text",
+              "default": "What capabilities are available?",
+              "choices": []
+            },
+            {
+              "key": "case_dir",
+              "label": "Case Directory",
+              "kind": "text",
+              "default": "./cases/CASE-AGENT",
+              "choices": []
+            },
+            {
+              "key": "serial",
+              "label": "Device Serial",
+              "kind": "text",
+              "default": "",
+              "choices": []
+            },
+            {
+              "key": "model",
+              "label": "Model Name",
+              "kind": "text",
+              "default": "",
+              "choices": []
+            }
+          ]
+        },
+        {
+          "id": "agent.daemon",
+          "label": "Agent Heartbeat Daemon",
+          "requires_device": false,
+          "confirm": false,
+          "fields": [
+            {
+              "key": "action",
+              "label": "Daemon Action",
+              "kind": "choice",
+              "default": "status",
+              "choices": [
+                "status",
+                "start",
+                "stop"
+              ]
+            },
+            {
+              "key": "serial",
+              "label": "Target Serial",
+              "kind": "text",
+              "default": "",
+              "choices": []
+            },
+            {
+              "key": "interval",
+              "label": "Poll Interval (s)",
+              "kind": "number",
+              "default": 30,
+              "choices": []
+            }
+          ]
+        },
+        {
+          "id": "agent.memory",
+          "label": "Query Agent Memory",
+          "requires_device": false,
+          "confirm": false,
+          "fields": [
+            {
+              "key": "query",
+              "label": "Semantic Search Query",
+              "kind": "text",
+              "default": "",
+              "choices": []
+            },
+            {
+              "key": "case_dir",
+              "label": "Case Directory",
+              "kind": "text",
+              "default": "./cases/CASE-AGENT",
+              "choices": []
+            },
+            {
+              "key": "limit",
+              "label": "Max Results",
+              "kind": "number",
+              "default": 10,
+              "choices": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pipeline",
+      "label": "Investigation Pipeline",
+      "actions": [
+        {
+          "id": "pipeline.list",
+          "label": "List Investigation Playbooks",
+          "requires_device": false,
+          "confirm": false,
+          "fields": [
+            {
+              "key": "format",
+              "label": "Output Format",
+              "kind": "choice",
+              "default": "json",
+              "choices": [
+                "table",
+                "json"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "pipeline.plan",
+          "label": "Inspect Playbook Execution Plan",
+          "requires_device": false,
+          "confirm": false,
+          "fields": [
+            {
+              "key": "playbook",
+              "label": "Playbook Name",
+              "kind": "text",
+              "default": "triage",
+              "choices": []
+            },
+            {
+              "key": "recipe",
+              "label": "Custom Recipe Path",
+              "kind": "text",
+              "default": "",
+              "choices": []
+            },
+            {
+              "key": "case_dir",
+              "label": "Case Directory",
+              "kind": "text",
+              "default": "./cases/CASE-PREVIEW",
+              "choices": []
+            },
+            {
+              "key": "serial",
+              "label": "Device Serial",
+              "kind": "text",
+              "default": "",
+              "choices": []
+            }
+          ]
+        },
+        {
+          "id": "pipeline.run",
+          "label": "Run Investigation Playbook",
+          "requires_device": false,
+          "confirm": true,
+          "fields": [
+            {
+              "key": "playbook",
+              "label": "Playbook Name",
+              "kind": "text",
+              "default": "triage",
+              "choices": []
+            },
+            {
+              "key": "recipe",
+              "label": "Custom Recipe Path",
+              "kind": "text",
+              "default": "",
+              "choices": []
+            },
+            {
+              "key": "case_dir",
+              "label": "Case Directory",
+              "kind": "text",
+              "default": "./cases/CASE-001",
+              "choices": []
+            },
+            {
+              "key": "serial",
+              "label": "Device Serial",
+              "kind": "text",
+              "default": "",
+              "choices": []
+            },
+            {
+              "key": "stop_on_failure",
+              "label": "Stop on Step Failure",
+              "kind": "bool",
+              "default": false,
+              "choices": []
+            },
+            {
+              "key": "resume",
+              "label": "Resume from Checkpoint",
+              "kind": "bool",
+              "default": false,
+              "choices": []
+            }
+          ]
+        }
+      ]
     }
   ],
   "schema_version": 1

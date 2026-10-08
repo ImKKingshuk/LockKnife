@@ -180,6 +180,7 @@ from lockknife.modules.security.malware import scan_with_yara
 from lockknife.modules.security.network_scan import scan_network
 from lockknife.modules.security.owasp import mastg_summary
 from lockknife.modules.security.selinux import get_selinux_status
+from lockknife_headless_cli._tui_callback_agent import handle as _handle_agent
 from lockknife_headless_cli._tui_callback_ai import handle as _handle_ai
 from lockknife_headless_cli._tui_callback_analyze import handle as _handle_analyze
 from lockknife_headless_cli._tui_callback_apk import handle as _handle_apk
@@ -223,6 +224,7 @@ from lockknife_headless_cli._tui_callback_helpers import (
 from lockknife_headless_cli._tui_callback_intelligence import handle as _handle_intelligence
 from lockknife_headless_cli._tui_callback_misc import handle as _handle_misc
 from lockknife_headless_cli._tui_callback_network import handle as _handle_network
+from lockknife_headless_cli._tui_callback_pipeline import handle as _handle_pipeline
 from lockknife_headless_cli._tui_callback_plugins import handle as _handle_plugins
 from lockknife_headless_cli._tui_callback_report import handle as _handle_report
 from lockknife_headless_cli._tui_callback_runtime import handle as _handle_runtime
@@ -247,6 +249,8 @@ _HANDLERS = (
     _handle_plugins,
     _handle_misc,
     _handle_exploit,
+    _handle_agent,
+    _handle_pipeline,
 )
 
 

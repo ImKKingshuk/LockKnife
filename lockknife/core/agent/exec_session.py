@@ -163,6 +163,6 @@ class ExecSessionManager:
     def close_all(self) -> None:
         """Cleanup all running sessions."""
         with self._lock:
-            for sid, s in list(self._sessions.items()):
+            for s in list(self._sessions.values()):
                 s.close()
             self._sessions.clear()

@@ -64,6 +64,13 @@ DEFAULT_CLI_BINDINGS: Mapping[str, CliBinding] = {
     "device.info": CliBinding(("device", "info"), "device-info"),
     "device.list": CliBinding(("device", "list"), "device-list"),
     "plugins.list": CliBinding(("plugins", "list"), "plugins-list"),
+    "agent.goal": CliBinding(("agent", "goal")),
+    "agent.chat": CliBinding(("agent", "chat")),
+    "agent.daemon": CliBinding(("agent", "daemon")),
+    "agent.memory": CliBinding(("agent", "memory")),
+    "pipeline.list": CliBinding(("pipeline", "list")),
+    "pipeline.plan": CliBinding(("pipeline", "plan")),
+    "pipeline.run": CliBinding(("pipeline", "run")),
 }
 
 

@@ -50,10 +50,11 @@ class AgentToolRegistry:
 
                 self._action_callback = build_tui_callback(None)
             except Exception as exc:
-                logger.error("Failed to load tui_callback: %s", exc)
+                err_msg = str(exc)
+                logger.error("Failed to load tui_callback: %s", err_msg)
 
                 def _fallback_cb(action: str, params: dict[str, Any]) -> dict[str, Any]:
-                    return {"ok": False, "error": f"Action callback unavailable: {exc}"}
+                    return {"ok": False, "error": f"Action callback unavailable: {err_msg}"}
 
                 self._action_callback = _fallback_cb
         return self._action_callback

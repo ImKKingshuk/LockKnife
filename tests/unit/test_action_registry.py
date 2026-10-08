@@ -189,7 +189,9 @@ def test_public_actions_have_complete_shared_form_metadata() -> None:
     metadata = load_action_metadata()
     public = {action.id: action for action in registry.actions() if not action.hidden}
     assert public.keys() == metadata.keys()
-    assert len(public) == 121
+    assert len(public) == 128
+    assert "agent.goal" in public
+    assert "pipeline.run" in public
     for action_id, action in public.items():
         spec = metadata[action_id]
         assert action.module_id == spec["module_id"]
