@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pathlib
+
 from lockknife.core.agent.memory import MemoryStore
 from lockknife.core.agent.models import (
     AgentGoal,

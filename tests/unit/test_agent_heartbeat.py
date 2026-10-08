@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from unittest.mock import MagicMock
+
 from lockknife.core.adb import AdbDevice
 from lockknife.core.agent.heartbeat import DeviceHeartbeatDaemon
 

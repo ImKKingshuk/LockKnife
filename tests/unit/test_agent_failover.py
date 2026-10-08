@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from unittest.mock import MagicMock
+
 from lockknife.core.agent.failover import FailoverProvider
 from lockknife.core.agent.models import ModelDecision
 

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import pathlib
+
 from click.testing import CliRunner
+
 from lockknife_headless_cli.main import cli
 
 

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import pathlib
+
 import pytest
-from lockknife.core.agent.policy import ResearcherPolicy
+
 from lockknife.core._case_store import is_case_workspace
+from lockknife.core.agent.policy import ResearcherPolicy
 
 
 def test_researcher_policy_unrestricted_mode(tmp_path: pathlib.Path):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from unittest.mock import MagicMock, patch
+
 from lockknife.core.agent.models import DecisionKind, ModelDecision, ToolInvocation
 from lockknife.core.agent.provider import (
     DeterministicMockProvider,

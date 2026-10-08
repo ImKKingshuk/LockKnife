@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pathlib
 from unittest.mock import MagicMock
+
 from lockknife.core.agent.models import AgentGoal, AgentRunResult, GoalStatus
 from lockknife.core.agent.subagent import SubagentManager
 

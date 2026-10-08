@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pathlib
 from unittest.mock import MagicMock
+
 from lockknife.core.agent.memory import MemoryStore
 from lockknife.core.agent.models import ToolInvocation
 from lockknife.core.agent.tools import AgentToolRegistry
