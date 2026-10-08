@@ -83,10 +83,32 @@ class ReflexionEngine:
                 if active_milestone and active_milestone.status == MilestoneStatus.PENDING:
                     active_milestone.start()
 
-                # Triage milestone satisfied
-                if active_milestone and "triage" in active_milestone.title.lower() and any(k in tool_id for k in ("health", "device", "info")):
-                    milestone_advance = f"Milestone '{active_milestone.title}' validated by {tool_id}."
-                    active_milestone.complete(f"Validated by {tool_id}")
+                if active_milestone and active_milestone.status == MilestoneStatus.IN_PROGRESS:
+                    m_title = active_milestone.title.lower()
+                    t_id = tool_id.lower()
+                    matched = False
+
+                    # Triage / Discovery / Device info
+                    if any(k in m_title for k in ("triage", "discovery", "recon", "detect", "inventory")):
+                        if any(k in t_id for k in ("health", "device", "info", "shell", "get_device", "sys")):
+                            matched = True
+                    # Extraction / Acquisition / Ingestion
+                    elif any(k in m_title for k in ("extract", "dump", "collect", "pull", "acqui")):
+                        if any(k in t_id for k in ("extract", "pull", "dump", "messaging", "contacts", "sms", "whatsapp", "telegram", "tar", "artifact")):
+                            matched = True
+                    # Analysis / Audit / Inspection / Forensics / CVE
+                    elif any(k in m_title for k in ("analys", "audit", "scan", "cve", "vulnerab", "forensic", "inspect")):
+                        if any(k in t_id for k in ("apk", "analy", "cve", "malware", "sqlite", "scan", "carv", "forensic")):
+                            matched = True
+                    # Reporting / Export / Synthesis / Output
+                    elif any(k in m_title for k in ("report", "synthe", "document", "summary", "export", "final")):
+                        if any(k in t_id for k in ("report", "case_write_file", "write", "summary")):
+                            matched = True
+
+                    if matched:
+                        milestone_advance = f"Milestone '{active_milestone.title}' validated by {tool_id}."
+                        active_milestone.complete(f"Validated by {tool_id}")
+                        active_milestone = self.plan.get_active_milestone() if self.plan else None
 
         return ReflexionCritique(
             has_issues=has_issues,

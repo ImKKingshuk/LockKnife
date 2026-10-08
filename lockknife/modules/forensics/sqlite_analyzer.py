@@ -52,13 +52,63 @@ def analyze_sqlite(
 ) -> SqliteAnalysis:
     if max_tables <= 0 or sample_rows < 0:
         raise ValueError("max_tables must be positive and sample_rows must be non-negative")
-    con = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
-    con.row_factory = sqlite3.Row
+    if not path.exists():
+        raise FileNotFoundError(f"SQLite database file not found: {path}")
+    wal_path = pathlib.Path(str(path) + "-wal")
+    journal_path = pathlib.Path(str(path) + "-journal")
+    file_size = path.stat().st_size
+
     try:
-        rows = con.execute(
-            "SELECT type, name, tbl_name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name LIMIT ?",
-            (max_tables * 4,),
-        ).fetchall()
+        con = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
+        con.row_factory = sqlite3.Row
+    except Exception as exc:
+        return SqliteAnalysis(
+            path=str(path),
+            tables=[],
+            objects=[],
+            pragma={},
+            wal={
+                "path": str(wal_path),
+                "exists": wal_path.exists(),
+                "size_bytes": wal_path.stat().st_size if wal_path.exists() else 0,
+            },
+            rollback_journal={
+                "path": str(journal_path),
+                "exists": journal_path.exists(),
+                "size_bytes": journal_path.stat().st_size if journal_path.exists() else 0,
+            },
+            summary={"table_count": 0, "object_count": 0, "error": str(exc)},
+            file_size_bytes=file_size,
+            integrity_check=f"Corrupted or invalid SQLite database: {exc}",
+        )
+
+    try:
+        try:
+            rows = con.execute(
+                "SELECT type, name, tbl_name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name LIMIT ?",
+                (max_tables * 4,),
+            ).fetchall()
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as exc:
+            integrity = _string_scalar(con, "PRAGMA integrity_check") or f"Corrupted SQLite: {exc}"
+            return SqliteAnalysis(
+                path=str(path),
+                tables=[],
+                objects=[],
+                pragma=_pragma_summary(con),
+                wal={
+                    "path": str(wal_path),
+                    "exists": wal_path.exists(),
+                    "size_bytes": wal_path.stat().st_size if wal_path.exists() else 0,
+                },
+                rollback_journal={
+                    "path": str(journal_path),
+                    "exists": journal_path.exists(),
+                    "size_bytes": journal_path.stat().st_size if journal_path.exists() else 0,
+                },
+                summary={"table_count": 0, "object_count": 0, "error": str(exc)},
+                file_size_bytes=file_size,
+                integrity_check=integrity,
+            )
         objects = [
             DatabaseObject(
                 name=str(row[1]),

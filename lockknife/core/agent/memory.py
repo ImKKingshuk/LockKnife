@@ -139,10 +139,10 @@ class MemoryStore:
 
         # 2. Append turns
         for turn in working_memory.recent_turns:
-            if turn.decision.reasoning:
+            if turn.decision.tool_calls:
                 messages.append({
                     "role": "assistant",
-                    "content": turn.decision.reasoning or "",
+                    "content": turn.decision.reasoning or turn.decision.text or "",
                     "tool_calls": [
                         {
                             "id": tc.call_id,
@@ -155,8 +155,11 @@ class MemoryStore:
                         for tc in turn.decision.tool_calls
                     ],
                 })
-            elif turn.decision.text:
-                messages.append({"role": "assistant", "content": turn.decision.text})
+            elif turn.decision.text or turn.decision.reasoning:
+                messages.append({
+                    "role": "assistant",
+                    "content": turn.decision.text or turn.decision.reasoning or "",
+                })
 
             for obs in turn.observations:
                 messages.append({

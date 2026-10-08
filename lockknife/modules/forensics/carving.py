@@ -54,15 +54,28 @@ def carve_deleted_files(
     max_matches: int = 50,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
+    if not input_path.exists():
+        return {
+            "input": str(input_path),
+            "source": source,
+            "output_dir": str(output_dir),
+            "carved_count": 0,
+            "sources": [],
+            "carved": [],
+            "error": f"Input path does not exist: {input_path}",
+        }
+
     scan_sources = _scan_sources(input_path, source=source)
     carved: list[dict[str, Any]] = []
     counter = 0
+    seen_offsets: set[int] = set()
     for source_entry in scan_sources:
         batch, counter = _carve_from_blob(
             source_entry,
             output_dir=output_dir,
             max_matches=max_matches - len(carved),
             counter=counter,
+            seen_offsets=seen_offsets,
         )
         carved.extend(batch)
         if len(carved) >= max_matches:
@@ -80,21 +93,66 @@ def carve_deleted_files(
 
 
 def _scan_sources(input_path: pathlib.Path, *, source: str) -> list[dict[str, Any]]:
-    raw = input_path.read_bytes()
-    if source == "image":
-        return [{"source_kind": "raw-image", "origin": str(input_path), "offset": 0, "blob": raw}]
-    if source == "sqlite" or (source == "auto" and raw.startswith(b"SQLite format 3\x00")):
+    if not input_path.exists():
+        return []
+    file_size = input_path.stat().st_size
+    if file_size == 0:
+        return []
+
+    # Read minimal header to determine file type without reading whole file
+    with input_path.open("rb") as f:
+        header_16 = f.read(16)
+
+    is_sqlite = header_16.startswith(b"SQLite format 3\x00")
+    if source == "sqlite" or (source == "auto" and is_sqlite):
+        raw = input_path.read_bytes()
         page_size = _sqlite_page_size(raw)
         return _recovery_sources(input_path, raw, page_size=page_size)
-    return [{"source_kind": "raw-image", "origin": str(input_path), "offset": 0, "blob": raw}]
+
+    # For raw images: if file size <= 32MB, load directly
+    max_chunk = 32 * 1024 * 1024
+    if file_size <= max_chunk:
+        raw = input_path.read_bytes()
+        return [{"source_kind": "raw-image", "origin": str(input_path), "offset": 0, "blob": raw}]
+
+    # For large raw images: stream in overlapping chunks to prevent memory exhaustion (OOM)
+    chunks: list[dict[str, Any]] = []
+    overlap = 50 * 1024 * 1024  # Max signature size across signatures
+    step = max(max_chunk, overlap // 2)
+    with input_path.open("rb") as f:
+        offset = 0
+        while offset < file_size:
+            f.seek(offset)
+            data = f.read(step + overlap)
+            if not data:
+                break
+            chunks.append(
+                {
+                    "source_kind": "raw-image",
+                    "origin": str(input_path),
+                    "offset": offset,
+                    "blob": data,
+                }
+            )
+            offset += step
+            if offset >= file_size:
+                break
+    return chunks
 
 
 def _carve_from_blob(
-    source_entry: dict[str, Any], *, output_dir: pathlib.Path, max_matches: int, counter: int
+    source_entry: dict[str, Any],
+    *,
+    output_dir: pathlib.Path,
+    max_matches: int,
+    counter: int,
+    seen_offsets: set[int] | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
     blob = bytes(source_entry.get("blob") or b"")
     if max_matches <= 0:
         return [], counter
+    if seen_offsets is None:
+        seen_offsets = set()
     out: list[dict[str, Any]] = []
     for signature in _SIGNATURES:
         start = 0
@@ -107,6 +165,11 @@ def _carve_from_blob(
                 start = index + len(signature["header"])
                 continue
             end = min(end_index + len(signature["footer"]), index + int(signature["max_size"]))
+            abs_offset = int(source_entry.get("offset") or 0) + index
+            if abs_offset in seen_offsets:
+                start = end
+                continue
+            seen_offsets.add(abs_offset)
             carved_bytes = blob[index:end]
             file_name = f"carved_{counter:03d}_{signature['kind']}{signature['extension']}"
             path = output_dir / file_name
@@ -118,7 +181,7 @@ def _carve_from_blob(
                     "size_bytes": len(carved_bytes),
                     "source_kind": source_entry.get("source_kind"),
                     "origin": source_entry.get("origin"),
-                    "offset": int(source_entry.get("offset") or 0) + index,
+                    "offset": abs_offset,
                     "page_number": source_entry.get("page_number"),
                 }
             )

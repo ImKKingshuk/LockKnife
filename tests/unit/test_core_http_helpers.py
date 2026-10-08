@@ -30,9 +30,15 @@ def test_http_internal_helpers(monkeypatch, tmp_path) -> None:
 def test_http_parse_https_and_cache_root(monkeypatch, tmp_path) -> None:
     from lockknife.core import http as http_mod
 
-    host, path = http_mod._parse_https("https://example.com/a?b=1")
+    host, port, path = http_mod._parse_https("https://example.com/a?b=1")
     assert host == "example.com"
+    assert port is None
     assert path.endswith("?b=1")
+
+    host2, port2, path2 = http_mod._parse_https("https://example.com:8443/api")
+    assert host2 == "example.com"
+    assert port2 == 8443
+    assert path2 == "/api"
 
     with pytest.raises(http_mod.HttpError):
         http_mod._parse_https("https:///x")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from lockknife.core.agent.models import ModelDecision
@@ -16,14 +17,24 @@ class FailoverProvider:
         self,
         providers: list[LLMProvider],
         max_consecutive_errors: int = 5,
+        cooldown_s: float = 60.0,
     ) -> None:
         if not providers:
             raise ValueError("FailoverProvider requires at least one provider")
         self.providers = list(providers)
         self.max_consecutive_errors = max_consecutive_errors
+        self.cooldown_s = cooldown_s
         self.consecutive_errors = 0
         self.circuit_tripped = False
+        self.last_tripped_at = 0.0
         self.failover_count = 0
+
+    def reset(self) -> None:
+        """Manually reset the circuit breaker and consecutive error counter."""
+        self.circuit_tripped = False
+        self.consecutive_errors = 0
+        self.last_tripped_at = 0.0
+        logger.info("FailoverProvider circuit breaker and error counters manually reset.")
 
     def complete(
         self,
@@ -31,11 +42,19 @@ class FailoverProvider:
         tools: list[dict[str, Any]] | None = None,
         system_prompt: str | None = None,
     ) -> ModelDecision:
+        now = time.time()
         if self.circuit_tripped:
-            return ModelDecision.finish(
-                "Circuit breaker tripped: Model requests halted due to excessive consecutive provider failures.",
-                reasoning="Circuit breaker active.",
-            )
+            if now - self.last_tripped_at >= self.cooldown_s:
+                logger.info(
+                    "Circuit breaker cooldown elapsed (%.1fs). Entering half-open trial state.",
+                    self.cooldown_s,
+                )
+            else:
+                remaining = int(self.cooldown_s - (now - self.last_tripped_at))
+                return ModelDecision.finish(
+                    f"Circuit breaker tripped: Model requests halted due to excessive consecutive provider failures (cooldown remaining: {remaining}s).",
+                    reasoning="Circuit breaker active.",
+                )
 
         last_error = ""
 
@@ -59,6 +78,7 @@ class FailoverProvider:
 
                 # Successful completion
                 self.consecutive_errors = 0
+                self.circuit_tripped = False
                 return decision
 
             except Exception as exc:
@@ -73,6 +93,7 @@ class FailoverProvider:
         self.consecutive_errors += 1
         if self.consecutive_errors >= self.max_consecutive_errors:
             self.circuit_tripped = True
+            self.last_tripped_at = time.time()
             logger.critical("Circuit breaker tripped: %d consecutive failures.", self.consecutive_errors)
             return ModelDecision.finish(
                 f"Circuit breaker tripped after {self.consecutive_errors} consecutive failures: {last_error}",

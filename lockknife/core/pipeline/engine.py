@@ -269,29 +269,49 @@ class PipelineExecutor:
                 res: dict[str, Any] = {}
                 tier_used = AcquisitionTier.LOCAL_DERIVED
 
-                # Execute with device mutex if step accesses physical device
-                if step_def.requires_device:
-                    with self._device_lock:
-                        tier_used = AcquisitionTier.DIRECT
+                def _invoke(action_id: str, is_device: bool) -> dict[str, Any]:
+                    max_attempts = max(1, step_def.retries + 1)
+                    last_res: dict[str, Any] = {}
+                    for attempt in range(max_attempts):
                         try:
-                            res = dispatch_cb(step_def.action_id, params)
+                            if is_device:
+                                with self._device_lock:
+                                    last_res = dispatch_cb(action_id, params)
+                            else:
+                                last_res = dispatch_cb(action_id, params)
                         except Exception as exc:
-                            res = {"ok": False, "error": str(exc)}
+                            last_res = {"ok": False, "error": str(exc)}
 
-                        # If primary action failed and a fallback action exists, attempt fallback
-                        if not res.get("ok") and step_def.fallback_action_id:
-                            used_fallback = True
-                            tier_used = AcquisitionTier.PROVIDER_BACKUP
-                            try:
-                                res = dispatch_cb(step_def.fallback_action_id, params)
-                            except Exception as exc:
-                                res = {"ok": False, "error": str(exc)}
+                        if last_res.get("ok"):
+                            return last_res
+                        if attempt < max_attempts - 1:
+                            time.sleep(step_def.retry_backoff_s * (2**attempt))
+                    return last_res
+
+                if step_def.requires_device and not self.target_serial:
+                    if step_def.fallback_action_id:
+                        used_fallback = True
+                        tier_used = AcquisitionTier.PROVIDER_BACKUP
+                        res = _invoke(step_def.fallback_action_id, False)
+                    else:
+                        res = {
+                            "ok": False,
+                            "error": f"Step '{step_def.step_id}' requires target device, but no device serial was provided.",
+                            "recovery_hint": "Specify target_serial when initializing PipelineExecutor or attach device.",
+                        }
                 else:
-                    # Offline processing runs parallel without holding device mutex
-                    try:
-                        res = dispatch_cb(step_def.action_id, params)
-                    except Exception as exc:
-                        res = {"ok": False, "error": str(exc)}
+                    tier_used = (
+                        AcquisitionTier.DIRECT
+                        if step_def.requires_device
+                        else AcquisitionTier.LOCAL_DERIVED
+                    )
+                    res = _invoke(step_def.action_id, step_def.requires_device)
+
+                    # If primary action failed and a fallback action exists, attempt fallback
+                    if not res.get("ok") and step_def.fallback_action_id:
+                        used_fallback = True
+                        tier_used = AcquisitionTier.PROVIDER_BACKUP
+                        res = _invoke(step_def.fallback_action_id, False)
 
                 duration_ms = round((time.perf_counter() - step_start) * 1000.0, 2)
                 end_utc = _utc_now()

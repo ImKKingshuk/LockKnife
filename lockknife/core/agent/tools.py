@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import pathlib
+import threading
 import time
 from collections.abc import Callable
 from typing import Any
@@ -36,6 +37,7 @@ class AgentToolRegistry:
         self.memory_store = memory_store
         self.exec_sessions = exec_session_manager or ExecSessionManager()
         self._adb_client: AdbClient | None = None
+        self._device_lock = threading.Lock()
         self._tool_specs_cache: list[dict[str, Any]] | None = None
 
     def _get_adb(self) -> AdbClient:
@@ -307,7 +309,12 @@ class AgentToolRegistry:
                         error="Missing 'command' argument",
                         duration_s=time.perf_counter() - start_time,
                     )
-                out = self._get_adb().shell(serial=serial, command=cmd) if serial else self._get_adb().run(["shell", cmd])
+                with self._device_lock:
+                    out = (
+                        self._get_adb().shell(serial=serial, command=cmd)
+                        if serial
+                        else self._get_adb().run(["shell", cmd])
+                    )
                 return ToolObservation(
                     call_id=invocation.call_id,
                     tool_id=tool_id,
@@ -462,7 +469,14 @@ class AgentToolRegistry:
             if self.target_serial and "serial" not in params:
                 params["serial"] = self.target_serial
 
-            raw_res = cb(tool_id, params)
+            is_device_action = tool_id.startswith(
+                ("extract.", "crack.", "exploit.", "runtime.", "device.")
+            )
+            if is_device_action:
+                with self._device_lock:
+                    raw_res = cb(tool_id, params)
+            else:
+                raw_res = cb(tool_id, params)
             is_ok = bool(raw_res.get("ok", True)) if isinstance(raw_res, dict) else True
             err = raw_res.get("error") if isinstance(raw_res, dict) else None
 

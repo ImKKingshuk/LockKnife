@@ -74,6 +74,27 @@ def _try_root_pull_file(
     return try_root_staging_pull(devices, serial, remote, local, timeout_s=timeout_s)
 
 
+def _pull_sqlite_with_wal(
+    devices: DeviceManager,
+    serial: str,
+    remote: str,
+    local: pathlib.Path,
+    *,
+    timeout_s: float = 180.0,
+) -> bool:
+    if not _try_root_pull_file(devices, serial, remote, local, timeout_s=timeout_s):
+        return False
+    # Attempt to pull sibling -wal and -shm files if present on remote
+    for ext in ("-wal", "-shm"):
+        remote_ext = f"{remote}{ext}"
+        local_ext = local.with_name(local.name + ext)
+        try:
+            _try_root_pull_file(devices, serial, remote_ext, local_ext, timeout_s=30.0)
+        except Exception:
+            pass
+    return True
+
+
 def _table_columns(con: sqlite3.Connection, table: str) -> set[str]:
     cur = con.execute(f"PRAGMA table_info({table})")
     return {row[1] for row in cur.fetchall()}
@@ -326,7 +347,7 @@ def extract_whatsapp_messages(
             if not remote.endswith(".db"):
                 continue
             local = d / "msgstore.db"
-            if not _try_root_pull_file(devices, serial, remote, local, timeout_s=180.0):
+            if not _pull_sqlite_with_wal(devices, serial, remote, local, timeout_s=180.0):
                 continue
             try:
                 rows = _parse_whatsapp_msgstore(local, limit)
@@ -397,7 +418,7 @@ def extract_telegram_messages(
     with secure_temp_dir(prefix="lockknife-telegram-") as d:
         for remote in candidates:
             local = d / "cache4.db"
-            if not _try_root_pull_file(devices, serial, remote, local, timeout_s=180.0):
+            if not _pull_sqlite_with_wal(devices, serial, remote, local, timeout_s=180.0):
                 continue
             try:
                 items = _parse_telegram_cache(local, limit)
@@ -476,7 +497,7 @@ def extract_signal_messages(
     with secure_temp_dir(prefix="lockknife-signal-") as d:
         for remote in candidates:
             local = d / "signal.db"
-            if not _try_root_pull_file(devices, serial, remote, local, timeout_s=180.0):
+            if not _pull_sqlite_with_wal(devices, serial, remote, local, timeout_s=180.0):
                 continue
             try:
                 items = _parse_signal_db(local, limit)

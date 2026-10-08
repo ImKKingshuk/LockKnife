@@ -44,6 +44,8 @@ class StepDefinition:
     timeout_s: float = 300.0
     params: dict[str, Any] = dataclasses.field(default_factory=dict)
     optional: bool = False
+    retries: int = 0
+    retry_backoff_s: float = 1.0
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -57,6 +59,8 @@ class StepDefinition:
             "timeout_s": self.timeout_s,
             "params": dict(self.params),
             "optional": self.optional,
+            "retries": self.retries,
+            "retry_backoff_s": self.retry_backoff_s,
         }
 
     @classmethod
@@ -72,6 +76,8 @@ class StepDefinition:
             timeout_s=float(data.get("timeout_s", 300.0)),
             params=dict(data.get("params", {})),
             optional=bool(data.get("optional", False)),
+            retries=int(data.get("retries", 0)),
+            retry_backoff_s=float(data.get("retry_backoff_s", 1.0)),
         )
 
 

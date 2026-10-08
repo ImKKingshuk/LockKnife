@@ -126,8 +126,11 @@ class AutonomousRuntime:
             tools=self.tools.get_tool_specs(),
         )
 
+        turn_idx = len(self.turn_engine.working_memory.recent_turns) + 1
+
         if decision.is_tool_call:
             responses: list[str] = []
+            observations: list[ToolObservation] = []
             if decision.reasoning:
                 responses.append(f"Thinking: {decision.reasoning}\n")
             for call in decision.tool_calls:
@@ -142,11 +145,26 @@ class AutonomousRuntime:
                     )
                 else:
                     obs = self.tools.execute(call)
+                observations.append(obs)
                 responses.append(
                     f"   Result: {'OK' if obs.success else 'FAILED'} (took {obs.duration_s:.2f}s)"
                 )
                 if obs.error:
                     responses.append(f"   Error: {obs.error}")
+
+            turn_rec = TurnRecord(
+                turn_index=turn_idx,
+                decision=decision,
+                observations=observations,
+            )
+            self.turn_engine.working_memory.recent_turns.append(turn_rec)
+            self.memory.persist_turn(turn_rec)
             return "\n".join(responses)
 
+        turn_rec = TurnRecord(
+            turn_index=turn_idx,
+            decision=decision,
+        )
+        self.turn_engine.working_memory.recent_turns.append(turn_rec)
+        self.memory.persist_turn(turn_rec)
         return decision.text or "Acknowledged."

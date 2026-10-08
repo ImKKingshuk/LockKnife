@@ -27,17 +27,18 @@ _rate_lock = threading.Lock()
 _rate_last_call: dict[str, float] = {}
 
 
-def _parse_https(url: str) -> tuple[str, str]:
+def _parse_https(url: str) -> tuple[str, int | None, str]:
     u = urlparse(url)
     if u.scheme != "https":
         raise HttpError("Only https:// URLs are supported")
     host = u.hostname
     if not host:
         raise HttpError("Invalid URL host")
+    port = u.port
     path = u.path or "/"
     if u.query:
         path = path + "?" + u.query
-    return host, path
+    return host, port, path
 
 
 def _cache_root() -> pathlib.Path:
@@ -237,13 +238,16 @@ def http_get(
     if cached is not None:
         return cached
 
-    host, path = _parse_https(url)
+    host, port, path = _parse_https(url)
     ctx = ssl.create_default_context()
     attempt = 0
     while True:
         attempt += 1
         _rate_limit(host, rate_limit_per_s)
-        conn = http.client.HTTPSConnection(host, timeout=timeout_s, context=ctx)
+        conn_kwargs: dict[str, Any] = {"timeout": timeout_s, "context": ctx}
+        if port is not None:
+            conn_kwargs["port"] = port
+        conn = http.client.HTTPSConnection(host, **conn_kwargs)
         try:
             conn.request("GET", path, headers=headers or {})
             resp = conn.getresponse()
@@ -343,7 +347,7 @@ def http_post_json(
         if cached is not None:
             return json.loads(cached.decode("utf-8", errors="ignore") or "null")
 
-    host, path = _parse_https(url)
+    host, port, path = _parse_https(url)
     ctx = ssl.create_default_context()
     body = json.dumps(payload).encode("utf-8")
     hdrs = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -353,7 +357,10 @@ def http_post_json(
     while True:
         attempt += 1
         _rate_limit(host, rate_limit_per_s)
-        conn = http.client.HTTPSConnection(host, timeout=timeout_s, context=ctx)
+        conn_kwargs = {"timeout": timeout_s, "context": ctx}
+        if port is not None:
+            conn_kwargs["port"] = port
+        conn = http.client.HTTPSConnection(host, **conn_kwargs)
         try:
             conn.request("POST", path, body=body, headers=hdrs)
             resp = conn.getresponse()
