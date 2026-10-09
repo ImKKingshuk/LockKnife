@@ -8,6 +8,7 @@ from typing import Any
 import click
 
 from lockknife.core.serialize import write_csv, write_json
+from lockknife_headless_cli._extract_helpers import _extract_devices
 
 
 def register(extract: Any, cli: Any) -> None:
@@ -52,15 +53,16 @@ def register(extract: Any, cli: Any) -> None:
         filename = f"messaging_{app_l}_{mode_l}.{ext}"
         output, derived = cli._resolve_case_output(output, case_dir, filename=filename)
 
+        devices = _extract_devices(app)
         if mode_l == "artifacts":
             if ext != "json":
                 raise click.ClickException("--format csv is not supported for --mode artifacts")
             if app_l == "whatsapp":
-                payload = dataclasses.asdict(cli.extract_whatsapp_artifacts(app.devices, serial))
+                payload = dataclasses.asdict(cli.extract_whatsapp_artifacts(devices, serial))
             elif app_l == "telegram":
-                payload = dataclasses.asdict(cli.extract_telegram_artifacts(app.devices, serial))
+                payload = dataclasses.asdict(cli.extract_telegram_artifacts(devices, serial))
             else:
-                payload = dataclasses.asdict(cli.extract_signal_artifacts(app.devices, serial))
+                payload = dataclasses.asdict(cli.extract_signal_artifacts(devices, serial))
             if output:
                 write_json(output, payload)
                 cli._register_output(
@@ -78,11 +80,11 @@ def register(extract: Any, cli: Any) -> None:
             return
 
         if app_l == "whatsapp":
-            rows: list[Any] = cli.extract_whatsapp_messages(app.devices, serial, limit=limit)
+            rows: list[Any] = cli.extract_whatsapp_messages(devices, serial, limit=limit)
         elif app_l == "telegram":
-            rows = cli.extract_telegram_messages(app.devices, serial, limit=limit)
+            rows = cli.extract_telegram_messages(devices, serial, limit=limit)
         else:
-            rows = cli.extract_signal_messages(app.devices, serial, limit=limit)
+            rows = cli.extract_signal_messages(devices, serial, limit=limit)
 
         items = [dataclasses.asdict(row) for row in rows]
         if output:

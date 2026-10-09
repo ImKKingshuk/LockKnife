@@ -10,6 +10,7 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from lockknife.core.exceptions import DeviceError
 from lockknife.core.progress import ProgressCallback, emit_progress
 from lockknife.core.serialize import write_csv, write_json
+from lockknife_headless_cli._extract_helpers import _extract_devices
 
 _RECOVERABLE_EXTRACT_ERRORS = (
     AttributeError,
@@ -45,10 +46,11 @@ def _extract_rows(
         metadata={"dataset": dataset, "serial": serial, "limit": limit},
     )
     try:
+        devices = _extract_devices(app)
         if limit is None:
-            rows = extractor(app.devices, serial)
+            rows = extractor(devices, serial)
         else:
-            rows = extractor(app.devices, serial, limit=limit)
+            rows = extractor(devices, serial, limit=limit)
         return [dataclasses.asdict(row) for row in rows]
     except _RECOVERABLE_EXTRACT_ERRORS as exc:
         errors.append({"dataset": dataset, "serial": serial})
@@ -78,7 +80,7 @@ def _extract_location_bundle(
         metadata={"dataset": "location", "serial": serial},
     )
     try:
-        loc = cli.extract_location_artifacts(app.devices, serial)
+        loc = cli.extract_location_artifacts(_extract_devices(app), serial)
     except _RECOVERABLE_EXTRACT_ERRORS as exc:
         errors.append({"dataset": "location", "serial": serial})
         cli.log.warning("extract_location_failed", exc_info=True, serial=serial, error=str(exc))

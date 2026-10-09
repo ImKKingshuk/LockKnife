@@ -10,6 +10,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
     pathlib = cb.pathlib
     time = cb.time
     _asdict = cb._asdict
+    _devices = cb._devices
     _ok = cast(Callable[[Any, str], dict[str, Any]], cb._ok)
     _err = cast(Callable[[str], dict[str, Any]], cb._err)
     _require = cb._require
@@ -162,7 +163,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         duration = float(params.get("duration") or 30)
         iface = str(params.get("iface") or "any")
         result = capture_pcap(
-            app.devices, serial, output_path=output, duration_s=duration, iface=iface
+            _devices(app), serial, output_path=output, duration_s=duration, iface=iface
         )
         _register_case_output(
             case_dir,

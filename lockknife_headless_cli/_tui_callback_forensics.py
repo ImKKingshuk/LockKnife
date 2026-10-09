@@ -10,6 +10,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
     pathlib = cb.pathlib
     time = cb.time
     _asdict = cb._asdict
+    _devices = cb._devices
     _ok = cast(Callable[[Any, str], dict[str, Any]], cb._ok)
     _err = cast(Callable[[str], dict[str, Any]], cb._err)
     _require = cb._require
@@ -167,7 +168,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         full = _bool_param(params.get("full"))
         encrypt = _bool_param(params.get("encrypt"))
         input_paths = _csv_list(params.get("paths"))
-        out = create_snapshot(app.devices, serial, output_path=output, full=full, encrypt=encrypt)
+        out = create_snapshot(_devices(app), serial, output_path=output, full=full, encrypt=encrypt)
         _register_case_output(
             case_dir,
             path=output,

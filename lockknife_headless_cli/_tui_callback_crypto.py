@@ -10,6 +10,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
     pathlib = cb.pathlib
     time = cb.time
     _asdict = cb._asdict
+    _devices = cb._devices
     _ok = cast(Callable[[Any, str], dict[str, Any]], cb._ok)
     _err = cast(Callable[[str], dict[str, Any]], cb._err)
     _require = cb._require
@@ -164,7 +165,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             )
             from lockknife.modules.crypto_wallet.wallet import extract_device_wallets
 
-            wallets = extract_device_wallets(app.devices, serial, limit_files_per_app=limit)
+            wallets = extract_device_wallets(_devices(app), serial, limit_files_per_app=limit)
             payload = [dataclasses.asdict(w) for w in wallets]
             if output is not None:
                 write_json(output, payload)

@@ -8,6 +8,7 @@ from typing import Any
 import click
 
 from lockknife.core.serialize import write_csv, write_json
+from lockknife_headless_cli._extract_helpers import _extract_devices
 
 
 def register(extract: Any, cli: Any) -> None:
@@ -33,7 +34,7 @@ def register(extract: Any, cli: Any) -> None:
         output: pathlib.Path | None,
         case_dir: pathlib.Path | None,
     ) -> None:
-        rows = cli.extract_sms(app.devices, serial, limit=limit)
+        rows = cli.extract_sms(_extract_devices(app), serial, limit=limit)
         items = [dataclasses.asdict(row) for row in rows]
         ext = "csv" if out_format.lower() == "csv" else "json"
         output, derived = cli._resolve_case_output(output, case_dir, filename=f"sms.{ext}")
@@ -77,7 +78,7 @@ def register(extract: Any, cli: Any) -> None:
         output: pathlib.Path | None,
         case_dir: pathlib.Path | None,
     ) -> None:
-        rows = cli.extract_contacts(app.devices, serial, limit=limit)
+        rows = cli.extract_contacts(_extract_devices(app), serial, limit=limit)
         items = [dataclasses.asdict(row) for row in rows]
         ext = "csv" if out_format.lower() == "csv" else "json"
         output, derived = cli._resolve_case_output(output, case_dir, filename=f"contacts.{ext}")
@@ -121,7 +122,7 @@ def register(extract: Any, cli: Any) -> None:
         output: pathlib.Path | None,
         case_dir: pathlib.Path | None,
     ) -> None:
-        rows = cli.extract_call_logs(app.devices, serial, limit=limit)
+        rows = cli.extract_call_logs(_extract_devices(app), serial, limit=limit)
         items = [dataclasses.asdict(row) for row in rows]
         ext = "csv" if out_format.lower() == "csv" else "json"
         output, derived = cli._resolve_case_output(output, case_dir, filename=f"call_logs.{ext}")

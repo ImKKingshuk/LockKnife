@@ -8,6 +8,7 @@ from typing import Any
 import click
 
 from lockknife.core.serialize import write_csv, write_json
+from lockknife_headless_cli._extract_helpers import _extract_devices
 
 
 def register(extract: Any, cli: Any) -> None:
@@ -33,7 +34,7 @@ def register(extract: Any, cli: Any) -> None:
         output: pathlib.Path | None,
         case_dir: pathlib.Path | None,
     ) -> None:
-        rows = cli.extract_media_with_exif(app.devices, serial, limit=limit)
+        rows = cli.extract_media_with_exif(_extract_devices(app), serial, limit=limit)
         items = [dataclasses.asdict(row) for row in rows]
         ext = "csv" if out_format.lower() == "csv" else "json"
         output, derived = cli._resolve_case_output(output, case_dir, filename=f"media.{ext}")
@@ -74,9 +75,9 @@ def register(extract: Any, cli: Any) -> None:
             output, case_dir, filename=f"location_{mode.lower()}.json"
         )
         if mode.lower() == "artifacts":
-            payload = dataclasses.asdict(cli.extract_location_artifacts(app.devices, serial))
+            payload = dataclasses.asdict(cli.extract_location_artifacts(_extract_devices(app), serial))
         else:
-            payload = dataclasses.asdict(cli.extract_location_snapshot(app.devices, serial))
+            payload = dataclasses.asdict(cli.extract_location_snapshot(_extract_devices(app), serial))
         if output:
             write_json(output, payload)
             cli._register_output(
@@ -109,7 +110,7 @@ def register(extract: Any, cli: Any) -> None:
     ) -> None:
         from lockknife.modules.crypto_wallet.wallet import extract_device_wallets
 
-        wallets = extract_device_wallets(app.devices, serial, limit_files_per_app=limit)
+        wallets = extract_device_wallets(_extract_devices(app), serial, limit_files_per_app=limit)
         items = [dataclasses.asdict(w) for w in wallets]
         output, derived = cli._resolve_case_output(output, case_dir, filename="wallets.json")
         if output:

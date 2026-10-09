@@ -10,6 +10,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
     pathlib = cb.pathlib
     time = cb.time
     _asdict = cb._asdict
+    _devices = cb._devices
     _ok = cast(Callable[[Any, str], dict[str, Any]], cb._ok)
     _err = cast(Callable[[str], dict[str, Any]], cb._err)
     _require = cb._require
@@ -157,7 +158,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="derived",
             filename=f"security_scan_{_safe_name(serial)}.json",
         )
-        findings = [dataclasses.asdict(f) for f in run_device_audit(app.devices, serial)]
+        findings = [dataclasses.asdict(f) for f in run_device_audit(_devices(app), serial)]
         if output is not None:
             write_json(output, findings)
             _register_case_output(
@@ -180,7 +181,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="derived",
             filename=f"security_selinux_{_safe_name(serial)}.json",
         )
-        status = dataclasses.asdict(get_selinux_status(app.devices, serial))
+        status = dataclasses.asdict(get_selinux_status(_devices(app), serial))
         if output is not None:
             write_json(output, status)
             _register_case_output(
@@ -231,7 +232,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="derived",
             filename=f"security_network_scan_{_safe_name(serial)}.json",
         )
-        scan = scan_network(app.devices, serial)
+        scan = scan_network(_devices(app), serial)
         payload = {
             "dns": scan.dns,
             "dns_cache": scan.dns_cache,
@@ -263,7 +264,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="derived",
             filename=f"security_bootloader_{_safe_name(serial)}.json",
         )
-        payload = dataclasses.asdict(analyze_bootloader(app.devices, serial))
+        payload = dataclasses.asdict(analyze_bootloader(_devices(app), serial))
         if output is not None:
             write_json(output, payload)
             _register_case_output(
@@ -286,7 +287,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
             area="derived",
             filename=f"security_hardware_{_safe_name(serial)}.json",
         )
-        payload = dataclasses.asdict(analyze_hardware_security(app.devices, serial))
+        payload = dataclasses.asdict(analyze_hardware_security(_devices(app), serial))
         if output is not None:
             write_json(output, payload)
             _register_case_output(
@@ -309,7 +310,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         if not any((package, apk, artifacts)):
             raise ValueError("security.attack_surface requires package, apk, or artifacts")
         report = assess_attack_surface(
-            app.devices,
+            _devices(app),
             package=package,
             serial=serial,
             apk_path=apk,

@@ -145,3 +145,46 @@ def test_exploit_cli_status_cmd_runner():
     result = runner.invoke(exploit, ["status"])
     assert result.exit_code == 0
     assert "Authorization Scope" in result.output
+
+
+def test_extract_devices_fallback_and_passthrough():
+    """_extract_devices provides safe fallback and preserves existing devices."""
+    from lockknife_headless_cli._extract_helpers import _extract_devices
+
+    # Passthrough when devices attribute is present
+    mock_devs = MagicMock()
+    app_with_devs = MagicMock()
+    app_with_devs.devices = mock_devs
+    assert _extract_devices(app_with_devs) is mock_devs
+
+    # Fallback when app is None or empty dict
+    fallback = _extract_devices(None)
+    assert isinstance(fallback, DeviceManager)
+
+    fallback_dict = _extract_devices({})
+    assert isinstance(fallback_dict, DeviceManager)
+
+
+def test_extract_all_rows_resilience():
+    """_extract_rows in _extract_all works seamlessly with duck-typed app."""
+    from lockknife_headless_cli._extract_all import _extract_rows
+
+    mock_cli = MagicMock()
+    mock_extractor = MagicMock(return_value=[])
+    errors: list[dict[str, str]] = []
+
+    res = _extract_rows(
+        "sms",
+        cli=mock_cli,
+        app=MagicMock(spec=[]),
+        serial="dummy-serial",
+        progress_callback=None,
+        current=1,
+        total=5,
+        extractor=mock_extractor,
+        errors=errors,
+    )
+    assert res == []
+    assert len(errors) == 0
+    mock_extractor.assert_called_once()
+

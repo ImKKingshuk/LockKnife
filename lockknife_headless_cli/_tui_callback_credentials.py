@@ -14,6 +14,7 @@ from lockknife_headless_cli._credential_workflows import (
 
 def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict[str, Any] | None:
     _ok = cast(Callable[[Any, str], dict[str, Any]], cb._ok)
+    _devices = cb._devices
     selected_serial = cb._opt(getattr(app, "selected_device_serial", None))
     param_serial = cb._opt(params.get("serial")) or cb._opt(params.get("selected_device_serial"))
     effective_serial = param_serial or selected_serial
@@ -22,7 +23,7 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
 
     if action == "credentials.pin":
         payload = run_pin_recovery_workflow(
-            app.devices,
+            _devices(app),
             serial=effective_serial,
             length=cb._int_param(cb._require(params, "length")),
             case_dir=cb._path_param(params.get("case_dir")),
@@ -39,7 +40,7 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
         return _ok(payload, f"Recovered PIN for {payload['serial']}")
     if action == "credentials.gesture":
         payload = run_gesture_recovery_workflow(
-            app.devices,
+            _devices(app),
             serial=effective_serial,
             case_dir=cb._path_param(params.get("case_dir")),
             output_dir=cb._path_param(params.get("output_dir")),
@@ -55,7 +56,7 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
         return _ok(payload, f"Recovered gesture pattern for {payload['serial']}")
     if action == "credentials.wifi":
         payload = run_wifi_workflow(
-            app.devices,
+            _devices(app),
             serial=effective_serial,
             case_dir=cb._path_param(params.get("case_dir")),
             output_dir=cb._path_param(params.get("output_dir")),
@@ -71,7 +72,7 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
         return _ok(payload, f"Collected WiFi credentials from {payload['serial']}")
     if action == "credentials.keystore":
         payload = run_keystore_workflow(
-            app.devices,
+            _devices(app),
             serial=effective_serial,
             case_dir=cb._path_param(params.get("case_dir")),
             output_dir=cb._path_param(params.get("output_dir")),
@@ -87,7 +88,7 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
         return _ok(payload, f"Collected keystore inventory from {payload['serial']}")
     if action == "credentials.passkeys":
         payload = run_passkey_workflow(
-            app.devices,
+            _devices(app),
             serial=effective_serial,
             case_dir=cb._path_param(params.get("case_dir")),
             output_dir=cb._path_param(params.get("output_dir")),

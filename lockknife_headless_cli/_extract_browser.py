@@ -8,6 +8,7 @@ from typing import Any
 import click
 
 from lockknife.core.serialize import write_csv, write_json
+from lockknife_headless_cli._extract_helpers import _extract_devices
 
 
 def register(extract: Any, cli: Any) -> None:
@@ -57,6 +58,7 @@ def register(extract: Any, cli: Any) -> None:
             f"browser_{app_l}.{ext}" if kind_l == "all" else f"browser_{app_l}_{kind_l}.{ext}"
         )
         output, derived = cli._resolve_case_output(output, case_dir, filename=filename)
+        devices = _extract_devices(app)
 
         if kind_l == "all":
             if ext != "json":
@@ -66,16 +68,16 @@ def register(extract: Any, cli: Any) -> None:
                     "app": "firefox",
                     "history": [
                         dataclasses.asdict(row)
-                        for row in cli.extract_firefox_history(app.devices, serial, limit=limit)
+                        for row in cli.extract_firefox_history(devices, serial, limit=limit)
                     ],
                     "bookmarks": [
                         dataclasses.asdict(row)
-                        for row in cli.extract_firefox_bookmarks(app.devices, serial, limit=limit)
+                        for row in cli.extract_firefox_bookmarks(devices, serial, limit=limit)
                     ],
                     "passwords": [
                         dataclasses.asdict(row)
                         for row in cli.extract_firefox_saved_logins(
-                            app.devices, serial, limit=limit
+                            devices, serial, limit=limit
                         )
                     ],
                 }
@@ -85,31 +87,31 @@ def register(extract: Any, cli: Any) -> None:
                     "history": [
                         dataclasses.asdict(row)
                         for row in cli.extract_chrome_history(
-                            app.devices, serial, limit=limit, browser=app_l
+                            devices, serial, limit=limit, browser=app_l
                         )
                     ],
                     "bookmarks": [
                         dataclasses.asdict(row)
                         for row in cli.extract_chrome_bookmarks(
-                            app.devices, serial, limit=limit, browser=app_l
+                            devices, serial, limit=limit, browser=app_l
                         )
                     ],
                     "downloads": [
                         dataclasses.asdict(row)
                         for row in cli.extract_chrome_downloads(
-                            app.devices, serial, limit=limit, browser=app_l
+                            devices, serial, limit=limit, browser=app_l
                         )
                     ],
                     "cookies": [
                         dataclasses.asdict(row)
                         for row in cli.extract_chrome_cookies(
-                            app.devices, serial, limit=limit, browser=app_l
+                            devices, serial, limit=limit, browser=app_l
                         )
                     ],
                     "passwords": [
                         dataclasses.asdict(row)
                         for row in cli.extract_chrome_saved_logins(
-                            app.devices, serial, limit=limit, browser=app_l
+                            devices, serial, limit=limit, browser=app_l
                         )
                     ],
                 }
@@ -132,24 +134,24 @@ def register(extract: Any, cli: Any) -> None:
         rows: list[Any]
         if app_l != "firefox":
             if kind_l == "history":
-                rows = cli.extract_chrome_history(app.devices, serial, limit=limit, browser=app_l)
+                rows = cli.extract_chrome_history(devices, serial, limit=limit, browser=app_l)
             elif kind_l == "bookmarks":
-                rows = cli.extract_chrome_bookmarks(app.devices, serial, limit=limit, browser=app_l)
+                rows = cli.extract_chrome_bookmarks(devices, serial, limit=limit, browser=app_l)
             elif kind_l == "downloads":
-                rows = cli.extract_chrome_downloads(app.devices, serial, limit=limit, browser=app_l)
+                rows = cli.extract_chrome_downloads(devices, serial, limit=limit, browser=app_l)
             elif kind_l == "cookies":
-                rows = cli.extract_chrome_cookies(app.devices, serial, limit=limit, browser=app_l)
+                rows = cli.extract_chrome_cookies(devices, serial, limit=limit, browser=app_l)
             else:
                 rows = cli.extract_chrome_saved_logins(
-                    app.devices, serial, limit=limit, browser=app_l
+                    devices, serial, limit=limit, browser=app_l
                 )
         else:
             if kind_l == "history":
-                rows = cli.extract_firefox_history(app.devices, serial, limit=limit)
+                rows = cli.extract_firefox_history(devices, serial, limit=limit)
             elif kind_l == "bookmarks":
-                rows = cli.extract_firefox_bookmarks(app.devices, serial, limit=limit)
+                rows = cli.extract_firefox_bookmarks(devices, serial, limit=limit)
             elif kind_l == "passwords":
-                rows = cli.extract_firefox_saved_logins(app.devices, serial, limit=limit)
+                rows = cli.extract_firefox_saved_logins(devices, serial, limit=limit)
             else:
                 rows = []
 

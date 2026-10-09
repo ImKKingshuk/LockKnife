@@ -35,3 +35,15 @@ def _register_output(
         device_serial=device_serial,
         metadata=metadata,
     )
+
+
+def _extract_devices(app: Any) -> Any:
+    """Safely extract DeviceManager from app or fallback to default."""
+    devices = getattr(app, "devices", None)
+    if devices is not None:
+        return devices
+    from lockknife.core.adb import AdbClient
+    from lockknife.core.device import DeviceManager
+
+    return DeviceManager(AdbClient())
+

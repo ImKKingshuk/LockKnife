@@ -40,6 +40,7 @@ from lockknife_headless_cli._extract_all import register as _register_all
 from lockknife_headless_cli._extract_basic import register as _register_basic
 from lockknife_headless_cli._extract_browser import register as _register_browser
 from lockknife_headless_cli._extract_helpers import (
+    _extract_devices,
     _register_output,
     _resolve_case_output,
 )
