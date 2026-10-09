@@ -15,7 +15,13 @@ from lockknife_headless_cli.actions.metadata import load_action_metadata
 ActionFieldKind = Literal["text", "number", "bool", "choice", "path", "json"]
 ActionHandler = Callable[[Any, str, dict[str, Any]], dict[str, Any] | None]
 DEFAULT_HIDDEN_ACTION_IDS = frozenset(
-    {"config.load", "config.save", "config.metrics", "export.result"}
+    {
+        "config.load",
+        "config.save",
+        "config.metrics",
+        "export.result",
+        "core.doctor.install_missing",
+    }
 )
 
 

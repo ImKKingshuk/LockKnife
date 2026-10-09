@@ -57,6 +57,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
     iter_features = cb.iter_features
     doctor_status = cb.doctor_status
     health_status = cb.health_status
+    install_missing_dependencies = cb.install_missing_dependencies
     write_csv = cb.write_csv
     write_json = cb.write_json
     recover_gesture = cb.recover_gesture
@@ -204,6 +205,12 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
 
     if action == "core.doctor":
         return _ok(doctor_status(), "Dependency doctor ready")
+
+    if action == "core.doctor.install_missing":
+        dry_run = _bool_param(params.get("dry_run", False))
+        all_extras = _bool_param(params.get("all_extras", False))
+        res = install_missing_dependencies(all_extras=all_extras, dry_run=dry_run)
+        return _ok(res, res.get("message", "Dependency installation evaluated"))
 
     if action == "core.features":
         rows = [dataclasses.asdict(feature) for feature in iter_features()]

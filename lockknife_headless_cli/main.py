@@ -46,6 +46,7 @@ class AppContext:
         self.log = get_logger()
         self.adb = AdbClient(adb_path=loaded.config.adb_path or "adb")
         self.devices = DeviceManager(self.adb)
+        self.selected_device_serial: str | None = None
 
 
 @click.group(
@@ -193,3 +194,9 @@ cli.add_command(features_cmd)
 cli.add_command(plugins_group)
 cli.add_command(exploit)
 cli.add_command(actions_cmd)
+
+
+if __name__ == "__main__":
+    cli()
+
+

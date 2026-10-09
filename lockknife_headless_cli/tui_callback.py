@@ -41,7 +41,7 @@ from lockknife.core.case import (
     summarize_case_manifest,
 )
 from lockknife.core.feature_matrix import iter_features
-from lockknife.core.health import doctor_status, health_status
+from lockknife.core.health import doctor_status, health_status, install_missing_dependencies
 from lockknife.core.logging import get_logger
 from lockknife.core.plugin_loader import plugin_inventory
 from lockknife.core.serialize import write_csv, write_json
@@ -270,6 +270,13 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
 
         _t0 = _time.perf_counter()
         _err_flag = False
+        serial_val = params.get("serial") or params.get("selected_device_serial")
+        if serial_val and hasattr(app, "selected_device_serial"):
+            app.selected_device_serial = str(serial_val)
+        elif not serial_val and getattr(app, "selected_device_serial", None):
+            params = dict(params)
+            params["serial"] = app.selected_device_serial
+
         _job_tracker = _maybe_start_case_job(action, params)
         if _job_tracker is not None:
             _JOB_TRACKER_STACK.append(_job_tracker)
@@ -338,6 +345,7 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module.__dict__["iter_features"] = iter_features
     module.__dict__["doctor_status"] = doctor_status
     module.__dict__["health_status"] = health_status
+    module.__dict__["install_missing_dependencies"] = install_missing_dependencies
     module.__dict__["write_csv"] = write_csv
     module.__dict__["write_json"] = write_json
     module.__dict__["case_chain_of_custody_items"] = case_chain_of_custody_items

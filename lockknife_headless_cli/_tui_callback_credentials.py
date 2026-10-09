@@ -14,14 +14,20 @@ from lockknife_headless_cli._credential_workflows import (
 
 def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict[str, Any] | None:
     _ok = cast(Callable[[Any, str], dict[str, Any]], cb._ok)
+    selected_serial = cb._opt(getattr(app, "selected_device_serial", None))
+    param_serial = cb._opt(params.get("serial")) or cb._opt(params.get("selected_device_serial"))
+    effective_serial = param_serial or selected_serial
+    if param_serial and hasattr(app, "selected_device_serial"):
+        app.selected_device_serial = param_serial
+
     if action == "credentials.pin":
         payload = run_pin_recovery_workflow(
             app.devices,
-            serial=cb._opt(params.get("serial")) or cb._opt(params.get("selected_device_serial")),
+            serial=effective_serial,
             length=cb._int_param(cb._require(params, "length")),
             case_dir=cb._path_param(params.get("case_dir")),
             output_dir=cb._path_param(params.get("output_dir")),
-            preferred_serial=app.selected_device_serial,
+            preferred_serial=selected_serial,
             target_serials=cb._csv_list(params.get("target_serials")),
             source_command="tui credentials.pin",
             export_pin_recovery=cb.export_pin_recovery,
@@ -34,10 +40,10 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
     if action == "credentials.gesture":
         payload = run_gesture_recovery_workflow(
             app.devices,
-            serial=cb._opt(params.get("serial")) or cb._opt(params.get("selected_device_serial")),
+            serial=effective_serial,
             case_dir=cb._path_param(params.get("case_dir")),
             output_dir=cb._path_param(params.get("output_dir")),
-            preferred_serial=app.selected_device_serial,
+            preferred_serial=selected_serial,
             target_serials=cb._csv_list(params.get("target_serials")),
             source_command="tui credentials.gesture",
             export_gesture_recovery=cb.export_gesture_recovery,
@@ -50,10 +56,10 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
     if action == "credentials.wifi":
         payload = run_wifi_workflow(
             app.devices,
-            serial=cb._opt(params.get("serial")) or cb._opt(params.get("selected_device_serial")),
+            serial=effective_serial,
             case_dir=cb._path_param(params.get("case_dir")),
             output_dir=cb._path_param(params.get("output_dir")),
-            preferred_serial=app.selected_device_serial,
+            preferred_serial=selected_serial,
             target_serials=cb._csv_list(params.get("target_serials")),
             source_command="tui credentials.wifi",
             export_wifi_credentials=cb.export_wifi_credentials,
@@ -66,10 +72,10 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
     if action == "credentials.keystore":
         payload = run_keystore_workflow(
             app.devices,
-            serial=cb._opt(params.get("serial")) or cb._opt(params.get("selected_device_serial")),
+            serial=effective_serial,
             case_dir=cb._path_param(params.get("case_dir")),
             output_dir=cb._path_param(params.get("output_dir")),
-            preferred_serial=app.selected_device_serial,
+            preferred_serial=selected_serial,
             target_serials=cb._csv_list(params.get("target_serials")),
             source_command="tui credentials.keystore",
             inspect_keystore=cb.inspect_keystore,
@@ -82,11 +88,11 @@ def handle(app: Any, action: str, params: dict[str, object], *, cb: Any) -> dict
     if action == "credentials.passkeys":
         payload = run_passkey_workflow(
             app.devices,
-            serial=cb._opt(params.get("serial")) or cb._opt(params.get("selected_device_serial")),
+            serial=effective_serial,
             case_dir=cb._path_param(params.get("case_dir")),
             output_dir=cb._path_param(params.get("output_dir")),
             limit=cb._int_param(params.get("limit")) or 200,
-            preferred_serial=app.selected_device_serial,
+            preferred_serial=selected_serial,
             target_serials=cb._csv_list(params.get("target_serials")),
             source_command="tui credentials.passkeys",
             pull_passkey_artifacts=cb.pull_passkey_artifacts,
