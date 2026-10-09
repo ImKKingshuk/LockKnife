@@ -221,7 +221,12 @@ class DeviceManager:
         Returns:
             Mapping of serial to result or exception.
         """
-        targets = serials or [d.serial for d in self._adb.list_devices()]
+        if isinstance(serials, str):
+            targets = [s.strip() for s in serials.split(",") if s.strip()]
+        elif serials is not None:
+            targets = list(serials)
+        else:
+            targets = [d.serial for d in self._adb.list_devices()]
         results: dict[str, T | Exception] = {}
         if not targets:
             return results

@@ -6,13 +6,14 @@ import subprocess  # nosec B404
 import zipfile
 from typing import Any
 
+from lockknife.core.health import resolve_tool_binary
 from lockknife.modules.apk._decompile_archive import output_directory_overview, unpack_archive
 from lockknife.modules.apk._decompile_shared import SUPPORTED_DECOMPILE_MODES, ApkError
 
 
 def available_decompile_tools() -> dict[str, Any]:
-    apktool = shutil.which("apktool")
-    jadx = shutil.which("jadx")
+    apktool = resolve_tool_binary("apktool")
+    jadx = resolve_tool_binary("jadx")
     return {
         "unpack": {"available": True, "path": None},
         "apktool": {"available": bool(apktool), "path": apktool},

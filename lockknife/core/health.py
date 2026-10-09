@@ -8,11 +8,33 @@ import shutil
 import sys
 from typing import Any
 
-from lockknife.core.adb import AdbClient
+from lockknife.core.adb import AdbClient, resolve_adb_binary
 from lockknife.core.config import load_config
 from lockknife.core.exceptions import LockKnifeError
 from lockknife.core.plugin_loader import plugin_health_summary
 from lockknife.core.secrets import load_secrets
+
+
+def resolve_tool_binary(tool_name: str) -> str | None:
+    """Find an external binary on PATH or in standard user/system install locations."""
+    found = shutil.which(tool_name)
+    if found:
+        return found
+    try:
+        home = pathlib.Path.home()
+        candidates = [
+            pathlib.Path("/opt/homebrew/bin") / tool_name,
+            pathlib.Path("/usr/local/bin") / tool_name,
+            pathlib.Path("/usr/bin") / tool_name,
+            home / ".local" / "bin" / tool_name,
+            pathlib.Path(f"/opt/{tool_name}/bin") / tool_name,
+        ]
+        for c in candidates:
+            if c.is_file() and os.access(c, os.X_OK):
+                return str(c)
+    except Exception:
+        pass
+    return None
 
 EXTRA_REQUIREMENTS: dict[str, list[str]] = {
     "apk": ["androguard>=4.1.4"],
@@ -179,8 +201,8 @@ def health_status() -> dict[str, Any]:
         adb_path = None
         if cfg is not None:
             adb_path = cfg.config.adb_path or "adb"
-        resolved_adb = shutil.which(adb_path or "adb") or adb_path or "adb"
-        if shutil.which(resolved_adb) is None and resolved_adb == (adb_path or "adb"):
+        resolved_adb = resolve_adb_binary(adb_path or "adb")
+        if shutil.which(resolved_adb) is None and not pathlib.Path(resolved_adb).is_file():
             raise RuntimeError(f"adb not found: {resolved_adb}")
         adb = AdbClient(resolved_adb)
         adb.run(["version"], timeout_s=5.0)
@@ -219,8 +241,8 @@ def doctor_status() -> dict[str, Any]:
     apk = _check_module("androguard.core.apk", extra="apk")
     if not apk["ok"]:
         apk = _check_module("androguard.core.bytecodes.apk", extra="apk")
-    apktool = shutil.which("apktool")
-    jadx = shutil.which("jadx")
+    apktool = resolve_tool_binary("apktool")
+    jadx = resolve_tool_binary("jadx")
     frida = _check_module("frida", extra="frida")
     scapy = _check_module("scapy", extra="network")
     vt_mod = _check_module("vt", extra="threat-intel")

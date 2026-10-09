@@ -265,23 +265,23 @@ def build_tui_callback(app: Any) -> Callable[[str, dict[str, Any]], dict[str, An
     module = sys.modules[__name__]
     registry = build_action_registry()
 
-    def callback(action: str, params: dict[str, Any]) -> dict[str, Any]:
+    def callback(action: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         import time as _time
 
         _t0 = _time.perf_counter()
         _err_flag = False
-        serial_val = params.get("serial") or params.get("selected_device_serial")
+        effective_params: dict[str, Any] = dict(params) if params else {}
+        serial_val = effective_params.get("serial") or effective_params.get("selected_device_serial")
         if serial_val and hasattr(app, "selected_device_serial"):
             app.selected_device_serial = str(serial_val)
         elif not serial_val and getattr(app, "selected_device_serial", None):
-            params = dict(params)
-            params["serial"] = app.selected_device_serial
+            effective_params["serial"] = app.selected_device_serial
 
-        _job_tracker = _maybe_start_case_job(action, params)
+        _job_tracker = _maybe_start_case_job(action, effective_params)
         if _job_tracker is not None:
             _JOB_TRACKER_STACK.append(_job_tracker)
         try:
-            return registry.dispatch(app, action, params)
+            return registry.dispatch(app, action, effective_params)
         except Exception as exc:
             _err_flag = True
             return _err(str(exc))

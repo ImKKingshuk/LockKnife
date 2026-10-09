@@ -10,7 +10,7 @@ from rich.panel import Panel
 from lockknife import __version__
 from lockknife.core.adb import AdbClient
 from lockknife.core.cli_instrumentation import LockKnifeGroup
-from lockknife.core.config import LoadedConfig, load_config
+from lockknife.core.config import LoadedConfig, LockKnifeConfig, load_config
 from lockknife.core.device import DeviceManager
 from lockknife.core.logging import configure_logging, get_logger, trace_context
 from lockknife.core.output import console
@@ -41,12 +41,20 @@ from lockknife_headless_cli.security import security
 
 
 class AppContext:
-    def __init__(self, loaded: LoadedConfig) -> None:
+    def __init__(self, loaded: LoadedConfig | None = None) -> None:
+        if loaded is None:
+            from lockknife.core.config import load_config
+
+            loaded = load_config()
         self.loaded = loaded
         self.log = get_logger()
         self.adb = AdbClient(adb_path=loaded.config.adb_path or "adb")
         self.devices = DeviceManager(self.adb)
         self.selected_device_serial: str | None = None
+
+    @property
+    def config(self) -> LockKnifeConfig:
+        return self.loaded.config
 
 
 @click.group(

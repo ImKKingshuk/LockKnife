@@ -443,14 +443,30 @@ def _json_from_param(value: Any) -> Any:
     return value
 
 
-def _load_config_text(devices: DeviceManager) -> tuple[str, str | None]:
-    try:
-        from lockknife.core.config import load_config
+def _devices(app: Any) -> Any:
+    devices = getattr(app, "devices", None)
+    if devices is not None:
+        return devices
+    from lockknife.core.adb import AdbClient
 
-        loaded = load_config()
-        path = str(loaded.path) if loaded.path else None
+    return DeviceManager(AdbClient())
+
+
+def _load_config_text(app_or_devices: Any = None) -> tuple[str, str | None]:
+    try:
+        loaded = getattr(app_or_devices, "loaded", None)
+        if loaded is not None and getattr(loaded, "path", None):
+            path = str(loaded.path)
+        else:
+            from lockknife.core.config import load_config
+
+            loaded = load_config()
+            path = str(loaded.path) if loaded.path else None
     except Exception:
         path = None
     if path and pathlib.Path(path).exists():
-        return pathlib.Path(path).read_text(encoding="utf-8"), path
+        try:
+            return pathlib.Path(path).read_text(encoding="utf-8"), path
+        except Exception:
+            return "", path
     return "", None

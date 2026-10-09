@@ -168,7 +168,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         return _ok({"output": str(output)}, f"Exported to {output}")
 
     if action == "config.load":
-        text, path = _load_config_text(app.devices)
+        text, path = _load_config_text(app)
         payload = {"text": text, "path": path}
         return _ok(payload, "Config loaded")
 
@@ -185,5 +185,3 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
 
         return _ok({"metrics": _snap(), "custody_log": _dump()}, "Metrics snapshot")
     return _err(f"Unsupported action: {action}")
-
-    return None

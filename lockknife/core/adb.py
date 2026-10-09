@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import os
 import pathlib
 import re
+import shutil
 import subprocess  # nosec B404 - subprocess is essential for ADB CLI interaction; all calls use controlled arguments
+import sys
 import time
 from collections.abc import Sequence
 from typing import Any
@@ -23,6 +26,50 @@ class AdbDevice:
     model: str | None = None
     device: str | None = None
     transport_id: str | None = None
+
+
+def resolve_adb_binary(configured_path: str | None = None) -> str:
+    """Resolve the adb binary path from config, PATH, or standard Android SDK locations."""
+    if configured_path and configured_path != "adb":
+        expanded = os.path.expanduser(os.path.expandvars(configured_path))
+        which_result = shutil.which(expanded)
+        if which_result:
+            return which_result
+        if pathlib.Path(expanded).is_file():
+            return expanded
+        return configured_path
+
+    which_adb = shutil.which("adb")
+    if which_adb:
+        return which_adb
+
+    for env_var in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
+        val = os.environ.get(env_var)
+        if val:
+            candidate = (
+                pathlib.Path(val)
+                / "platform-tools"
+                / ("adb.exe" if sys.platform == "win32" else "adb")
+            )
+            if candidate.is_file():
+                return str(candidate)
+
+    try:
+        home = pathlib.Path.home()
+        standard_paths = [
+            home / "Library" / "Android" / "sdk" / "platform-tools" / "adb",
+            home / "Android" / "Sdk" / "platform-tools" / "adb",
+            pathlib.Path("/usr/lib/android-sdk/platform-tools/adb"),
+            pathlib.Path("/opt/android-sdk/platform-tools/adb"),
+            home / "AppData" / "Local" / "Android" / "Sdk" / "platform-tools" / "adb.exe",
+        ]
+        for p in standard_paths:
+            if p.is_file():
+                return str(p)
+    except Exception:
+        pass
+
+    return "adb"
 
 
 class AdbClient:
@@ -100,6 +147,28 @@ class AdbClient:
                 timeout=timeout_s,
             )
         except FileNotFoundError as e:
+            if self._adb_path == "adb":
+                resolved = resolve_adb_binary("adb")
+                if resolved != "adb":
+                    try:
+                        proc = subprocess.run(  # nosec B603
+                            [resolved, *args],
+                            check=False,
+                            capture_output=True,
+                            text=True,
+                            timeout=timeout_s,
+                        )
+                    except Exception:
+                        pass
+                    else:
+                        if proc.returncode != 0:
+                            msg = (
+                                proc.stderr.strip()
+                                or proc.stdout.strip()
+                                or f"adb failed: {args}"
+                            )
+                            raise ExternalToolError(msg)
+                        return proc.stdout
             self._log.error(
                 "adb_run_missing", adb_path=self._adb_path, args=list(args), exc_info=True
             )
