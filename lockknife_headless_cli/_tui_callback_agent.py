@@ -29,6 +29,41 @@ class _ChatSession:
 
 _chat_sessions: OrderedDict[tuple[Any, ...], _ChatSession] = OrderedDict()
 
+_orcarouter_catalog: Any = None
+
+
+def _catalog_cache() -> Any:
+    """Lazily create the OrcaRouter catalog cache shared by all agents in-process."""
+    global _orcarouter_catalog
+    if _orcarouter_catalog is None:
+        from lockknife.core.agent import ModelCatalogCache
+
+        _orcarouter_catalog = ModelCatalogCache()
+    return _orcarouter_catalog
+
+
+def _resolve_provider_config(*, provider_id: str | None, model: str | None) -> Any:
+    """Resolve the agent provider config, including the named OrcaRouter preset."""
+    from lockknife.core.agent import ProviderConfig, orcarouter
+
+    if provider_id is None:
+        cfg = ProviderConfig.from_env()
+        return dataclasses.replace(cfg, model_name=model) if model else cfg
+    if provider_id != orcarouter.PROVIDER_ID:
+        raise ValueError(
+            f"Unknown agent provider '{provider_id}'; choose '{orcarouter.PROVIDER_ID}'"
+        )
+    cfg = ProviderConfig.for_orcarouter(model=model)
+    catalog = _catalog_cache().discover(
+        orcarouter.OrcaRouterSettings(api_base=cfg.api_base, api_key=cfg.api_key)
+    )
+    ok, reason = orcarouter.ensure_model_supported(cfg.model_name, catalog.models)
+    if ok:
+        return cfg
+    # The stored/selected model is not in the current catalog: reset to the
+    # provider default instead of silently keeping an incompatible value.
+    return dataclasses.replace(cfg, model_name=orcarouter.DEFAULT_MODEL)
+
 
 def _close_chat_sessions() -> None:
     with _chat_lock:
@@ -111,6 +146,7 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         target_device = _opt(params.get("serial")) or _opt(params.get("target_device"))
         budget = _safe_int(params.get("budget"), 25)
         model = _opt(params.get("model"))
+        provider_id = (params.get("provider") or "").strip().lower() or None
         mock = _safe_bool(params.get("mock"), False)
         unrestricted = _safe_bool(params.get("unrestricted"), True)
 
@@ -139,9 +175,10 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 ]
             )
         else:
-            cfg = ProviderConfig.from_env()
-            if model:
-                cfg = ProviderConfig(api_base=cfg.api_base, api_key=cfg.api_key, model_name=model)
+            try:
+                cfg = _resolve_provider_config(provider_id=provider_id, model=model)
+            except ValueError as exc:
+                return _err(str(exc))
             provider = OpenAICompatibleProvider(cfg)
 
         runtime = AutonomousRuntime(
@@ -165,12 +202,14 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
         case_dir_path = _path_param(params.get("case_dir"))
         target_device = _opt(params.get("serial")) or _opt(params.get("target_device"))
         model = _opt(params.get("model"))
+        provider_id = (params.get("provider") or "").strip().lower() or None
         mock = _safe_bool(params.get("mock"), False)
 
         budget = max(1, _safe_int(params.get("budget"), 25))
-        cfg = ProviderConfig.from_env()
-        if model:
-            cfg = dataclasses.replace(cfg, model_name=model)
+        try:
+            cfg = _resolve_provider_config(provider_id=provider_id, model=model)
+        except ValueError as exc:
+            return _err(str(exc))
         key = (
             id(app),
             str(case_dir_path.resolve()) if case_dir_path is not None else None,
@@ -232,6 +271,21 @@ def handle(app: Any, action: str, params: dict[str, Any], *, cb: Any) -> dict[st
                 **state,
             },
             f"Agent daemon action '{daemon_action}' executed",
+        )
+
+    if action == "agent.models":
+        from lockknife.core.agent import orcarouter
+
+        provider_id = (params.get("provider") or orcarouter.PROVIDER_ID).strip().lower()
+        if provider_id != orcarouter.PROVIDER_ID:
+            return _err(f"Unknown agent provider '{provider_id}'")
+        settings = orcarouter.resolve_settings()
+        result = _catalog_cache().discover(settings)
+        payload = orcarouter.describe_catalog(result)
+        payload["api_key_configured"] = bool(settings.api_key)
+        return _ok(
+            payload,
+            f"{len(result.models)} text models (catalog source: {result.source})",
         )
 
     if action == "agent.memory":

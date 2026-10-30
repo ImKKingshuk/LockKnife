@@ -100,7 +100,7 @@ lockknife --cli pipeline run --playbook triage --serial EXAMPLE_DEVICE_SERIAL --
 lockknife --cli agent goal "Assess the connected device and summarize the evidence" --target EXAMPLE_DEVICE_SERIAL --case-dir ./cases/EXAMPLE_CASE
 ```
 
-Agent mode can execute host commands and device actions without repeated confirmation. Run it with access only to the devices and files included in your research scope. A remote model receives investigation context; use a local endpoint when evidence must stay on your machine. See the [automation guide](docs/headless-cli-walkthrough.md#8-automate-an-investigation) for configuration, previews, and recovery.
+Agent mode can execute host commands and device actions without repeated confirmation. Run it with access only to the devices and files included in your research scope. A remote model receives investigation context; use a local endpoint when evidence must stay on your machine, or select the named [OrcaRouter](https://www.orcarouter.ai) Cyber Inference provider (`--provider orcarouter`) for authorized security work. See the [automation guide](docs/headless-cli-walkthrough.md#8-automate-an-investigation) for configuration, previews, and recovery.
 
 > [!NOTE]
 > Investigation examples use dummy identifiers and file paths, not real devices or evidence. Replace `EXAMPLE_*` values, `com.example.placeholder`, and example input paths with your authorized inputs before running a command. Installation links point to the actual project.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from lockknife.core.agent import orcarouter
 from lockknife.core.agent.exec_session import ExecSession, ExecSessionManager
 from lockknife.core.agent.failover import FailoverProvider
 from lockknife.core.agent.heartbeat import DeviceHeartbeatDaemon
@@ -13,6 +14,12 @@ from lockknife.core.agent.models import (
     ToolInvocation,
     ToolObservation,
     TurnRecord,
+)
+from lockknife.core.agent.orcarouter import (
+    CatalogModel,
+    CatalogResult,
+    ModelCatalogCache,
+    OrcaRouterSettings,
 )
 from lockknife.core.agent.planner import GoalPlan, MilestoneStatus, PlanMilestone
 from lockknife.core.agent.policy import PolicyAuthorization, ResearcherPolicy
@@ -34,6 +41,8 @@ __all__ = [
     "AgentRunResult",
     "AgentToolRegistry",
     "AutonomousRuntime",
+    "CatalogModel",
+    "CatalogResult",
     "DecisionKind",
     "DeterministicMockProvider",
     "DeviceHeartbeatDaemon",
@@ -45,8 +54,10 @@ __all__ = [
     "LLMProvider",
     "MemoryStore",
     "MilestoneStatus",
+    "ModelCatalogCache",
     "ModelDecision",
     "OpenAICompatibleProvider",
+    "OrcaRouterSettings",
     "PlanMilestone",
     "PolicyAuthorization",
     "ProviderConfig",

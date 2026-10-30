@@ -4188,6 +4188,16 @@
               "choices": []
             },
             {
+              "key": "provider",
+              "label": "LLM Provider",
+              "kind": "choice",
+              "default": "",
+              "choices": [
+                "",
+                "orcarouter"
+              ]
+            },
+            {
               "key": "mock",
               "label": "Use Mock Provider",
               "kind": "bool",
@@ -4250,6 +4260,33 @@
               "kind": "text",
               "default": "",
               "choices": []
+            },
+            {
+              "key": "provider",
+              "label": "LLM Provider",
+              "kind": "choice",
+              "default": "",
+              "choices": [
+                "",
+                "orcarouter"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "agent.models",
+          "label": "List Provider Models",
+          "requires_device": false,
+          "confirm": false,
+          "fields": [
+            {
+              "key": "provider",
+              "label": "LLM Provider",
+              "kind": "choice",
+              "default": "orcarouter",
+              "choices": [
+                "orcarouter"
+              ]
             }
           ]
         },

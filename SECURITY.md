@@ -15,6 +15,7 @@ See [Case Integrity and Privacy](docs/case-integrity-and-privacy.md) for verific
 - `VT_API_KEY`: optional VirusTotal credential.
 - `OTX_API_KEY`: optional OTX credential.
 - `LOCKKNIFE_SIGNING_KEY`: required for explicit artifact sealing unless a key is supplied directly.
+- `ORCAROUTER_API_KEY`: optional OrcaRouter Cyber Inference key (`sk-orca-…`) for remote agent models; `ORCA_API_KEY` is accepted as an alias.
 
 Set credentials in the environment running LockKnife or through a protected secret store. Threat intelligence credentials can also be loaded from a private `.env` file. Artifact sealing reads `LOCKKNIFE_SIGNING_KEY` from the process environment and requires at least 32 bytes; placing it in `.env` alone does not configure sealing.
 

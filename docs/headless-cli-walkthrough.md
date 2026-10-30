@@ -113,6 +113,22 @@ lockknife --cli agent memory --case-dir ./cases/EXAMPLE_CASE
 
 The budget limits model decisions across the goal and its delegated work. Agent mode permits host commands and device operations without repeated confirmation, so choose its working environment and accessible credentials deliberately. `--restricted` narrows the available operations; it is not an operating-system sandbox. Remote model endpoints receive the context sent to them, including tool results. Use a local model when your evidence policy prohibits that disclosure.
 
+### Use OrcaRouter Cyber Inference
+
+[OrcaRouter](https://www.orcarouter.ai) Cyber Inference is the named remote provider for authorized security teams: it accepts scoped investigation-prompts from analysts working inside an approved scope, where a general-purpose gateway often rejects or silently downgrades them. Its base URL is `https://api.orcarouter.ai/v1` and it uses the OpenAI-compatible wire format LockKnife already speaks. Provider page: [orcarouter.ai/cyber](https://www.orcarouter.ai/cyber) · cyber-tier model catalog: [orcarouter.ai/models?tier=cyber](https://www.orcarouter.ai/models?tier=cyber).
+
+```bash
+export ORCAROUTER_API_KEY="sk-orca-..."      # create one at https://www.orcarouter.ai/console
+lockknife --cli agent models --provider orcarouter          # live text-model catalog
+lockknife --cli agent goal "Inventory accessible evidence and summarize the device security posture" \
+  --provider orcarouter --case-dir ./cases/EXAMPLE_CASE --budget 25
+lockknife --cli agent chat --provider orcarouter --case-dir ./cases/EXAMPLE_CASE
+```
+
+`--provider orcarouter` selects the preset; `--api-key` overrides the environment variable for a single run and `--api-base` / `ORCAROUTER_API_BASE` point at a self-hosted compatible deployment (HTTPS required outside loopback). The default model is `orcarouter/auto`, which routes automatically. Security teams whose workspace has passed business verification can select the dedicated cyber models `orcacyber-ultra-1.0` (security code scanning and multi-step reasoning over large codebases) and `orcacyber-zero-1.5`; `orcarouter/fusion` is the general fallback. Model choices come from the live catalog (`GET /v1/models`), filtered to text-capable chat models; when the catalog is unreachable LockKnife shows a small verified fallback list and marks the result as degraded, and a selected model that is no longer offered is reset to `orcarouter/auto` with a notice. A rejected key reports HTTP 401 once and stops rather than retrying.
+
+Remote models receive the investigation context sent to them, including tool results. Review that disclosure against your evidence policy before enabling a remote provider, especially for red-team engagements and blue-team evidence handling.
+
 Case memory records observations and outcomes, but model conclusions still require evidence review. A failed provider request, unavailable capability, or partial acquisition must not be interpreted as a successful assessment. `--mock` is a simulation mode, not a live investigation.
 
 ## Command Reference

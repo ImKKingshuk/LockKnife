@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import json
 import pathlib
 import sys
@@ -18,11 +19,13 @@ from lockknife.core.agent import (
     DeterministicMockProvider,
     DeviceHeartbeatDaemon,
     GoalStatus,
+    ModelCatalogCache,
     ModelDecision,
     OpenAICompatibleProvider,
     ProviderConfig,
     ResearcherPolicy,
     ToolInvocation,
+    orcarouter,
 )
 from lockknife.core.cli_instrumentation import LockKnifeCommand, LockKnifeGroup
 from lockknife.core.output import console
@@ -35,6 +38,39 @@ from lockknife.core.output import console
 )
 def agent_group() -> None:
     pass
+
+
+_ORCAROUTER_CATALOG = ModelCatalogCache()
+
+
+def _build_provider_config(
+    *,
+    provider: str | None,
+    api_base: str | None,
+    api_key: str | None,
+    model: str | None,
+) -> tuple[ProviderConfig, str | None]:
+    """Resolve the agent provider config, applying OrcaRouter model validation.
+
+    Returns the config and an optional warning when a stored/selected model was
+    not valid for the discovered OrcaRouter catalog (the model value is replaced
+    with the provider default rather than silently kept).
+    """
+    cfg = ProviderConfig.from_cli(
+        provider=provider, api_key=api_key, model=model, api_base=api_base
+    )
+    if provider != orcarouter.PROVIDER_ID:
+        return cfg, None
+    catalog = _ORCAROUTER_CATALOG.discover(
+        orcarouter.OrcaRouterSettings(api_base=cfg.api_base, api_key=cfg.api_key)
+    )
+    ok, reason = orcarouter.ensure_model_supported(cfg.model_name, catalog.models)
+    if ok:
+        return cfg, None
+    return (
+        dataclasses.replace(cfg, model_name=orcarouter.DEFAULT_MODEL),
+        f"{reason}; using {orcarouter.DEFAULT_MODEL}",
+    )
 
 
 @agent_group.command(
@@ -57,6 +93,13 @@ def agent_group() -> None:
     help="Maximum turn loop budget.",
 )
 @click.option("--model", type=str, default=None, help="LLM model name.")
+@click.option(
+    "--provider",
+    type=click.Choice([orcarouter.PROVIDER_ID]),
+    default=None,
+    help="Named LLM provider. 'orcarouter' selects OrcaRouter Cyber Inference "
+    "(key from ORCAROUTER_API_KEY or --api-key; default model orcarouter/auto).",
+)
 @click.option(
     "--api-base", type=str, default=None, help="LLM API base URL (e.g. http://localhost:11434/v1)."
 )
@@ -90,6 +133,7 @@ def agent_goal_cmd(
     target_device: str | None,
     budget_iterations: int,
     model: str | None,
+    provider: str | None,
     api_base: str | None,
     api_key: str | None,
     mock: bool,
@@ -106,7 +150,7 @@ def agent_goal_cmd(
     policy = ResearcherPolicy(unrestricted=unrestricted, auto_provision_case=True)
 
     if mock:
-        provider = DeterministicMockProvider(
+        provider_impl: Any = DeterministicMockProvider(
             [
                 ModelDecision.call_tools(
                     [ToolInvocation(call_id="call_triage", tool_id="core.health", arguments={})],
@@ -119,14 +163,12 @@ def agent_goal_cmd(
             ]
         )
     else:
-        cfg = ProviderConfig.from_env()
-        if model:
-            cfg = ProviderConfig(api_base=cfg.api_base, api_key=cfg.api_key, model_name=model)
-        if api_base:
-            cfg = ProviderConfig(api_base=api_base, api_key=cfg.api_key, model_name=cfg.model_name)
-        if api_key:
-            cfg = ProviderConfig(api_base=cfg.api_base, api_key=api_key, model_name=cfg.model_name)
-        provider = OpenAICompatibleProvider(cfg)
+        cfg, provider_warning = _build_provider_config(
+            provider=provider, api_base=api_base, api_key=api_key, model=model
+        )
+        if provider_warning and out_format == "text":
+            console.print(f"[bold yellow]Provider notice:[/bold yellow] {provider_warning}")
+        provider_impl = OpenAICompatibleProvider(cfg)
 
     def on_turn_start(idx: int) -> None:
         if out_format == "text":
@@ -151,7 +193,7 @@ def agent_goal_cmd(
         goal=goal,
         case_dir=case_dir,
         target_device=target_device,
-        provider=provider,
+        provider=provider_impl,
         policy=policy,
         max_concurrency=concurrency,
         on_turn_start=on_turn_start,
@@ -216,11 +258,18 @@ def agent_goal_cmd(
 )
 @click.option("--target", "target_device", type=str, default=None, help="Target device serial.")
 @click.option("--model", type=str, default=None, help="LLM model name.")
+@click.option(
+    "--provider",
+    type=click.Choice([orcarouter.PROVIDER_ID]),
+    default=None,
+    help="Named LLM provider. 'orcarouter' selects OrcaRouter Cyber Inference.",
+)
 @click.option("--mock", is_flag=True, default=False, help="Use deterministic mock provider.")
 def agent_chat_cmd(
     case_dir: pathlib.Path | None,
     target_device: str | None,
     model: str | None,
+    provider: str | None,
     mock: bool,
 ) -> None:
     goal = AgentGoal(
@@ -230,19 +279,21 @@ def agent_chat_cmd(
     )
 
     if mock:
-        provider = DeterministicMockProvider()
+        chat_provider: Any = DeterministicMockProvider()
     else:
-        cfg = ProviderConfig.from_env()
-        if model:
-            cfg = ProviderConfig(api_base=cfg.api_base, api_key=cfg.api_key, model_name=model)
-        provider = OpenAICompatibleProvider(cfg)
+        cfg, provider_warning = _build_provider_config(
+            provider=provider, api_base=None, api_key=None, model=model
+        )
+        if provider_warning:
+            console.print(f"[bold yellow]Provider notice:[/bold yellow] {provider_warning}")
+        chat_provider = OpenAICompatibleProvider(cfg)
 
     policy = ResearcherPolicy(unrestricted=True, auto_provision_case=True)
     runtime = AutonomousRuntime(
         goal=goal,
         case_dir=case_dir,
         target_device=target_device,
-        provider=provider,
+        provider=chat_provider,
         policy=policy,
     )
 
@@ -398,6 +449,38 @@ def agent_daemon_cmd(interval: float, once: bool, auto_triage: bool) -> None:
         daemon.run_forever()
     except KeyboardInterrupt:
         console.print("\n[yellow]Daemon stopped by operator.[/yellow]")
+
+
+@agent_group.command(
+    "models",
+    cls=LockKnifeCommand,
+    help="List text models available from a named provider (OrcaRouter Cyber Inference).",
+)
+@click.option(
+    "--provider",
+    type=click.Choice([orcarouter.PROVIDER_ID]),
+    default=orcarouter.PROVIDER_ID,
+    show_default=True,
+)
+@click.option("--api-base", type=str, default=None, help="Override the provider API base URL.")
+@click.option(
+    "--format",
+    "out_format",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+    default="text",
+    help="Output format.",
+)
+def agent_models_cmd(provider: str, api_base: str | None, out_format: str) -> None:
+    """Discover the live catalog; fall back to verified seed metadata on outage."""
+    del provider  # only one named provider supports catalog discovery today
+    settings = orcarouter.resolve_settings(api_base=api_base)
+    result = _ORCAROUTER_CATALOG.discover(settings)
+    if out_format == "json":
+        payload = orcarouter.describe_catalog(result)
+        payload["api_key_configured"] = bool(settings.api_key)
+        console.print_json(json.dumps(payload))
+        return
+    orcarouter.print_catalog(result)
 
 
 @agent_group.command(

@@ -14,9 +14,14 @@ import uuid
 from collections.abc import Callable
 from typing import Any, Protocol
 
+from lockknife.core.agent import orcarouter
 from lockknife.core.agent.models import ModelDecision, ToolInvocation
 
 logger = logging.getLogger("lockknife.agent.provider")
+
+# Named providers that LockKnife can select without a generic base URL.
+KNOWN_PROVIDER_IDS = (orcarouter.PROVIDER_ID,)
+
 
 
 @dataclasses.dataclass(frozen=True)
@@ -42,6 +47,52 @@ class ProviderConfig:
         api_key = os.getenv("LOCKKNIFE_AI_KEY") or os.getenv("OPENAI_API_KEY") or ""
         model = os.getenv("LOCKKNIFE_AI_MODEL") or os.getenv("OPENAI_MODEL") or "qwen2.5:latest"
         return cls(api_base=api_base.rstrip("/"), api_key=api_key, model_name=model)
+
+    @classmethod
+    def for_orcarouter(
+        cls,
+        *,
+        api_key: str | None = None,
+        model: str | None = None,
+        api_base: str | None = None,
+    ) -> ProviderConfig:
+        """Build a config for the named OrcaRouter Cyber Inference provider."""
+        settings = orcarouter.resolve_settings(api_key=api_key, model=model, api_base=api_base)
+        return cls(
+            api_base=settings.api_base,
+            api_key=settings.api_key,
+            model_name=settings.model,
+        )
+
+    @classmethod
+    def from_cli(
+        cls,
+        *,
+        provider: str | None = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        api_base: str | None = None,
+    ) -> ProviderConfig:
+        """Resolve a provider name plus explicit overrides into a configuration.
+
+        ``--provider`` is required whenever the config comes from a named provider
+        preset, so a copied command cannot silently leave the project default in
+        place. Without a provider name the historical env/flag resolution applies.
+        """
+        if provider == orcarouter.PROVIDER_ID:
+            return cls.for_orcarouter(api_key=api_key, model=model, api_base=api_base)
+        cfg = cls.from_env()
+        if api_base:
+            cfg = dataclasses.replace(cfg, api_base=api_base.rstrip("/"))
+        if api_key:
+            cfg = dataclasses.replace(cfg, api_key=api_key)
+        if model:
+            cfg = dataclasses.replace(cfg, model_name=model)
+        return cfg
+
+    @property
+    def is_orcarouter(self) -> bool:
+        return self.api_base.rstrip("/") == orcarouter.DEFAULT_API_BASE
 
 
 class LLMProvider(Protocol):
@@ -163,6 +214,10 @@ class OpenAICompatibleProvider:
                     time.sleep(0.1 * (2**attempt))
                     continue
                 exc.close()
+                if exc.code == 401:
+                    return ModelDecision.failure(
+                        "LLM API Error (HTTP 401 - the API key was rejected or revoked)"
+                    )
                 return ModelDecision.failure(f"LLM API Error (HTTP {exc.code})")
             except (urllib.error.URLError, TimeoutError, OSError) as exc:
                 if attempt < 2:
